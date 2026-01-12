@@ -1,6 +1,5 @@
-# Unity generated
-*.meta
-!package.json.meta
+# Unity generated - .meta files are REQUIRED for VPM packages
+# Do NOT ignore .meta files
 
 # IDE
 .idea/
