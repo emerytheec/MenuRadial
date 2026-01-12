@@ -1,0 +1,25 @@
+{
+    "name": "BenderDios.MenuRadial.Menu.Editor",
+    "rootNamespace": "Bender_Dios.MenuRadial.Components.Menu.Editor",
+    "references": [
+        "BenderDios.MenuRadial.Menu",
+        "BenderDios.MenuRadial.Runtime",
+        "BenderDios.MenuRadial.Editor",
+        "BenderDios.MenuRadial.Localization",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "VRC.SDK3A",
+        "VRC.SDKBase"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
