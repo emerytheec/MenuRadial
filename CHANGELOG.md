@@ -18,7 +18,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Soporte para particulas con checkbox opcional
 
 ### Mejorado
-- Documentacion actualizada en CLAUDE.md
+- Documentacion actualizada
 - Constantes centralizadas en MRConstants.cs
 
 ## [0.5.0] - 2026-01-XX

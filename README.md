@@ -68,7 +68,7 @@ Sistema de menu radial para avatares VRChat desarrollado en Unity. Genera animac
 
 ## Documentacion
 
-Para documentacion detallada, consulta el archivo [CLAUDE.md](CLAUDE.md) incluido en el proyecto.
+Consulta la carpeta `Documentation/` para el manual de usuario completo.
 
 ## Licencia
 
