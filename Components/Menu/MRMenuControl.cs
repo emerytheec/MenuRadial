@@ -26,7 +26,9 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         private MRNavigationManager navigationManager;
         private MRSubMenuManager subMenuManager;
         private MRMenuInteractionHandler interactionHandler;
+#if UNITY_EDITOR
         private MRVRChatFileGenerator fileGenerator;
+#endif
         
 
         
@@ -134,12 +136,14 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             {
                 interactionHandler = null;
             }
-            
+
+#if UNITY_EDITOR
             if (fileGenerator != null)
             {
                 fileGenerator = null;
             }
-            
+#endif
+
             // Resetear flags de estado
             _managersInitialized = false;
             InvalidateValidationCache();
@@ -153,21 +157,27 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         private void InitializeManagers()
         {
             // OPTIMIZACIÓN 1: Evitar inicialización redundante
-            if (_managersInitialized && slotManager != null && navigationManager != null && 
-                subMenuManager != null && interactionHandler != null && fileGenerator != null)
+            bool managersReady = _managersInitialized && slotManager != null && navigationManager != null &&
+                subMenuManager != null && interactionHandler != null;
+#if UNITY_EDITOR
+            managersReady = managersReady && fileGenerator != null;
+#endif
+            if (managersReady)
             {
                 return; // Gestores ya inicializados correctamente
             }
-            
+
             // Crear gestores siguiendo patrón de composición
             slotManager = new MRSlotManager(animationSlots);
             navigationManager = new MRNavigationManager(this);
             subMenuManager = new MRSubMenuManager(this, slotManager);
             interactionHandler = new MRMenuInteractionHandler(this, slotManager, navigationManager);
+#if UNITY_EDITOR
             fileGenerator = new MRVRChatFileGenerator(this, slotManager, vrchatConfig);
-            
+#endif
+
             _managersInitialized = true;
-            
+
             // Invalidar cache de validación después de reinicializar
             InvalidateValidationCache();
         }
@@ -177,8 +187,12 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// </summary>
         private void EnsureManagersInitialized()
         {
-            if (slotManager == null || navigationManager == null || subMenuManager == null || 
-                interactionHandler == null || fileGenerator == null)
+            bool needsInit = slotManager == null || navigationManager == null || subMenuManager == null ||
+                interactionHandler == null;
+#if UNITY_EDITOR
+            needsInit = needsInit || fileGenerator == null;
+#endif
+            if (needsInit)
             {
                 InitializeManagers();
             }
@@ -263,8 +277,10 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// </summary>
         public void CreateVRChatFiles()
         {
+#if UNITY_EDITOR
             EnsureManagersInitialized();
             fileGenerator?.CreateVRChatFiles();
+#endif
         }
         
 
