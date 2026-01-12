@@ -23,7 +23,8 @@
     "url": "https://github.com/emerytheec"
   },
   "vpmDependencies": {
-    "com.vrchat.avatars": ">=3.5.0"
+    "com.vrchat.avatars": ">=3.5.0",
+    "nadena.dev.ndmf": ">=1.4.0"
   },
   "legacyFolders": {},
   "license": "MIT"

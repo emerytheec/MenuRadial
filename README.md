@@ -24,20 +24,26 @@ Sistema de menu radial para avatares VRChat desarrollado en Unity. Genera animac
 
 1. Abre VRChat Creator Companion
 2. Ve a Settings > Packages > Add Repository
-3. Agrega la URL: `https://emerytheec.github.io/MenuRadial/index.json`
+3. Agrega la URL: `https://emerytheec.github.io/vpm-listing/index.json`
 4. Busca "Menu Radial" en la lista de paquetes
 5. Click en "Add" para instalarlo en tu proyecto
+
+**Nota:** Si no tienes NDMF instalado, primero agrega el repositorio de Modular Avatar:
+```
+https://vpm.nadena.dev/vpm.json
+```
 
 ### Opcion 2: Instalacion Manual
 
 1. Descarga la ultima release desde [GitHub Releases](https://github.com/emerytheec/MenuRadial/releases)
 2. Importa el .unitypackage en tu proyecto Unity
+3. Asegurate de tener NDMF instalado
 
 ## Requisitos
 
 - Unity 2022.3.22f1 o superior
 - VRChat SDK3 Avatars 3.5.0 o superior
-- (Opcional) NDMF para funciones no-destructivas
+- [NDMF](https://github.com/bdunderscore/ndmf) 1.4.0 o superior (incluido con Modular Avatar)
 
 ## Uso Rapido
 
