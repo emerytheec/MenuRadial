@@ -3,6 +3,7 @@
     "rootNamespace": "Bender_Dios.MenuRadial.Editor",
     "references": [
         "BenderDios.MenuRadial.Runtime",
+        "BenderDios.MenuRadial.Menu",
         "BenderDios.MenuRadial.Localization",
         "Unity.Collections",
         "Unity.Mathematics",
