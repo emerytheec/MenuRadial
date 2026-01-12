@@ -1,0 +1,30 @@
+{
+    "name": "BenderDios.MenuRadial.Editor",
+    "rootNamespace": "Bender_Dios.MenuRadial.Editor",
+    "references": [
+        "BenderDios.MenuRadial.Runtime",
+        "BenderDios.MenuRadial.Localization",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "VRC.SDK3A",
+        "VRC.SDKBase",
+        "nadena.dev.ndmf"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "nadena.dev.ndmf",
+            "expression": "",
+            "define": "MR_NDMF_AVAILABLE"
+        }
+    ],
+    "noEngineReferences": false
+}

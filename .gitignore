@@ -1,0 +1,31 @@
+# Unity generated
+*.meta
+!package.json.meta
+
+# IDE
+.idea/
+.vs/
+*.csproj
+*.sln
+*.user
+*.suo
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+
+# Packages
+*.unitypackage
