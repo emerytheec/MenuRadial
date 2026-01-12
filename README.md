@@ -24,13 +24,13 @@ Sistema de menu radial para avatares VRChat desarrollado en Unity. Genera animac
 
 1. Abre VRChat Creator Companion
 2. Ve a Settings > Packages > Add Repository
-3. Agrega la URL: `https://bender-dios.github.io/MenuRadial/index.json`
+3. Agrega la URL: `https://emerytheec.github.io/MenuRadial/index.json`
 4. Busca "Menu Radial" en la lista de paquetes
 5. Click en "Add" para instalarlo en tu proyecto
 
 ### Opcion 2: Instalacion Manual
 
-1. Descarga la ultima release desde [GitHub Releases](https://github.com/Bender-Dios/MenuRadial/releases)
+1. Descarga la ultima release desde [GitHub Releases](https://github.com/emerytheec/MenuRadial/releases)
 2. Importa el .unitypackage en tu proyecto Unity
 
 ## Requisitos
