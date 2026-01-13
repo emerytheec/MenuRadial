@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.7.0] - 2026-01-13
+
+### Agregado
+- **MROrganizaPB**: Nuevo componente para organizar PhysBones y Colliders
+  - Reorganiza VRCPhysBone y VRCPhysBoneCollider en contenedores organizados
+  - Organizacion en tiempo de editor (no solo durante build NDMF)
+  - Sistema de estados: NotScanned -> Scanned -> Organized
+  - Funcion de revertir para devolver componentes a su ubicacion original
+  - Deteccion automatica de contexto (avatar vs ropa)
+  - Permite controlar dinamicas desde MRAgruparObjetos
+  - Contenedores PhysBones/ y Colliders/ como hermanos del Armature
+
+### Mejorado
+- Documentacion actualizada en CLAUDE.md
+
 ## [0.6.0] - 2026-01-12
 
 ### Agregado
