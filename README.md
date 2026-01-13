@@ -5,7 +5,7 @@ Sistema de menu radial para avatares VRChat desarrollado en Unity. Genera animac
 ![Unity](https://img.shields.io/badge/Unity-2022.3-blue)
 ![VRChat SDK](https://img.shields.io/badge/VRChat%20SDK-3.5+-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-![Version](https://img.shields.io/badge/Version-0.6.0-orange)
+![Version](https://img.shields.io/badge/Version-0.7.0-orange)
 
 ## Caracteristicas
 
@@ -17,6 +17,7 @@ Sistema de menu radial para avatares VRChat desarrollado en Unity. Genera animac
 - **MRMenuControl**: Orquesta todo y genera archivos VRChat finales
 - **MRCoserRopa**: Sistema de cosido de ropa a avatares (NDMF)
 - **MRAjustarBounds**: Ajuste de bounds de meshes y particulas
+- **MROrganizaPB**: Organiza PhysBones y Colliders en contenedores
 
 ## Instalacion
 
@@ -66,6 +67,41 @@ Luego instala **NDMF** desde VCC (no necesitas Modular Avatar).
 | `MRMenuControl` | Genera archivos VRChat |
 | `MRCoserRopa` | Cose armatures de ropa |
 | `MRAjustarBounds` | Ajusta bounds de meshes |
+| `MROrganizaPB` | Organiza PhysBones en contenedores |
+
+## MROrganizaPB
+
+Componente que reorganiza VRCPhysBone y VRCPhysBoneCollider en contenedores organizados, permitiendo controlar dinamicas desde MRAgruparObjetos.
+
+### Problema que resuelve
+
+Los PhysBones normalmente estan "pegados" a los huesos del avatar. Con MROrganizaPB puedes:
+- Activar/desactivar dinamicas segun la ropa activa
+- Controlar PhysBones independientemente de la geometria
+- Organizar componentes por contexto (avatar vs ropa)
+
+### Uso
+
+1. Agrega `MROrganizaPB` a tu avatar
+2. Click en **Escanear Avatar** para detectar PhysBones
+3. Click en **Organizar PhysBones** para moverlos a contenedores
+4. Usa `MRAgruparObjetos` para referenciar los contenedores `PhysBones/` y `Colliders/`
+
+### Estructura resultante
+
+```
+Avatar/
+├── Armature/
+│   └── Hips/
+│       └── Hair_Root/     (sin VRCPhysBone)
+├── PhysBones/
+│   └── PB_Hair/           [VRCPhysBone]
+├── Colliders/
+│   └── Col_Head/          [VRCPhysBoneCollider]
+└── Ropa/
+    ├── PhysBones/         (contenedor por ropa)
+    └── Colliders/
+```
 
 ## Tipos de Animacion
 
