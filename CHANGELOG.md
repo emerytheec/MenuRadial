@@ -5,6 +5,30 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.0] - 2026-01-14
+
+### Agregado
+- **MRMenuRadial**: Nuevo contenedor principal del sistema
+  - Propaga avatar automaticamente a todos los componentes hijos
+  - Auto-deteccion de ropas, PhysBones y meshes al asignar avatar
+  - Auto-generacion de estructura de menu (MRUnificarObjetos + MRAgruparObjetos)
+  - Panel de estado visual con progreso de cada componente
+  - Botones "Preparar Todo" y "Generar Archivos VRChat" centralizados
+- **AutoMenuGenerator**: Generador automatico de estructura de menu
+  - Crea frame "Avatar" con meshes de accesorios
+  - Crea frame por cada ropa detectada en MRCoserRopa
+  - Usa reflexion para acceso cross-assembly a MRMenuControl
+- **BodyMeshDetector**: Detector inteligente de meshes
+  - Patrones de exclusion para body, head, hair, eyes
+  - Patrones de ropa que NO deben excluirse (outfit, under_, item_, etc)
+  - Analisis de huesos humanoid (>70% = body mesh)
+  - Prioridad de patrones de ropa sobre analisis de huesos
+
+### Mejorado
+- MRSubMenuManager propaga avatar a MRIluminacionRadial al crearlo
+- Limpieza de logs de depuracion excesivos
+- Documentacion actualizada en CLAUDE.md
+
 ## [0.7.0] - 2026-01-13
 
 ### Agregado
