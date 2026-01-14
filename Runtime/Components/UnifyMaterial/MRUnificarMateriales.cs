@@ -16,8 +16,10 @@ namespace Bender_Dios.MenuRadial.Components.UnifyMaterial
     public class MRUnificarMateriales : MRComponentBase, IAnimationProvider
     {
         [SerializeField] private string _animationName = "UnifyMaterial";
-        [SerializeField] private string _animationPath = MRConstants.ANIMATION_OUTPUT_PATH;
         [SerializeField] private List<MRAgruparMateriales> _alternativeMaterials = new List<MRAgruparMateriales>();
+
+        // Ruta de animación - controlada internamente por MRSlotInfoCollector desde MRMenuRadial.OutputPath
+        private string _animationPath = MRConstants.ANIMATION_OUTPUT_PATH;
 
         // Cache de validacion
         private ValidationResult _lastValidationResult;

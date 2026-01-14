@@ -21,7 +21,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
         // Propiedades serializadas
         private SerializedProperty _rootObjectProperty;
         private SerializedProperty _animationNameProperty;
-        private SerializedProperty _animationPathProperty;
         
         // Estado de UI
         private bool _showAdvancedSettings = false;
@@ -79,7 +78,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
         {
             _rootObjectProperty = _serializedObject.FindProperty("_rootObject");
             _animationNameProperty = _serializedObject.FindProperty("_animationName");
-            _animationPathProperty = _serializedObject.FindProperty("_animationPath");
         }
         
         /// <summary>
@@ -235,7 +233,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
             EditorGUILayout.LabelField(MRLocalization.Get(L.Radial.ANIMATION_SETTINGS), EditorStyles.boldLabel);
 
             EditorGUILayout.PropertyField(_animationNameProperty, new GUIContent(MRLocalization.Get(L.Radial.ANIMATION_NAME)));
-            EditorGUILayout.PropertyField(_animationPathProperty, new GUIContent(MRLocalization.Get(L.Radial.ANIMATION_PATH)));
+            // Nota: AnimationPath ahora se configura desde MR Menu Radial
 
             EditorGUILayout.Space(5);
 

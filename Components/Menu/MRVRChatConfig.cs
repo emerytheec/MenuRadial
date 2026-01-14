@@ -22,13 +22,27 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         public string OutputPrefix => _outputPrefix;
 
         /// <summary>
-        /// Obtiene el directorio de salida, incluyendo subcarpeta si hay prefijo.
+        /// Obtiene el directorio de salida usando la ruta base proporcionada, incluyendo subcarpeta si hay prefijo.
+        /// </summary>
+        /// <param name="basePath">Ruta base desde MRMenuRadial</param>
+        public string GetOutputDirectory(string basePath)
+        {
+            // Usar la ruta base proporcionada o fallback a constante
+            string effectiveBasePath = string.IsNullOrEmpty(basePath)
+                ? MRConstants.VRCHAT_OUTPUT_PATH
+                : basePath.TrimEnd('/') + "/";
+
+            if (string.IsNullOrEmpty(_outputPrefix))
+                return effectiveBasePath;
+            return $"{effectiveBasePath}{_outputPrefix}/";
+        }
+
+        /// <summary>
+        /// Obtiene el directorio de salida usando la ruta por defecto (legacy).
         /// </summary>
         public string GetOutputDirectory()
         {
-            if (string.IsNullOrEmpty(_outputPrefix))
-                return MRConstants.VRCHAT_OUTPUT_PATH;
-            return $"{MRConstants.VRCHAT_OUTPUT_PATH}{_outputPrefix}/";
+            return GetOutputDirectory(null);
         }
 
         /// <summary>

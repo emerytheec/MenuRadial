@@ -4,6 +4,7 @@ using UnityEngine;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.Illumination;
 using Bender_Dios.MenuRadial.Components.UnifyMaterial;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 namespace Bender_Dios.MenuRadial.Components.Menu
 {
@@ -143,7 +144,8 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         }
 
         /// <summary>
-        /// Crea un nuevo GameObject hijo con componente MRIluminacionRadial y lo asigna al siguiente slot disponible
+        /// Crea un nuevo GameObject hijo con componente MRIluminacionRadial y lo asigna al siguiente slot disponible.
+        /// Automáticamente asigna el avatar desde MRMenuRadial si está disponible.
         /// </summary>
         /// <returns>El MRIluminacionRadial creado o null si no se pudo crear</returns>
         public MRIluminacionRadial CreateIllumination()
@@ -165,6 +167,14 @@ namespace Bender_Dios.MenuRadial.Components.Menu
 #endif
 
             var illumination = componentObject.AddComponent<MRIluminacionRadial>();
+
+            // Asignar automáticamente el avatar desde MRMenuRadial
+            var avatarRoot = GetAvatarFromMenuRadial();
+            if (avatarRoot != null)
+            {
+                illumination.RootObject = avatarRoot;
+            }
+
             AddToSlot(componentObject, componentName);
 
 #if UNITY_EDITOR
@@ -208,6 +218,30 @@ namespace Bender_Dios.MenuRadial.Components.Menu
 #endif
 
             return unifyMaterial;
+        }
+
+        /// <summary>
+        /// Busca MRMenuRadial en los ancestros y obtiene el avatar asignado.
+        /// </summary>
+        /// <returns>El GameObject del avatar o null si no se encuentra</returns>
+        private GameObject GetAvatarFromMenuRadial()
+        {
+            if (ownerMenu == null)
+                return null;
+
+            // Buscar MRMenuRadial en los ancestros
+            Transform current = ownerMenu.transform;
+            while (current != null)
+            {
+                var menuRadial = current.GetComponent<MRMenuRadial>();
+                if (menuRadial != null && menuRadial.AvatarRoot != null)
+                {
+                    return menuRadial.AvatarRoot;
+                }
+                current = current.parent;
+            }
+
+            return null;
         }
 
         /// <summary>

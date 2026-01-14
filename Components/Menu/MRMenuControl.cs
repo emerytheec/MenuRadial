@@ -5,6 +5,7 @@ using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Core.Preview;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.Illumination;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 namespace Bender_Dios.MenuRadial.Components.Menu
 {
@@ -58,6 +59,18 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// Auto-actualizar rutas
         /// </summary>
         public bool AutoUpdatePaths { get => _autoUpdatePaths; set => _autoUpdatePaths = value; }
+
+        /// <summary>
+        /// Obtiene la ruta de salida desde MRMenuRadial padre.
+        /// </summary>
+        public string OutputPath
+        {
+            get
+            {
+                var menuRadial = GetComponentInParent<MRMenuRadial>();
+                return menuRadial != null ? menuRadial.OutputPath : MRConstants.ANIMATION_OUTPUT_PATH;
+            }
+        }
         
         /// <summary>
         /// Número de slots
@@ -173,7 +186,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             subMenuManager = new MRSubMenuManager(this, slotManager);
             interactionHandler = new MRMenuInteractionHandler(this, slotManager, navigationManager);
 #if UNITY_EDITOR
-            fileGenerator = new MRVRChatFileGenerator(this, slotManager, vrchatConfig);
+            fileGenerator = new MRVRChatFileGenerator(this, slotManager, vrchatConfig, OutputPath);
 #endif
 
             _managersInitialized = true;

@@ -23,6 +23,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         private readonly MRMenuControl _ownerMenu;
         private readonly MRSlotManager _slotManager;
         private readonly MRVRChatConfig _config;
+        private readonly string _basePath;
 
         // Generadores especializados
         private readonly MRAnimationClipFinder _clipFinder;
@@ -32,18 +33,19 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         private readonly MRMenuGenerator _menuGenerator;
 
         /// <summary>
-        /// Obtiene el directorio de salida basado en la configuración
+        /// Obtiene el directorio de salida basado en la configuración y ruta base
         /// </summary>
-        private string OutputDirectory => _config.GetOutputDirectory().TrimEnd('/');
+        private string OutputDirectory => _config.GetOutputDirectory(_basePath).TrimEnd('/');
 
-        public MRVRChatFileGenerator(MRMenuControl owner, MRSlotManager slotManager, MRVRChatConfig config)
+        public MRVRChatFileGenerator(MRMenuControl owner, MRSlotManager slotManager, MRVRChatConfig config, string basePath = null)
         {
             _ownerMenu = owner;
             _slotManager = slotManager;
             _config = config;
+            _basePath = basePath;
 
-            // Obtener directorio de salida de la configuración
-            string outputDir = config.GetOutputDirectory().TrimEnd('/');
+            // Obtener directorio de salida de la configuración con la ruta base
+            string outputDir = config.GetOutputDirectory(basePath).TrimEnd('/');
 
             // Inicializar generadores especializados con rutas personalizadas
             _clipFinder = new MRAnimationClipFinder(outputDir);

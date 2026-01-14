@@ -33,8 +33,9 @@ namespace Bender_Dios.MenuRadial.Components.Illumination
         
         [FormerlySerializedAs("animationName")]
         [SerializeField] private string _animationName = "RadialIllumination";
-        [FormerlySerializedAs("animationOutputPath")]
-        [SerializeField] private string _animationPath = MRConstants.ANIMATION_OUTPUT_PATH;
+
+        // Ruta de animación - controlada internamente por MRSlotInfoCollector desde MRMenuRadial.OutputPath
+        private string _animationPath = MRConstants.ANIMATION_OUTPUT_PATH;
         
         // Preview system fields
         [System.NonSerialized] private bool _isPreviewActive = false;

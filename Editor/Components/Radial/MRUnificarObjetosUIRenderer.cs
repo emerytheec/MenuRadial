@@ -20,7 +20,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         private readonly SerializedProperty _activeFrameIndexProp;
         private readonly SerializedProperty _autoUpdatePathsProp;
         private readonly SerializedProperty _animationNameProp;
-        private readonly SerializedProperty _animationPathProp;
         private readonly SerializedProperty _defaultStateIsOnProp;
         private readonly MRUnificarObjetosPreviewManager _previewManager;
         private readonly MRUnificarObjetosReorderableController _reorderableController;
@@ -47,7 +46,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             SerializedProperty activeFrameIndexProp,
             SerializedProperty autoUpdatePathsProp,
             SerializedProperty animationNameProp,
-            SerializedProperty animationPathProp,
             SerializedProperty defaultStateIsOnProp,
             MRUnificarObjetosPreviewManager previewManager,
             MRUnificarObjetosReorderableController reorderableController)
@@ -57,7 +55,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             _activeFrameIndexProp = activeFrameIndexProp ?? throw new ArgumentNullException(nameof(activeFrameIndexProp));
             _autoUpdatePathsProp = autoUpdatePathsProp ?? throw new ArgumentNullException(nameof(autoUpdatePathsProp));
             _animationNameProp = animationNameProp ?? throw new ArgumentNullException(nameof(animationNameProp));
-            _animationPathProp = animationPathProp ?? throw new ArgumentNullException(nameof(animationPathProp));
             _defaultStateIsOnProp = defaultStateIsOnProp; // Puede ser null si no se encuentra
             _previewManager = previewManager ?? throw new ArgumentNullException(nameof(previewManager));
             _reorderableController = reorderableController ?? throw new ArgumentNullException(nameof(reorderableController));
@@ -376,8 +373,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             // Nombre de Animación
             EditorGUILayout.PropertyField(_animationNameProp, MRLocalization.GetContent(L.Radial.ANIMATION_NAME));
 
-            // Ruta de Animación
-            EditorGUILayout.PropertyField(_animationPathProp, MRLocalization.GetContent(L.Radial.ANIMATION_PATH));
+            // Nota: AnimationPath ahora se configura desde MR Menu Radial
 
             // Mostrar opción de Default State solo para OnOff (1 frame)
             if (_target.FrameCount == 1 && _defaultStateIsOnProp != null)

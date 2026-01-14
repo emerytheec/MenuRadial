@@ -23,7 +23,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.UnifyMaterial
 
         // Propiedades serializadas
         private SerializedProperty _animationNameProp;
-        private SerializedProperty _animationPathProp;
         private SerializedProperty _alternativeMaterialsProp;
 
         // Lista reordenable
@@ -54,7 +53,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.UnifyMaterial
 
             // Inicializar propiedades serializadas
             _animationNameProp = serializedObject.FindProperty("_animationName");
-            _animationPathProp = serializedObject.FindProperty("_animationPath");
             _alternativeMaterialsProp = serializedObject.FindProperty("_alternativeMaterials");
 
             // Inicializar lista reordenable
@@ -559,8 +557,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.UnifyMaterial
             // Nombre de Animación
             EditorGUILayout.PropertyField(_animationNameProp, new GUIContent(MRLocalization.Get(L.Radial.ANIMATION_NAME)));
 
-            // Ruta de Animación
-            EditorGUILayout.PropertyField(_animationPathProp, new GUIContent(MRLocalization.Get(L.Radial.ANIMATION_PATH)));
+            // Nota: AnimationPath ahora se configura desde MR Menu Radial
         }
 
         private void DrawAnimationInfo()

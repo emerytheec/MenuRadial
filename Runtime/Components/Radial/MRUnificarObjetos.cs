@@ -19,8 +19,10 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         [SerializeField] private List<MRAgruparObjetos> _frames = new List<MRAgruparObjetos>();
         [SerializeField] private int _activeFrameIndex = 0;
         [SerializeField] private string _animationName = "RadialToggle";
-        [SerializeField] private string _animationPath = MRConstants.ANIMATION_OUTPUT_PATH;
         [SerializeField] private bool _autoUpdatePaths = true;
+
+        // Ruta de animación - controlada internamente por MRSlotInfoCollector desde MRMenuRadial.OutputPath
+        private string _animationPath = MRConstants.ANIMATION_OUTPUT_PATH;
 
         /// <summary>
         /// Para animaciones OnOff (1 frame): determina si el estado por defecto en el FX es ON (true) o OFF (false)
