@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEditor;
 using Bender_Dios.MenuRadial.Components.Illumination;
+using Bender_Dios.MenuRadial.Shaders;
 using Bender_Dios.MenuRadial.Shaders.Models;
+using Bender_Dios.MenuRadial.Shaders.Strategies;
 using Bender_Dios.MenuRadial.Localization;
 using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
@@ -149,6 +151,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
                 if (_target.DetectedMaterials.Count > 0)
                 {
                     EditorGUILayout.HelpBox(MRLocalization.Get(L.Illumination.MATERIALS_DETECTED, _target.DetectedMaterials.Count), MessageType.Info);
+
+                    // Verificar si hay materiales Poiyomi y mostrar advertencia
+                    RenderPoiyomiWarningIfNeeded();
                 }
                 else
                 {
@@ -157,6 +162,112 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
             }
 
             EditorGUILayout.Space(SECTION_SPACING);
+        }
+
+        /// <summary>
+        /// Muestra advertencia si hay materiales Poiyomi detectados
+        /// Los materiales Poiyomi requieren configuracion especial para animaciones
+        /// </summary>
+        private void RenderPoiyomiWarningIfNeeded()
+        {
+            var poiyomiStrategy = ShaderStrategyFactory.Instance.GetStrategy(ShaderType.Poiyomi) as PoiyomiShaderStrategy;
+            if (poiyomiStrategy == null) return;
+
+            var poiyomiMaterials = new System.Collections.Generic.List<Material>();
+            bool hasLockedWithMissingProps = false;
+            bool allReady = true;
+
+            foreach (var material in _target.DetectedMaterials)
+            {
+                if (material != null && poiyomiStrategy.IsCompatible(material))
+                {
+                    poiyomiMaterials.Add(material);
+
+                    if (poiyomiStrategy.IsMaterialLocked(material))
+                    {
+                        var existingProps = poiyomiStrategy.GetExistingPropertyNames(material);
+                        if (existingProps.Length < 3)
+                        {
+                            hasLockedWithMissingProps = true;
+                            allReady = false;
+                        }
+                    }
+                    else
+                    {
+                        if (!poiyomiStrategy.AreAllPropertiesMarkedAsAnimated(material))
+                        {
+                            allReady = false;
+                        }
+                    }
+                }
+            }
+
+            if (poiyomiMaterials.Count == 0) return;
+
+            // Mostrar estado
+            if (allReady)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Poiyomi: {poiyomiMaterials.Count} material(es) listos para animacion.",
+                    MessageType.Info);
+            }
+            else if (hasLockedWithMissingProps)
+            {
+                EditorGUILayout.HelpBox(
+                    "Poiyomi: Algunos materiales bloqueados no tienen las propiedades configuradas para animacion.",
+                    MessageType.Warning);
+
+                // Boton para preparar automaticamente
+                if (PoiyomiShaderStrategy.IsShaderOptimizerAvailable())
+                {
+                    if (GUILayout.Button("Preparar materiales Poiyomi (automatico)", GUILayout.Height(25)))
+                    {
+                        if (poiyomiStrategy.PrepareAndLockMaterials(poiyomiMaterials))
+                        {
+                            UnityEditor.AssetDatabase.SaveAssets();
+                            _target.ScanMaterials(); // Re-escanear
+                        }
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox(
+                        "ThryEditor/ShaderOptimizer no encontrado. Debes preparar los materiales manualmente:\n" +
+                        "1. Desbloquea cada material\n" +
+                        "2. Marca como 'Animated': _PPLightingMultiplier, _MinBrightness, _Grayscale_Lighting\n" +
+                        "3. Vuelve a bloquear",
+                        MessageType.Error);
+                }
+            }
+            else
+            {
+                // Hay materiales desbloqueados sin marcar
+                EditorGUILayout.HelpBox(
+                    "Poiyomi: Hay materiales que necesitan configuracion.",
+                    MessageType.Warning);
+
+                if (GUILayout.Button("Marcar propiedades como Animated", GUILayout.Height(25)))
+                {
+                    int marked = 0;
+                    foreach (var material in poiyomiMaterials)
+                    {
+                        if (!poiyomiStrategy.IsMaterialLocked(material))
+                        {
+                            if (poiyomiStrategy.MarkPropertiesAsAnimated(material))
+                            {
+                                EditorUtility.SetDirty(material);
+                                marked++;
+                            }
+                        }
+                    }
+
+                    if (marked > 0)
+                    {
+                        UnityEditor.AssetDatabase.SaveAssets();
+                        Debug.Log($"[MR Iluminacion] Marcadas propiedades en {marked} material(es).");
+                    }
+                }
+            }
         }
         
         /// <summary>

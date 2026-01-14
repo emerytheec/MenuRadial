@@ -153,6 +153,7 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
         
         /// <summary>
         /// Añade curvas de animación para un material específico
+        /// Solo anima propiedades que existen en el material (importante para Poiyomi bloqueado)
         /// </summary>
         /// <param name="clip">AnimationClip al cual añadir curvas</param>
         /// <param name="material">Material a animar</param>
@@ -160,34 +161,40 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
         private void AddMaterialCurves(AnimationClip clip, Material material, IlluminationKeyframe[] keyframes)
         {
             var strategy = ShaderStrategyFactory.Instance.GetStrategyForMaterial(material);
-            if (strategy == null) 
+            if (strategy == null)
             {
                 return;
             }
-            
+
             var propertyNames = strategy.GetPropertyNames();
-            
+
             // Encontrar todos los renderers que usan este material
             var renderersWithMaterial = FindRenderersUsingMaterial(material);
-            
+
             if (renderersWithMaterial.Count == 0)
             {
                 return;
             }
-            
+
             foreach (var rendererInfo in renderersWithMaterial)
             {
                 foreach (var propertyName in propertyNames)
                 {
+                    // Solo crear curva si la propiedad existe en el material
+                    // Importante para materiales Poiyomi bloqueados donde algunas propiedades pueden no existir
+                    if (!material.HasProperty(propertyName))
+                    {
+                        continue;
+                    }
+
                     var animationCurve = CreatePropertyCurve(propertyName, keyframes);
                     if (animationCurve != null && animationCurve.keys.Length > 0)
                     {
                         // Crear binding correcto para Renderer.material
                         var binding = CreateMaterialBinding(rendererInfo.renderer, rendererInfo.materialIndex, propertyName);
-                        
+
                         // Aplicar curva al clip (delegado a implementación Editor)
                         SetEditorCurve(clip, binding, animationCurve);
-                        
                     }
                 }
             }
@@ -355,6 +362,7 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
         
         /// <summary>
         /// Obtiene el valor de una propiedad específica
+        /// Soporta propiedades de lilToon y Poiyomi
         /// </summary>
         /// <param name="properties">Propiedades de iluminación</param>
         /// <param name="propertyName">Nombre de la propiedad</param>
@@ -363,10 +371,15 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
         {
             return propertyName switch
             {
+                // lilToon
                 MRShaderProperties.AS_UNLIT => properties.AsUnlit,
                 MRShaderProperties.LIGHT_MAX_LIMIT => properties.LightMaxLimit,
                 MRShaderProperties.SHADOW_BORDER => properties.ShadowBorder,
                 MRShaderProperties.SHADOW_STRENGTH => properties.ShadowStrength,
+                // Poiyomi
+                MRPoiyomiShaderProperties.PP_LIGHTING_MULTIPLIER => properties.PPLightingMultiplier,
+                MRPoiyomiShaderProperties.MIN_BRIGHTNESS => properties.MinBrightness,
+                MRPoiyomiShaderProperties.GRAYSCALE_LIGHTING => properties.GrayscaleLighting,
                 _ => 0f
             };
         }

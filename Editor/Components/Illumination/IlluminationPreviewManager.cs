@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Components.Illumination;
+using Bender_Dios.MenuRadial.Shaders;
 using Bender_Dios.MenuRadial.Shaders.Models;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
@@ -174,71 +175,77 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
         
         /// <summary>
         /// Aplica propiedades específicas a todos los materiales detectados
+        /// Usa la estrategia correcta según el tipo de shader del material
         /// </summary>
         /// <param name="properties">Propiedades a aplicar</param>
         private void ApplyPropertiesToMaterials(IlluminationProperties properties)
         {
+            var factory = ShaderStrategyFactory.Instance;
+
             foreach (var material in _target.DetectedMaterials)
             {
                 if (material == null) continue;
-                
-                // Aplicar propiedades del shader
-                material.SetFloat("_AsUnlit", properties.AsUnlit);
-                material.SetFloat("_LightMaxLimit", properties.LightMaxLimit);
-                material.SetFloat("_ShadowBorder", properties.ShadowBorder);
-                material.SetFloat("_ShadowStrength", properties.ShadowStrength);
+
+                // Obtener la estrategia correcta para este material
+                var strategy = factory.GetStrategyForMaterial(material);
+                if (strategy != null)
+                {
+                    strategy.ApplyProperties(material, properties);
+                }
             }
         }
         
         /// <summary>
         /// Almacena las propiedades originales de todos los materiales
+        /// Usa la estrategia correcta según el tipo de shader del material
         /// </summary>
         private void StoreOriginalProperties()
         {
             if (_hasStoredOriginalProperties) return;
-            
+
             _originalProperties.Clear();
-            
+            var factory = ShaderStrategyFactory.Instance;
+
             foreach (var material in _target.DetectedMaterials)
             {
                 if (material == null) continue;
-                
-                var originalProps = new IlluminationProperties(
-                    material.GetFloat("_AsUnlit"),
-                    material.GetFloat("_LightMaxLimit"),
-                    material.GetFloat("_ShadowBorder"),
-                    material.GetFloat("_ShadowStrength")
-                );
-                
-                _originalProperties[material] = originalProps;
+
+                // Obtener la estrategia correcta para este material
+                var strategy = factory.GetStrategyForMaterial(material);
+                if (strategy != null)
+                {
+                    var originalProps = strategy.GetProperties(material);
+                    _originalProperties[material] = originalProps;
+                }
             }
-            
+
             _hasStoredOriginalProperties = true;
         }
         
         /// <summary>
         /// Restaura las propiedades originales de todos los materiales
+        /// Usa la estrategia correcta según el tipo de shader del material
         /// </summary>
         private void RestoreOriginalProperties()
         {
             if (!_hasStoredOriginalProperties) return;
-            
-            int restoredCount = 0;
+
+            var factory = ShaderStrategyFactory.Instance;
+
             foreach (var kvp in _originalProperties)
             {
                 var material = kvp.Key;
                 var originalProps = kvp.Value;
-                
+
                 if (material == null) continue;
-                
-                material.SetFloat("_AsUnlit", originalProps.AsUnlit);
-                material.SetFloat("_LightMaxLimit", originalProps.LightMaxLimit);
-                material.SetFloat("_ShadowBorder", originalProps.ShadowBorder);
-                material.SetFloat("_ShadowStrength", originalProps.ShadowStrength);
-                
-                restoredCount++;
+
+                // Obtener la estrategia correcta para este material
+                var strategy = factory.GetStrategyForMaterial(material);
+                if (strategy != null)
+                {
+                    strategy.ApplyProperties(material, originalProps);
+                }
             }
-            
         }
         
         

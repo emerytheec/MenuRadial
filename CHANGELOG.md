@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.0] - 2026-01-14
+
+### Agregado
+- **Soporte Poiyomi**: MRIluminacionRadial ahora soporta shader Poiyomi ademas de lilToon
+  - Nueva estrategia `PoiyomiShaderStrategy` para deteccion y animacion
+  - Propiedades animadas: `_PPLightingMultiplier`, `_MinBrightness`, `_Grayscale_Lighting`
+  - Preparacion automatica de materiales bloqueados via API de ThryEditor/ShaderOptimizer
+  - Boton "Preparar materiales Poiyomi" que desbloquea, marca propiedades y vuelve a bloquear
+  - Deteccion de materiales bloqueados (`Hidden/Locked/.poiyomi/...`)
+- **Constantes Poiyomi**: `MRPoiyomiShaderProperties`, `MRPoiyomiIlluminationConstants`
+
+### Mejorado
+- `IlluminationProperties` extendido con propiedades Poiyomi (7 propiedades total)
+- `IlluminationAnimationGenerator` solo anima propiedades que existen en el material
+- `IlluminationPreviewManager` usa estrategia correcta segun tipo de shader
+- Documentacion actualizada en CLAUDE.md con sistema de iluminacion completo
+
 ## [0.8.0] - 2026-01-14
 
 ### Agregado
