@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.1] - 2026-01-15
+
+### Eliminado
+- **Soporte de Poiyomi**: Removido completamente del sistema de iluminacion
+  - Eliminado PoiyomiShaderStrategy.cs
+  - Eliminadas constantes MRPoiyomiShaderProperties y MRPoiyomiIlluminationConstants
+  - Eliminadas propiedades de Poiyomi en IlluminationProperties
+  - Eliminado UI de advertencias y preparacion de materiales Poiyomi
+  - MRIluminacionRadial ahora solo soporta shaders lilToon
+
 ## [0.8.0] - 2026-01-14
 
 ### Agregado
