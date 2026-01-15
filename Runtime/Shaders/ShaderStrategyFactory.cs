@@ -40,7 +40,6 @@ namespace Bender_Dios.MenuRadial.Shaders
         private void InitializeStrategies()
         {
             RegisterStrategy(new LilToonShaderStrategy());
-            RegisterStrategy(new PoiyomiShaderStrategy());
         }
         
         /// <summary>

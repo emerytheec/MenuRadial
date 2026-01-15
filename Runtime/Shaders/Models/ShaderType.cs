@@ -13,11 +13,6 @@ namespace Bender_Dios.MenuRadial.Shaders
         /// <summary>
         /// Shader lilToon
         /// </summary>
-        LilToon,
-
-        /// <summary>
-        /// Shader Poiyomi
-        /// </summary>
-        Poiyomi
+        LilToon
     }
 }
