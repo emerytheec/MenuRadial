@@ -1,0 +1,108 @@
+name: Build and Release VPM Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create package zip
+        run: |
+          zip -r "com.bender-dios.menu-radial-${{ steps.get_version.outputs.VERSION }}.zip" . \
+            -x "*.git*" \
+            -x ".github/*"
+
+      - name: Upload zip to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "com.bender-dios.menu-radial-${{ steps.get_version.outputs.VERSION }}.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout vpm-listing repo
+        uses: actions/checkout@v4
+        with:
+          repository: emerytheec/vpm-listing
+          path: vpm-listing
+          token: ${{ secrets.VPM_TOKEN }}
+        continue-on-error: true
+
+      - name: Update VPM listing
+        if: success()
+        run: |
+          if [ ! -d "vpm-listing" ]; then
+            echo "::warning::VPM_TOKEN not configured or vpm-listing checkout failed. Skipping index.json update."
+            echo "::warning::Configure VPM_TOKEN secret with a PAT that has repo access to emerytheec/vpm-listing"
+            exit 0
+          fi
+
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          cd vpm-listing
+
+          python3 << 'EOF'
+          import json
+          import os
+
+          version = "${{ steps.get_version.outputs.VERSION }}"
+
+          with open('index.json', 'r') as f:
+              index = json.load(f)
+
+          with open('../package.json', 'r') as f:
+              package = json.load(f)
+
+          new_version = {
+              "name": package["name"],
+              "version": version,
+              "displayName": package["displayName"],
+              "description": package["description"],
+              "unity": package["unity"],
+              "unityRelease": package["unityRelease"],
+              "documentationUrl": package.get("documentationUrl", ""),
+              "changelogUrl": package.get("changelogUrl", ""),
+              "licensesUrl": package.get("licensesUrl", ""),
+              "url": f"https://github.com/emerytheec/MenuRadial/releases/download/v{version}/com.bender-dios.menu-radial-{version}.zip",
+              "keywords": package.get("keywords", []),
+              "author": package.get("author", {}),
+              "vpmDependencies": package.get("vpmDependencies", {}),
+              "legacyFolders": package.get("legacyFolders", {}),
+              "license": package.get("license", "MIT")
+          }
+
+          package_id = package["name"]
+          if package_id not in index["packages"]:
+              index["packages"][package_id] = {"versions": {}}
+
+          index["packages"][package_id]["versions"][version] = new_version
+
+          with open('index.json', 'w') as f:
+              json.dump(index, f, indent=2)
+
+          print(f"Added version {version} to index.json")
+          EOF
+
+      - name: Commit and push vpm-listing
+        if: success()
+        run: |
+          if [ ! -d "vpm-listing" ]; then
+            exit 0
+          fi
+          cd vpm-listing
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.json
+          git diff --staged --quiet || git commit -m "Add version ${{ steps.get_version.outputs.VERSION }}"
+          git push
