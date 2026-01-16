@@ -5,6 +5,14 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.6] - 2026-01-16
+
+### Corregido
+- **MRMenuRadialPlugin NDMF**: Limpieza completa de componentes MR durante build
+  - `CleanupComponents()` ahora elimina TODOS los componentes del namespace `Bender_Dios.MenuRadial`
+  - Previene advertencias de VRChat SDK al subir avatar ("MRMenuControl will be removed by client")
+  - Busca MonoBehaviours por namespace ademas de tipos especificos
+
 ## [0.8.5] - 2026-01-16
 
 ### Corregido

@@ -556,29 +556,59 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         /// <summary>
         /// Limpia los componentes MR del avatar clonado después del procesamiento.
+        /// Elimina TODOS los componentes del sistema MR para evitar advertencias de VRChat.
         /// </summary>
         private void CleanupComponents(MRMenuRadial menuRadial)
         {
-            // Destruir componentes que ya no son necesarios en runtime
-            var menuControl = menuRadial.GetComponentInChildren<MRMenuControl>(true);
-            if (menuControl != null)
+            if (menuRadial == null) return;
+
+            var rootObject = menuRadial.gameObject;
+
+            // Lista de tipos de componentes MR a eliminar (en orden de dependencia inversa)
+            var typesToRemove = new[]
             {
-                var radials = menuControl.GetComponentsInChildren<Bender_Dios.MenuRadial.Components.Radial.MRUnificarObjetos>(true);
-                foreach (var radial in radials)
-                {
-                    UnityEngine.Object.DestroyImmediate(radial);
-                }
+                // Componentes de Frame
+                typeof(Bender_Dios.MenuRadial.Components.Frame.MRAgruparObjetos),
+                // Componentes de Radial
+                typeof(Bender_Dios.MenuRadial.Components.Radial.MRUnificarObjetos),
+                // Componentes de Illumination
+                typeof(Bender_Dios.MenuRadial.Components.Illumination.MRIluminacionRadial),
+                // Componentes de Menu (buscar por nombre ya que están en assembly diferente)
+                typeof(MRMenuControl),
+            };
 
-                var illuminations = menuControl.GetComponentsInChildren<Bender_Dios.MenuRadial.Components.Illumination.MRIluminacionRadial>(true);
-                foreach (var ilum in illuminations)
+            // Eliminar componentes por tipo
+            foreach (var type in typesToRemove)
+            {
+                var components = rootObject.GetComponentsInChildren(type, true);
+                foreach (var comp in components)
                 {
-                    UnityEngine.Object.DestroyImmediate(ilum);
+                    if (comp != null)
+                    {
+                        UnityEngine.Object.DestroyImmediate(comp);
+                    }
                 }
-
-                UnityEngine.Object.DestroyImmediate(menuControl);
             }
 
-            UnityEngine.Object.DestroyImmediate(menuRadial);
+            // Eliminar cualquier MonoBehaviour cuyo tipo contenga "MR" en el namespace Bender_Dios
+            var allMonoBehaviours = rootObject.GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (var mb in allMonoBehaviours)
+            {
+                if (mb == null) continue;
+                var typeName = mb.GetType().FullName;
+                if (typeName != null && typeName.StartsWith("Bender_Dios.MenuRadial"))
+                {
+                    UnityEngine.Object.DestroyImmediate(mb);
+                }
+            }
+
+            // Finalmente eliminar MRMenuRadial
+            if (menuRadial != null)
+            {
+                UnityEngine.Object.DestroyImmediate(menuRadial);
+            }
+
+            Debug.Log("[MRMenuRadial NDMF] Componentes MR limpiados del avatar");
         }
     }
 }
