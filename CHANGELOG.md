@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.4] - 2026-01-16
+
+### Cambiado
+- **MRMenuRadialPlugin NDMF**: Reescrito completamente para usar archivos generados
+  - NDMF ahora USA los archivos creados con "Generar Archivos VRChat" en lugar de crear nuevos
+  - Busca FX Controller, Parameters y Menu en la ruta de salida configurada
+  - Si no encuentra los archivos, muestra advertencia y no hace nada
+  - Mezcla los archivos encontrados con los del avatar (respeta existentes)
+
+### Corregido
+- MissingReferenceException cuando MRMenuRadial esta fuera del avatar
+  - Ahora detecta si es interno o externo y solo limpia componentes internos
+  - Guarda datos antes de operaciones que puedan destruir objetos
+
+### Mejorado
+- Verificaciones null y try-catch en clonado de StateMachines
+- Mejor manejo de errores durante el proceso NDMF
+
 ## [0.8.3] - 2026-01-16
 
 ### Agregado

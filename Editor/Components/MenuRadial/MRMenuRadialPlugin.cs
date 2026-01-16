@@ -1,7 +1,6 @@
 #if MR_NDMF_AVAILABLE
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using nadena.dev.ndmf;
 using nadena.dev.ndmf.animator;
@@ -12,9 +11,6 @@ using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
 using Bender_Dios.MenuRadial.Components.Menu;
-using Bender_Dios.MenuRadial.Components.Radial;
-using Bender_Dios.MenuRadial.Components.Frame;
-using Bender_Dios.MenuRadial.Components.Illumination;
 using Bender_Dios.MenuRadial.Core.Common;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.MenuRadial.MRMenuRadialPlugin))]
@@ -22,15 +18,9 @@ using Bender_Dios.MenuRadial.Core.Common;
 namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 {
     /// <summary>
-    /// Estado para almacenar los valores por defecto de los parámetros
-    /// </summary>
-    internal class MRDefaultValues
-    {
-        public ImmutableDictionary<string, float> InitialValueOverrides = ImmutableDictionary<string, float>.Empty;
-    }
-
-    /// <summary>
     /// Plugin NDMF para MR Menu Radial.
+    /// USA LOS ARCHIVOS GENERADOS por el botón "Generar Archivos VRChat".
+    /// No genera animaciones nuevas, solo mezcla los archivos existentes con el avatar.
     /// </summary>
     public class MRMenuRadialPlugin : Plugin<MRMenuRadialPlugin>
     {
@@ -43,13 +33,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         protected override void Configure()
         {
             // Ejecutar en fase Transforming, después de Modular Avatar
-            // Usar WithRequiredExtension para acceder al AnimatorServicesContext
             InPhase(BuildPhase.Transforming)
                 .AfterPlugin("nadena.dev.modular-avatar")
                 .WithRequiredExtension(typeof(AnimatorServicesContext), seq =>
                 {
                     seq.Run(MRMenuRadialPass.Instance);
-                    seq.Run(MRApplyDefaultValuesPass.Instance);
                 });
         }
 
@@ -61,11 +49,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
     }
 
     /// <summary>
-    /// Pass que ejecuta la integración del menú radial durante el build.
+    /// Pass que mezcla los archivos VRChat generados con el avatar.
     /// </summary>
     internal class MRMenuRadialPass : Pass<MRMenuRadialPass>
     {
-        public override string DisplayName => "MR Menu Radial - Integrar con Avatar";
+        public override string DisplayName => "MR Menu Radial - Mezclar archivos generados";
 
         protected override void Execute(BuildContext context)
         {
@@ -76,17 +64,72 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 return;
             }
 
-            // Primero buscar MRMenuRadial dentro del avatar (caso ideal - es hijo del avatar)
+            // Buscar MRMenuRadial
+            var menuRadials = FindMenuRadials(context);
+
+            if (menuRadials.Length == 0)
+            {
+                Debug.Log("[MRMenuRadial NDMF] No se encontraron componentes MRMenuRadial para este avatar");
+                return;
+            }
+
+            // Verificar si el merge está desactivado
+            foreach (var menuRadial in menuRadials)
+            {
+                if (menuRadial != null && menuRadial.DisableVRChatMergeNDMF)
+                {
+                    Debug.Log("[MRMenuRadial NDMF] Merge de archivos VRChat DESACTIVADO desde MRMenuRadial. Saltando proceso.");
+                    return;
+                }
+            }
+
+            Debug.Log($"[MRMenuRadial NDMF] Procesando {menuRadials.Length} componente(s) MRMenuRadial...");
+
+            var asc = context.Extension<AnimatorServicesContext>();
+
+            // Determinar cuáles están dentro del avatar (se pueden limpiar) y cuáles están fuera (no tocar)
+            var internalMenuRadials = context.AvatarRootObject.GetComponentsInChildren<MRMenuRadial>(true);
+            var internalSet = new HashSet<MRMenuRadial>(internalMenuRadials);
+
+            foreach (var menuRadial in menuRadials)
+            {
+                if (menuRadial == null) continue;
+
+                // Guardar nombre antes de cualquier operación
+                string menuRadialName = "Unknown";
+                try { menuRadialName = menuRadial.gameObject.name; } catch { }
+
+                if (!menuRadial.enabled)
+                {
+                    Debug.Log($"[MRMenuRadial NDMF] Saltando '{menuRadialName}' (deshabilitado)");
+                    continue;
+                }
+
+                bool isInternal = internalSet.Contains(menuRadial);
+
+                try
+                {
+                    ProcessMenuRadial(context, asc, avatarDescriptor, menuRadial, isInternal);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[MRMenuRadial NDMF] Error procesando '{menuRadialName}': {e.Message}");
+                    Debug.LogException(e);
+                }
+            }
+
+            Debug.Log("[MRMenuRadial NDMF] Procesamiento completado");
+        }
+
+        private MRMenuRadial[] FindMenuRadials(BuildContext context)
+        {
+            // Primero buscar dentro del avatar
             var menuRadials = context.AvatarRootObject.GetComponentsInChildren<MRMenuRadial>(true);
 
             if (menuRadials.Length == 0)
             {
-                // Si no está dentro del avatar, buscar en la escena
-                // Durante NDMF, context.AvatarRootObject es un CLON del avatar original
-                // Necesitamos encontrar MRMenuRadial que referencien el avatar original por nombre
+                // Buscar MRMenuRadial externo que referencie este avatar
                 string avatarName = context.AvatarRootObject.name;
-
-                // Quitar sufijo "(Clone)" si existe
                 if (avatarName.EndsWith("(Clone)"))
                 {
                     avatarName = avatarName.Substring(0, avatarName.Length - 7).Trim();
@@ -100,473 +143,269 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     .ToArray();
             }
 
-            if (menuRadials.Length == 0)
+            return menuRadials;
+        }
+
+        private void ProcessMenuRadial(
+            BuildContext context,
+            AnimatorServicesContext asc,
+            VRCAvatarDescriptor avatar,
+            MRMenuRadial menuRadial,
+            bool isInternalToAvatar)
+        {
+            // Guardar datos antes de cualquier operación que pueda destruir el objeto
+            string outputDir = menuRadial.GetVRChatOutputDirectory();
+            string prefix = menuRadial.OutputPrefix;
+            bool writeDefaults = menuRadial.WriteDefaultValues;
+            string menuRadialName = menuRadial.gameObject.name;
+
+            Debug.Log($"[MRMenuRadial NDMF] Buscando archivos en: {outputDir}");
+
+            // Construir nombres de archivos
+            string fxFileName = string.IsNullOrEmpty(prefix)
+                ? "FX_Menu_Radial.controller"
+                : $"{prefix}_FX_Menu_Radial.controller";
+            string paramsFileName = string.IsNullOrEmpty(prefix)
+                ? "Parametro_Menu_Radial.asset"
+                : $"{prefix}_Parametro_Menu_Radial.asset";
+            string menuFileName = string.IsNullOrEmpty(prefix)
+                ? "Menu_Menu_Radial.asset"
+                : $"{prefix}_Menu_Menu_Radial.asset";
+
+            string fxPath = $"{outputDir}{fxFileName}";
+            string paramsPath = $"{outputDir}{paramsFileName}";
+            string menuPath = $"{outputDir}{menuFileName}";
+
+            // Cargar archivos generados
+            var generatedFX = AssetDatabase.LoadAssetAtPath<AnimatorController>(fxPath);
+            var generatedParams = AssetDatabase.LoadAssetAtPath<VRCExpressionParameters>(paramsPath);
+            var generatedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(menuPath);
+
+            // Verificar que existan
+            if (generatedFX == null)
             {
-                Debug.Log("[MRMenuRadial NDMF] No se encontraron componentes MRMenuRadial para este avatar");
+                Debug.LogWarning($"[MRMenuRadial NDMF] No se encontró FX Controller en: {fxPath}");
+                Debug.LogWarning("[MRMenuRadial NDMF] Primero usa el botón 'Generar Archivos VRChat' en MRMenuRadial.");
                 return;
             }
 
-            // Verificar si el merge de VRChat está desactivado
-            foreach (var menuRadial in menuRadials)
+            if (generatedParams == null)
             {
-                if (menuRadial != null && menuRadial.DisableVRChatMergeNDMF)
-                {
-                    Debug.Log("[MRMenuRadial NDMF] Merge de archivos VRChat DESACTIVADO desde MRMenuRadial. Saltando proceso.");
-                    return;
-                }
+                Debug.LogWarning($"[MRMenuRadial NDMF] No se encontró Parameters en: {paramsPath}");
+                return;
             }
 
-            Debug.Log($"[MRMenuRadial NDMF] Procesando {menuRadials.Length} componente(s) MRMenuRadial...");
-
-            // Obtener AnimatorServicesContext
-            var asc = context.Extension<AnimatorServicesContext>();
-
-            // Inicializar estado para valores por defecto
-            var defaultValues = context.GetState<MRDefaultValues>();
-            var valueOverrides = defaultValues.InitialValueOverrides;
-
-            foreach (var menuRadial in menuRadials)
+            if (generatedMenu == null)
             {
-                if (!menuRadial.enabled)
-                {
-                    Debug.Log($"[MRMenuRadial NDMF] Saltando '{menuRadial.gameObject.name}' (deshabilitado)");
-                    continue;
-                }
-
-                try
-                {
-                    valueOverrides = ProcessMenuRadial(context, asc, avatarDescriptor, menuRadial, valueOverrides);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[MRMenuRadial NDMF] Error procesando '{menuRadial.gameObject.name}': {e.Message}");
-                    Debug.LogException(e);
-                }
+                Debug.LogWarning($"[MRMenuRadial NDMF] No se encontró Menu en: {menuPath}");
+                return;
             }
 
-            // Guardar valores por defecto en el estado
-            defaultValues.InitialValueOverrides = valueOverrides;
+            Debug.Log($"[MRMenuRadial NDMF] Archivos encontrados. Mezclando con avatar...");
 
-            Debug.Log("[MRMenuRadial NDMF] Procesamiento completado");
+            // 1. Mezclar FX Controller
+            MergeFXController(asc, generatedFX, writeDefaults);
+
+            // 2. Mezclar Parameters
+            MergeParameters(context, avatar, generatedParams);
+
+            // 3. Mezclar Menu
+            MergeMenu(context, avatar, generatedMenu, prefix);
+
+            // 4. Limpiar componentes MR del avatar clonado SOLO si es interno
+            // NO destruir MRMenuRadial externos porque no son parte del clon
+            if (isInternalToAvatar && menuRadial != null)
+            {
+                CleanupComponents(menuRadial);
+            }
+
+            Debug.Log($"[MRMenuRadial NDMF] Merge completado para '{menuRadialName}'");
         }
 
-        private ImmutableDictionary<string, float> ProcessMenuRadial(
-            BuildContext context,
-            AnimatorServicesContext asc,
-            VRCAvatarDescriptor avatar,
-            MRMenuRadial menuRadial,
-            ImmutableDictionary<string, float> valueOverrides)
+        /// <summary>
+        /// Mezcla el FX Controller generado con el del avatar.
+        /// Copia todas las capas del FX generado al FX del avatar.
+        /// </summary>
+        private void MergeFXController(AnimatorServicesContext asc, AnimatorController generatedFX, bool writeDefaults)
         {
-            var menuControl = menuRadial.GetComponentInChildren<MRMenuControl>(true);
-            if (menuControl == null)
+            if (generatedFX == null)
             {
-                Debug.LogWarning($"[MRMenuRadial NDMF] No se encontró MRMenuControl en '{menuRadial.gameObject.name}'");
-                return valueOverrides;
+                Debug.LogWarning("[MRMenuRadial NDMF] generatedFX es null");
+                return;
             }
 
-            var slotInfoList = CollectSlotInfo(menuControl);
-            if (slotInfoList.Count == 0)
+            // Obtener o crear el FX Controller virtual del avatar
+            if (!asc.ControllerContext.Controllers.TryGetValue(VRCAvatarDescriptor.AnimLayerType.FX, out var avatarFX))
             {
-                Debug.LogWarning($"[MRMenuRadial NDMF] No hay slots válidos en '{menuRadial.gameObject.name}'");
-                return valueOverrides;
-            }
-
-            Debug.Log($"[MRMenuRadial NDMF] Encontrados {slotInfoList.Count} slots válidos");
-
-            // 1. Obtener el FX Controller virtual y añadir layers
-            valueOverrides = MergeFXController(context, asc, avatar, menuRadial, slotInfoList, valueOverrides);
-
-            // 2. Añadir parámetros al avatar
-            MergeParameters(context, avatar, slotInfoList);
-
-            // 3. Añadir menú
-            MergeMenu(context, avatar, menuRadial, menuControl, slotInfoList);
-
-            // 4. Limpiar componentes
-            CleanupComponents(menuRadial);
-
-            return valueOverrides;
-        }
-
-        private List<SlotInfo> CollectSlotInfo(MRMenuControl menuControl)
-        {
-            var result = new List<SlotInfo>();
-            var slots = menuControl.AnimationSlots;
-
-            foreach (var slot in slots)
-            {
-                if (slot == null || !slot.isValid || slot.targetObject == null)
-                    continue;
-
-                var animationType = slot.GetAnimationType();
-                if (animationType == AnimationType.None || animationType == AnimationType.SubMenu)
-                    continue;
-
-                var provider = slot.GetAnimationProvider();
-                if (provider == null)
-                    continue;
-
-                bool isIllumination = slot.targetObject.GetComponent<MRIluminacionRadial>() != null;
-
-                bool defaultIsOn = false;
-                if (provider is MRUnificarObjetos unificar)
-                {
-                    defaultIsOn = unificar.DefaultStateIsOn;
-                }
-
-                result.Add(new SlotInfo
-                {
-                    SlotName = slot.slotName,
-                    AnimationType = animationType,
-                    Provider = provider,
-                    TargetObject = slot.targetObject,
-                    IsIllumination = isIllumination,
-                    DefaultStateIsOn = defaultIsOn
-                });
-            }
-
-            return result;
-        }
-
-        private ImmutableDictionary<string, float> MergeFXController(
-            BuildContext context,
-            AnimatorServicesContext asc,
-            VRCAvatarDescriptor avatar,
-            MRMenuRadial menuRadial,
-            List<SlotInfo> slotInfoList,
-            ImmutableDictionary<string, float> valueOverrides)
-        {
-            // Obtener el FX Controller virtual a través de AnimatorServicesContext
-            VirtualAnimatorController fxController;
-
-            if (!asc.ControllerContext.Controllers.TryGetValue(VRCAvatarDescriptor.AnimLayerType.FX, out fxController))
-            {
-                // Crear nuevo controller si no existe
-                fxController = VirtualAnimatorController.Create(asc.ControllerContext.CloneContext, "FX");
-                asc.ControllerContext.Controllers[VRCAvatarDescriptor.AnimLayerType.FX] = fxController;
+                avatarFX = VirtualAnimatorController.Create(asc.ControllerContext.CloneContext, "FX");
+                asc.ControllerContext.Controllers[VRCAvatarDescriptor.AnimLayerType.FX] = avatarFX;
                 Debug.Log("[MRMenuRadial NDMF] Creado nuevo FX Controller virtual");
             }
 
-            bool writeDefaults = menuRadial.WriteDefaultValues;
-
-            foreach (var slotInfo in slotInfoList)
-            {
-                Debug.Log($"[MRMenuRadial NDMF] Generando capa para '{slotInfo.SlotName}' ({slotInfo.AnimationType})");
-
-                // Generar animaciones
-                var animations = GenerateAnimationsForSlot(context, asc, slotInfo);
-                if (animations == null || animations.Count == 0)
-                {
-                    Debug.LogWarning($"[MRMenuRadial NDMF] No se pudieron generar animaciones para '{slotInfo.SlotName}'");
-                    continue;
-                }
-
-                // Crear layer en el FX Controller virtual
-                CreateVirtualFXLayer(asc, fxController, slotInfo, animations, writeDefaults);
-
-                // Registrar valor por defecto para que se aplique después
-                float defaultValue = slotInfo.GetDefaultValue();
-                valueOverrides = valueOverrides.SetItem(slotInfo.SlotName, defaultValue);
-
-                Debug.Log($"[MRMenuRadial NDMF] Registrado valor por defecto para '{slotInfo.SlotName}': {defaultValue}");
-            }
-
-            return valueOverrides;
-        }
-
-        private Dictionary<string, VirtualClip> GenerateAnimationsForSlot(BuildContext context, AnimatorServicesContext asc, SlotInfo slotInfo)
-        {
-            var animations = new Dictionary<string, VirtualClip>();
             var cloneContext = asc.ControllerContext.CloneContext;
 
-            if (slotInfo.Provider is MRUnificarObjetos unificarObjetos)
+            // Copiar parámetros del FX generado
+            if (generatedFX.parameters != null)
             {
-                switch (slotInfo.AnimationType)
+                foreach (var param in generatedFX.parameters)
                 {
-                    case AnimationType.OnOff:
-                        var onClip = CreateVirtualClip(context, cloneContext, $"{slotInfo.SlotName}_on");
-                        var offClip = CreateVirtualClip(context, cloneContext, $"{slotInfo.SlotName}_off");
-                        GenerateOnOffAnimations(context, unificarObjetos, onClip, true);
-                        GenerateOnOffAnimations(context, unificarObjetos, offClip, false);
-                        animations["on"] = onClip;
-                        animations["off"] = offClip;
-                        break;
+                    if (param == null || string.IsNullOrEmpty(param.name)) continue;
 
-                    case AnimationType.AB:
-                        var aClip = CreateVirtualClip(context, cloneContext, $"{slotInfo.SlotName}_A");
-                        var bClip = CreateVirtualClip(context, cloneContext, $"{slotInfo.SlotName}_B");
-                        GenerateABAnimations(context, unificarObjetos, aClip, true);
-                        GenerateABAnimations(context, unificarObjetos, bClip, false);
-                        animations["A"] = aClip;
-                        animations["B"] = bClip;
-                        break;
-
-                    case AnimationType.Linear:
-                        var linClip = CreateVirtualClip(context, cloneContext, $"{slotInfo.SlotName}_lin");
-                        GenerateLinearAnimation(context, unificarObjetos, linClip);
-                        animations["linear"] = linClip;
-                        break;
-                }
-            }
-            else if (slotInfo.Provider is MRIluminacionRadial iluminacion)
-            {
-                var linClip = CreateVirtualClip(context, cloneContext, $"{slotInfo.SlotName}_lin");
-                GenerateIlluminationAnimation(context, iluminacion, linClip);
-                animations["linear"] = linClip;
-            }
-
-            return animations;
-        }
-
-        private VirtualClip CreateVirtualClip(BuildContext context, CloneContext cloneContext, string name)
-        {
-            var clip = new AnimationClip();
-            clip.name = name;
-            return cloneContext.Clone(clip);
-        }
-
-        private void GenerateOnOffAnimations(BuildContext context, MRUnificarObjetos unificar, VirtualClip clip, bool activeState)
-        {
-            var frames = unificar.GetFrames();
-            if (frames == null || frames.Count == 0) return;
-
-            var frame = frames[0];
-            var objects = frame.ObjectReferences;
-
-            foreach (var objRef in objects)
-            {
-                if (objRef?.GameObject == null) continue;
-
-                string path = GetRelativePath(context.AvatarRootTransform, objRef.GameObject.transform);
-                float value = activeState ? (objRef.IsActive ? 1f : 0f) : (objRef.IsActive ? 0f : 1f);
-
-                var binding = new EditorCurveBinding
-                {
-                    path = path,
-                    type = typeof(GameObject),
-                    propertyName = "m_IsActive"
-                };
-
-                var curve = new AnimationCurve(new Keyframe(0f, value));
-                clip.SetFloatCurve(binding, curve);
-            }
-        }
-
-        private void GenerateABAnimations(BuildContext context, MRUnificarObjetos unificar, VirtualClip clip, bool isA)
-        {
-            var frames = unificar.GetFrames();
-            if (frames == null || frames.Count < 2) return;
-
-            var frame = isA ? frames[0] : frames[1];
-            var objects = frame.ObjectReferences;
-
-            foreach (var objRef in objects)
-            {
-                if (objRef?.GameObject == null) continue;
-
-                string path = GetRelativePath(context.AvatarRootTransform, objRef.GameObject.transform);
-                float value = objRef.IsActive ? 1f : 0f;
-
-                var binding = new EditorCurveBinding
-                {
-                    path = path,
-                    type = typeof(GameObject),
-                    propertyName = "m_IsActive"
-                };
-
-                var curve = new AnimationCurve(new Keyframe(0f, value));
-                clip.SetFloatCurve(binding, curve);
-            }
-        }
-
-        private void GenerateLinearAnimation(BuildContext context, MRUnificarObjetos unificar, VirtualClip clip)
-        {
-            var frames = unificar.GetFrames();
-            if (frames == null || frames.Count < 3) return;
-
-            int frameCount = frames.Count;
-
-            var allObjects = new HashSet<GameObject>();
-            foreach (var frame in frames)
-            {
-                foreach (var objRef in frame.ObjectReferences)
-                {
-                    if (objRef?.GameObject != null)
-                        allObjects.Add(objRef.GameObject);
-                }
-            }
-
-            foreach (var obj in allObjects)
-            {
-                string path = GetRelativePath(context.AvatarRootTransform, obj.transform);
-                var keyframes = new List<Keyframe>();
-
-                for (int i = 0; i < frameCount; i++)
-                {
-                    float time = i / 60f;
-                    var frame = frames[i];
-                    var objRef = frame.ObjectReferences.FirstOrDefault(r => r?.GameObject == obj);
-                    float value = objRef != null && objRef.IsActive ? 1f : 0f;
-                    keyframes.Add(new Keyframe(time, value));
-                }
-
-                var binding = new EditorCurveBinding
-                {
-                    path = path,
-                    type = typeof(GameObject),
-                    propertyName = "m_IsActive"
-                };
-
-                var curve = new AnimationCurve(keyframes.ToArray());
-                clip.SetFloatCurve(binding, curve);
-            }
-        }
-
-        private void GenerateIlluminationAnimation(BuildContext context, MRIluminacionRadial iluminacion, VirtualClip clip)
-        {
-            var rootObject = iluminacion.RootObject;
-            if (rootObject == null) return;
-
-            Debug.Log($"[MRMenuRadial NDMF] Generando animación de iluminación para '{iluminacion.gameObject.name}'");
-        }
-
-        private string GetRelativePath(Transform root, Transform target)
-        {
-            if (target == root) return "";
-
-            var path = target.name;
-            var current = target.parent;
-
-            while (current != null && current != root)
-            {
-                path = current.name + "/" + path;
-                current = current.parent;
-            }
-
-            return path;
-        }
-
-        private void CreateVirtualFXLayer(AnimatorServicesContext asc, VirtualAnimatorController controller, SlotInfo slotInfo, Dictionary<string, VirtualClip> animations, bool writeDefaults)
-        {
-            string layerName = $"MR_{slotInfo.SlotName}";
-            string paramName = slotInfo.SlotName;
-            var cloneContext = asc.ControllerContext.CloneContext;
-
-            // Añadir parámetro al controller virtual
-            var parameters = controller.Parameters;
-            if (!parameters.ContainsKey(paramName))
-            {
-                float defaultValue = slotInfo.GetDefaultValue();
-
-                AnimatorControllerParameter param;
-                if (slotInfo.AnimationType == AnimationType.Linear)
-                {
-                    param = new AnimatorControllerParameter
+                    if (!avatarFX.Parameters.ContainsKey(param.name))
                     {
-                        name = paramName,
-                        type = AnimatorControllerParameterType.Float,
-                        defaultFloat = defaultValue
-                    };
+                        avatarFX.Parameters = avatarFX.Parameters.Add(param.name, param);
+                        Debug.Log($"[MRMenuRadial NDMF] Añadido parámetro FX: {param.name}");
+                    }
                 }
-                else
+            }
+
+            // Copiar capas del FX generado (excepto la base layer vacía si existe)
+            if (generatedFX.layers != null)
+            {
+                for (int i = 0; i < generatedFX.layers.Length; i++)
                 {
-                    param = new AnimatorControllerParameter
+                    var sourceLayer = generatedFX.layers[i];
+                    if (sourceLayer.stateMachine == null) continue;
+
+                    // Saltar la primera capa si está vacía (es la capa base por defecto)
+                    if (i == 0 && (sourceLayer.stateMachine.states == null || sourceLayer.stateMachine.states.Length == 0))
                     {
-                        name = paramName,
-                        type = AnimatorControllerParameterType.Bool,
-                        defaultBool = defaultValue > 0.5f
-                    };
+                        continue;
+                    }
+
+                    try
+                    {
+                        // Crear capa virtual
+                        var virtualLayer = avatarFX.AddLayer(LayerPriority.Default, sourceLayer.name ?? $"Layer_{i}");
+                        virtualLayer.DefaultWeight = sourceLayer.defaultWeight;
+
+                        // Clonar la state machine
+                        var virtualStateMachine = CloneStateMachine(cloneContext, sourceLayer.stateMachine, writeDefaults);
+                        virtualLayer.StateMachine = virtualStateMachine;
+
+                        Debug.Log($"[MRMenuRadial NDMF] Añadida capa FX: {sourceLayer.name}");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[MRMenuRadial NDMF] Error añadiendo capa '{sourceLayer.name}': {e.Message}");
+                    }
                 }
-
-                parameters = parameters.Add(paramName, param);
-                controller.Parameters = parameters;
-            }
-
-            // Crear layer virtual
-            var layer = controller.AddLayer(LayerPriority.Default, layerName);
-            layer.DefaultWeight = 1f;
-
-            // Crear state machine
-            var stateMachine = VirtualStateMachine.Create(cloneContext, layerName);
-            layer.StateMachine = stateMachine;
-
-            switch (slotInfo.AnimationType)
-            {
-                case AnimationType.OnOff:
-                case AnimationType.AB:
-                    CreateVirtualToggleStateMachine(cloneContext, stateMachine, paramName, animations, writeDefaults, slotInfo);
-                    break;
-
-                case AnimationType.Linear:
-                    CreateVirtualLinearStateMachine(cloneContext, stateMachine, paramName, animations, writeDefaults);
-                    break;
             }
         }
 
-        private void CreateVirtualToggleStateMachine(CloneContext cloneContext, VirtualStateMachine stateMachine, string paramName, Dictionary<string, VirtualClip> animations, bool writeDefaults, SlotInfo slotInfo)
+        /// <summary>
+        /// Clona una StateMachine para el sistema virtual de NDMF.
+        /// </summary>
+        private VirtualStateMachine CloneStateMachine(CloneContext cloneContext, AnimatorStateMachine source, bool writeDefaults)
         {
-            var offClip = animations.ContainsKey("off") ? animations["off"] : animations.ContainsKey("A") ? animations["A"] : null;
-            var onClip = animations.ContainsKey("on") ? animations["on"] : animations.ContainsKey("B") ? animations["B"] : null;
-
-            if (offClip == null || onClip == null) return;
-
-            // Crear estados virtuales
-            var offState = stateMachine.AddState("Off", offClip);
-            offState.WriteDefaultValues = writeDefaults;
-
-            var onState = stateMachine.AddState("On", onClip);
-            onState.WriteDefaultValues = writeDefaults;
-
-            // Crear transición AnyState -> Off (cuando param = false)
-            var toOff = VirtualStateTransition.Create();
-            toOff.ExitTime = null; // Sin exit time
-            toOff.Duration = 0f;
-            toOff.CanTransitionToSelf = false;
-            toOff.SetDestination(offState);
-            toOff.Conditions = ImmutableList.Create(new AnimatorCondition
+            if (source == null)
             {
-                mode = AnimatorConditionMode.IfNot,
-                parameter = paramName,
-                threshold = 0
-            });
+                Debug.LogWarning("[MRMenuRadial NDMF] StateMachine source es null");
+                return VirtualStateMachine.Create(cloneContext, "Empty");
+            }
 
-            // Crear transición AnyState -> On (cuando param = true)
-            var toOn = VirtualStateTransition.Create();
-            toOn.ExitTime = null; // Sin exit time
-            toOn.Duration = 0f;
-            toOn.CanTransitionToSelf = false;
-            toOn.SetDestination(onState);
-            toOn.Conditions = ImmutableList.Create(new AnimatorCondition
+            var virtualSM = VirtualStateMachine.Create(cloneContext, source.name ?? "StateMachine");
+
+            // Diccionario para mapear estados originales a virtuales
+            var stateMap = new Dictionary<AnimatorState, VirtualState>();
+
+            // Clonar estados
+            if (source.states != null)
             {
-                mode = AnimatorConditionMode.If,
-                parameter = paramName,
-                threshold = 0
-            });
+                foreach (var childState in source.states)
+                {
+                    var state = childState.state;
+                    if (state == null) continue;
 
-            // Añadir transiciones al AnyStateTransitions
-            stateMachine.AnyStateTransitions = stateMachine.AnyStateTransitions.Add(toOff).Add(toOn);
+                    VirtualMotion virtualMotion = null;
 
-            // Estado por defecto
-            bool defaultIsOn = slotInfo.AnimationType == AnimationType.OnOff && slotInfo.DefaultStateIsOn;
-            stateMachine.DefaultState = defaultIsOn ? onState : offState;
+                    try
+                    {
+                        if (state.motion != null)
+                        {
+                            if (state.motion is AnimationClip clip && clip != null)
+                            {
+                                virtualMotion = cloneContext.Clone(clip);
+                            }
+                            else if (state.motion is BlendTree blendTree && blendTree != null)
+                            {
+                                virtualMotion = cloneContext.Clone(blendTree);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[MRMenuRadial NDMF] Error clonando motion de estado '{state.name}': {e.Message}");
+                    }
+
+                    var virtualState = virtualSM.AddState(state.name ?? "State", virtualMotion);
+                    virtualState.WriteDefaultValues = writeDefaults;
+
+                    // Copiar propiedades del estado
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(state.timeParameter))
+                        {
+                            virtualState.TimeParameter = state.timeParameter;
+                        }
+                        virtualState.Speed = state.speed;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[MRMenuRadial NDMF] Error copiando propiedades de estado '{state.name}': {e.Message}");
+                    }
+
+                    stateMap[state] = virtualState;
+
+                    // Si es el estado por defecto, marcarlo
+                    if (source.defaultState != null && source.defaultState == state)
+                    {
+                        virtualSM.DefaultState = virtualState;
+                    }
+                }
+            }
+
+            // Clonar transiciones AnyState
+            if (source.anyStateTransitions != null)
+            {
+                foreach (var transition in source.anyStateTransitions)
+                {
+                    if (transition == null) continue;
+                    if (transition.destinationState == null) continue;
+                    if (!stateMap.TryGetValue(transition.destinationState, out var destVirtual)) continue;
+
+                    try
+                    {
+                        var virtualTransition = VirtualStateTransition.Create();
+                        virtualTransition.SetDestination(destVirtual);
+                        virtualTransition.Duration = transition.duration;
+                        virtualTransition.ExitTime = transition.hasExitTime ? transition.exitTime : (float?)null;
+                        virtualTransition.CanTransitionToSelf = transition.canTransitionToSelf;
+
+                        // Copiar condiciones
+                        if (transition.conditions != null && transition.conditions.Length > 0)
+                        {
+                            virtualTransition.Conditions = System.Collections.Immutable.ImmutableList.CreateRange(transition.conditions);
+                        }
+
+                        virtualSM.AnyStateTransitions = virtualSM.AnyStateTransitions.Add(virtualTransition);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[MRMenuRadial NDMF] Error clonando transición: {e.Message}");
+                    }
+                }
+            }
+
+            return virtualSM;
         }
 
-        private void CreateVirtualLinearStateMachine(CloneContext cloneContext, VirtualStateMachine stateMachine, string paramName, Dictionary<string, VirtualClip> animations, bool writeDefaults)
+        /// <summary>
+        /// Mezcla los parámetros generados con los del avatar.
+        /// </summary>
+        private void MergeParameters(BuildContext context, VRCAvatarDescriptor avatar, VRCExpressionParameters generatedParams)
         {
-            if (!animations.ContainsKey("linear")) return;
-
-            var clip = animations["linear"];
-
-            var state = stateMachine.AddState("Linear", clip);
-            state.WriteDefaultValues = false; // Write Defaults OFF para radiales
-            state.TimeParameter = paramName; // Esto automáticamente activa timeParameterActive
-            state.Speed = 1f; // Speed 1 como los radiales estándar de VRChat
-
-            stateMachine.DefaultState = state;
-        }
-
-        private void MergeParameters(BuildContext context, VRCAvatarDescriptor avatar, List<SlotInfo> slotInfoList)
-        {
+            // Obtener o crear parameters del avatar
             if (avatar.expressionParameters == null)
             {
                 avatar.expressionParameters = ScriptableObject.CreateInstance<VRCExpressionParameters>();
@@ -575,46 +414,49 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
             else
             {
+                // Clonar para no modificar el original
                 var clone = UnityEngine.Object.Instantiate(avatar.expressionParameters);
                 clone.name = avatar.expressionParameters.name;
                 context.AssetSaver.SaveAsset(clone);
                 avatar.expressionParameters = clone;
             }
 
+            // Lista de parámetros existentes
             var paramList = new List<VRCExpressionParameters.Parameter>(
                 avatar.expressionParameters.parameters ?? Array.Empty<VRCExpressionParameters.Parameter>()
             );
 
-            foreach (var slotInfo in slotInfoList)
+            // Añadir parámetros del archivo generado que no existan
+            foreach (var param in generatedParams.parameters)
             {
-                if (paramList.Any(p => p.name == slotInfo.SlotName))
+                if (!paramList.Any(p => p.name == param.name))
                 {
-                    Debug.Log($"[MRMenuRadial NDMF] Parámetro '{slotInfo.SlotName}' ya existe");
-                    continue;
+                    paramList.Add(new VRCExpressionParameters.Parameter
+                    {
+                        name = param.name,
+                        valueType = param.valueType,
+                        defaultValue = param.defaultValue,
+                        saved = param.saved,
+                        networkSynced = param.networkSynced
+                    });
+                    Debug.Log($"[MRMenuRadial NDMF] Añadido parámetro: {param.name} (default={param.defaultValue})");
                 }
-
-                float defaultValue = slotInfo.GetDefaultValue();
-
-                var param = new VRCExpressionParameters.Parameter
+                else
                 {
-                    name = slotInfo.SlotName,
-                    valueType = slotInfo.AnimationType == AnimationType.Linear
-                        ? VRCExpressionParameters.ValueType.Float
-                        : VRCExpressionParameters.ValueType.Bool,
-                    defaultValue = defaultValue,
-                    saved = true,
-                    networkSynced = true
-                };
-
-                paramList.Add(param);
-                Debug.Log($"[MRMenuRadial NDMF] Añadido parámetro '{slotInfo.SlotName}' (default={defaultValue})");
+                    Debug.Log($"[MRMenuRadial NDMF] Parámetro '{param.name}' ya existe, saltando");
+                }
             }
 
             avatar.expressionParameters.parameters = paramList.ToArray();
         }
 
-        private void MergeMenu(BuildContext context, VRCAvatarDescriptor avatar, MRMenuRadial menuRadial, MRMenuControl menuControl, List<SlotInfo> slotInfoList)
+        /// <summary>
+        /// Mezcla el menú generado con el del avatar.
+        /// Añade el menú generado como submenú del menú principal del avatar.
+        /// </summary>
+        private void MergeMenu(BuildContext context, VRCAvatarDescriptor avatar, VRCExpressionsMenu generatedMenu, string prefix)
         {
+            // Obtener o crear menú del avatar
             if (avatar.expressionsMenu == null)
             {
                 avatar.expressionsMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
@@ -623,59 +465,70 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
             else
             {
+                // Clonar para no modificar el original
                 var clone = UnityEngine.Object.Instantiate(avatar.expressionsMenu);
                 clone.name = avatar.expressionsMenu.name;
                 context.AssetSaver.SaveAsset(clone);
                 avatar.expressionsMenu = clone;
             }
 
-            var subMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
-            subMenu.name = menuRadial.OutputPrefix ?? "Menu Radial";
-            context.AssetSaver.SaveAsset(subMenu);
+            // Clonar el menú generado y sus submenús recursivamente
+            var clonedMenu = CloneMenuRecursive(context, generatedMenu);
 
-            foreach (var slotInfo in slotInfoList)
+            // Nombre del submenú
+            string subMenuName = string.IsNullOrEmpty(prefix) ? "Menu Radial" : prefix;
+
+            // Verificar si ya existe un control con ese nombre
+            var existingControl = avatar.expressionsMenu.controls.FirstOrDefault(c => c.name == subMenuName);
+            if (existingControl != null)
             {
+                // Actualizar el submenú existente
+                existingControl.subMenu = clonedMenu;
+                Debug.Log($"[MRMenuRadial NDMF] Actualizado submenú existente: {subMenuName}");
+            }
+            else
+            {
+                // Añadir como nuevo submenú
                 var control = new VRCExpressionsMenu.Control
                 {
-                    name = slotInfo.SlotName
+                    name = subMenuName,
+                    type = VRCExpressionsMenu.Control.ControlType.SubMenu,
+                    subMenu = clonedMenu
                 };
 
-                switch (slotInfo.AnimationType)
-                {
-                    case AnimationType.OnOff:
-                    case AnimationType.AB:
-                        control.type = VRCExpressionsMenu.Control.ControlType.Toggle;
-                        control.parameter = new VRCExpressionsMenu.Control.Parameter { name = slotInfo.SlotName };
-                        break;
+                avatar.expressionsMenu.controls.Add(control);
+                Debug.Log($"[MRMenuRadial NDMF] Añadido submenú: {subMenuName}");
 
-                    case AnimationType.Linear:
-                        // Para RadialPuppet: parameter.name debe estar vacío, el parámetro va en subParameters
-                        control.type = VRCExpressionsMenu.Control.ControlType.RadialPuppet;
-                        control.parameter = new VRCExpressionsMenu.Control.Parameter { name = "" };
-                        control.subParameters = new VRCExpressionsMenu.Control.Parameter[]
-                        {
-                            new VRCExpressionsMenu.Control.Parameter { name = slotInfo.SlotName }
-                        };
-                        control.value = slotInfo.GetDefaultValue();
-                        break;
-                }
-
-                subMenu.controls.Add(control);
+                // Si excede el límite de 8 controles, crear submenú "More"
+                SplitMenuIfNeeded(context, avatar.expressionsMenu);
             }
-
-            SplitMenuIfNeeded(context, subMenu);
-
-            var mainMenuControl = new VRCExpressionsMenu.Control
-            {
-                name = menuRadial.OutputPrefix ?? "Menu Radial",
-                type = VRCExpressionsMenu.Control.ControlType.SubMenu,
-                subMenu = subMenu
-            };
-
-            avatar.expressionsMenu.controls.Add(mainMenuControl);
-            SplitMenuIfNeeded(context, avatar.expressionsMenu);
         }
 
+        /// <summary>
+        /// Clona un menú y todos sus submenús recursivamente.
+        /// </summary>
+        private VRCExpressionsMenu CloneMenuRecursive(BuildContext context, VRCExpressionsMenu source)
+        {
+            var clone = UnityEngine.Object.Instantiate(source);
+            clone.name = source.name;
+            context.AssetSaver.SaveAsset(clone);
+
+            // Clonar submenús recursivamente
+            for (int i = 0; i < clone.controls.Count; i++)
+            {
+                var control = clone.controls[i];
+                if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && control.subMenu != null)
+                {
+                    control.subMenu = CloneMenuRecursive(context, control.subMenu);
+                }
+            }
+
+            return clone;
+        }
+
+        /// <summary>
+        /// Divide el menú si excede el límite de 8 controles.
+        /// </summary>
         private void SplitMenuIfNeeded(BuildContext context, VRCExpressionsMenu menu)
         {
             const int MAX_CONTROLS = 8;
@@ -701,106 +554,31 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
         }
 
+        /// <summary>
+        /// Limpia los componentes MR del avatar clonado después del procesamiento.
+        /// </summary>
         private void CleanupComponents(MRMenuRadial menuRadial)
         {
-            var componentsToDestroy = new List<Component>();
-
+            // Destruir componentes que ya no son necesarios en runtime
             var menuControl = menuRadial.GetComponentInChildren<MRMenuControl>(true);
             if (menuControl != null)
             {
-                componentsToDestroy.AddRange(menuControl.GetComponentsInChildren<MRUnificarObjetos>(true));
-                componentsToDestroy.AddRange(menuControl.GetComponentsInChildren<MRIluminacionRadial>(true));
-                componentsToDestroy.Add(menuControl);
-            }
-
-            foreach (var comp in componentsToDestroy)
-            {
-                if (comp != null)
+                var radials = menuControl.GetComponentsInChildren<Bender_Dios.MenuRadial.Components.Radial.MRUnificarObjetos>(true);
+                foreach (var radial in radials)
                 {
-                    UnityEngine.Object.DestroyImmediate(comp);
+                    UnityEngine.Object.DestroyImmediate(radial);
                 }
+
+                var illuminations = menuControl.GetComponentsInChildren<Bender_Dios.MenuRadial.Components.Illumination.MRIluminacionRadial>(true);
+                foreach (var ilum in illuminations)
+                {
+                    UnityEngine.Object.DestroyImmediate(ilum);
+                }
+
+                UnityEngine.Object.DestroyImmediate(menuControl);
             }
 
             UnityEngine.Object.DestroyImmediate(menuRadial);
-        }
-
-        private class SlotInfo
-        {
-            public string SlotName;
-            public AnimationType AnimationType;
-            public IAnimationProvider Provider;
-            public GameObject TargetObject;
-            public bool IsIllumination;
-            public bool DefaultStateIsOn;
-
-            public float GetDefaultValue()
-            {
-                if (AnimationType == AnimationType.Linear)
-                {
-                    return IsIllumination ? MRIlluminationConstants.VRCHAT_DEFAULT_VALUE : 0f;
-                }
-                else if (AnimationType == AnimationType.OnOff)
-                {
-                    return DefaultStateIsOn ? 1f : 0f;
-                }
-                return 0f;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Pass que aplica los valores por defecto a todos los controllers.
-    /// Similar a ApplyAnimatorDefaultValuesPass de Modular Avatar.
-    /// </summary>
-    internal class MRApplyDefaultValuesPass : Pass<MRApplyDefaultValuesPass>
-    {
-        public override string DisplayName => "MR Menu Radial - Aplicar valores por defecto";
-
-        protected override void Execute(BuildContext context)
-        {
-            var defaultValues = context.GetState<MRDefaultValues>();
-            if (defaultValues == null || defaultValues.InitialValueOverrides.IsEmpty)
-            {
-                return;
-            }
-
-            var asc = context.Extension<AnimatorServicesContext>();
-
-            // Aplicar valores por defecto a TODOS los controllers
-            foreach (var controller in asc.ControllerContext.GetAllControllers())
-            {
-                var parameters = controller.Parameters;
-                bool modified = false;
-
-                foreach (var (name, defaultValue) in defaultValues.InitialValueOverrides)
-                {
-                    if (!parameters.TryGetValue(name, out var parameter)) continue;
-
-                    switch (parameter.type)
-                    {
-                        case AnimatorControllerParameterType.Bool:
-                            parameter.defaultBool = defaultValue != 0.0f;
-                            break;
-                        case AnimatorControllerParameterType.Int:
-                            parameter.defaultInt = Mathf.RoundToInt(defaultValue);
-                            break;
-                        case AnimatorControllerParameterType.Float:
-                            parameter.defaultFloat = defaultValue;
-                            break;
-                        default:
-                            continue;
-                    }
-
-                    parameters = parameters.SetItem(name, parameter);
-                    modified = true;
-                    Debug.Log($"[MRMenuRadial NDMF] Aplicado valor por defecto '{name}' = {defaultValue}");
-                }
-
-                if (modified)
-                {
-                    controller.Parameters = parameters;
-                }
-            }
         }
     }
 }
