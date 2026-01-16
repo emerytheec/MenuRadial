@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using VRC.SDKBase;
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Core.Preview;
 using Bender_Dios.MenuRadial.Components.Radial;
@@ -11,10 +12,11 @@ namespace Bender_Dios.MenuRadial.Components.Menu
 {
     /// <summary>
     /// Componente MR Menú Control (antes MRControlMenu)
-    /// Orquesta todo el sistema MR y genera archivos VRChat
+    /// Orquesta todo el sistema MR y genera archivos VRChat.
+    /// Implementa IEditorOnly para que VRChat SDK no genere advertencias.
     /// </summary>
     [AddComponentMenu("MR/MR Menú Control")]
-    public class MRMenuControl : MonoBehaviour, IAnimationProvider
+    public class MRMenuControl : MonoBehaviour, IAnimationProvider, IEditorOnly
     {
         
         [SerializeField] private List<MRAnimationSlot> animationSlots = new List<MRAnimationSlot>();
@@ -391,6 +393,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             {
                 if (slot == null || !slot.isValid || slot.targetObject == null) continue;
 
+#if UNITY_EDITOR
                 // Restaurar iluminación
                 var illumination = slot.CachedIllumination;
                 if (illumination != null)
@@ -414,6 +417,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                         unifyRenderer.RestoreOriginalMaterials();
                     }
                 }
+#endif
 
                 // Recursivamente resetear submenús
                 var subMenu = slot.CachedControlMenu;
@@ -443,11 +447,13 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                 }
             }
 
+#if UNITY_EDITOR
             // 3. Limpiar cache de sliders (solo una vez al final si es el menú raíz)
             if (menu == this)
             {
                 RadialSliderIntegration.ClearSliderCache();
             }
+#endif
         }
 
         

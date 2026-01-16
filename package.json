@@ -1,6 +1,6 @@
 {
   "name": "com.bender-dios.menu-radial",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "displayName": "Menu Radial",
   "description": "Sistema de menu radial para avatares VRChat. Genera animaciones, controladores FX, parametros y menus de expresiones de forma visual e intuitiva.",
   "unity": "2022.3",

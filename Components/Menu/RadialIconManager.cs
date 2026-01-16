@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 
 namespace Bender_Dios.MenuRadial.Components.Menu
@@ -301,3 +302,4 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         }
     }
 }
+#endif

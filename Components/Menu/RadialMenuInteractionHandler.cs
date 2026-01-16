@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 
@@ -326,6 +327,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         {
             Event.current?.Use();
         }
-        
+
     }
 }
+#endif

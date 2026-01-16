@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.7] - 2026-01-16
+
+### Corregido
+- **Compilacion Runtime**: Archivos de editor envueltos en `#if UNITY_EDITOR`
+  - MRIconLoader, RadialIconManager, RadialMenuRenderer, RadialMenuInteractionHandler
+  - RadialSliderIntegration, SimpleRadialMenuDrawer
+  - MRMenuControl: llamadas a RadialSliderIntegration envueltas en directivas
+  - Previene errores de compilacion cuando VRChat SDK construye el avatar
+- **MRMenuControl**: Implementa `IEditorOnly` para evitar advertencias de VRChat SDK
+
 ## [0.8.6] - 2026-01-16
 
 ### Corregido

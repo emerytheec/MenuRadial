@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using Bender_Dios.MenuRadial.Core.Common;
 using static Bender_Dios.MenuRadial.Components.Menu.RadialMenuStateManager;
@@ -269,9 +270,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             // Renderizar iconos y texto con configuración adaptativa
             RadialIconManager.RenderCompleteButton(buttonPosition, backgroundIcon, foregroundIcon, buttonName, iconConfig);
         }
-        
-        
-        
-        
+
     }
 }
+#endif

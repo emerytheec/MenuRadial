@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
@@ -111,6 +112,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         {
             _iconCache.Clear();
         }
-        
+
     }
 }
+#endif

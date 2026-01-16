@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 
@@ -299,12 +300,13 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         {
             Color oldColor = Handles.color;
             Handles.color = BorderColor;
-            
+
             Vector3 center = new Vector3(centerX, centerY, 0);
             Handles.DrawWireDisc(center, Vector3.forward, radius);
-            
+
             Handles.color = oldColor;
         }
-        
+
     }
 }
+#endif
