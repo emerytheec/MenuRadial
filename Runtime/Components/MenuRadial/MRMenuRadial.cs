@@ -47,6 +47,15 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         [Tooltip("writeDefaultValues para las capas del controlador FX")]
         private bool _writeDefaultValues = true;
 
+        [Header("NDMF - Control de Procesos")]
+        [SerializeField]
+        [Tooltip("Desactiva el cosido automático de huesos de ropa durante el build (NDMF). Útil para probar sin merge de armatures.")]
+        private bool _disableBoneStitchingNDMF = false;
+
+        [SerializeField]
+        [Tooltip("Desactiva el merge automático de archivos VRChat (FX, Parameters, Menu) durante el build (NDMF). Útil para probar sin integración.")]
+        private bool _disableVRChatMergeNDMF = false;
+
         #endregion
 
         #region Child Component References (cached)
@@ -132,6 +141,24 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// Verifica si hay un prefijo configurado.
         /// </summary>
         public bool HasPrefix => !string.IsNullOrEmpty(_outputPrefix);
+
+        /// <summary>
+        /// Si está activado, desactiva el cosido automático de huesos durante NDMF build.
+        /// </summary>
+        public bool DisableBoneStitchingNDMF
+        {
+            get => _disableBoneStitchingNDMF;
+            set => _disableBoneStitchingNDMF = value;
+        }
+
+        /// <summary>
+        /// Si está activado, desactiva el merge de archivos VRChat durante NDMF build.
+        /// </summary>
+        public bool DisableVRChatMergeNDMF
+        {
+            get => _disableVRChatMergeNDMF;
+            set => _disableVRChatMergeNDMF = value;
+        }
 
         /// <summary>
         /// Obtiene el directorio de salida incluyendo subcarpeta si hay prefijo.

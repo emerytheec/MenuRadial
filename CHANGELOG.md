@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.3] - 2026-01-16
+
+### Agregado
+- **Control de Procesos NDMF**: Nuevos checkboxes en MRMenuRadial para control granular
+  - `Desactivar Cosido de Huesos`: Evita que NDMF cosa automaticamente los armatures de ropa
+  - `Desactivar Merge VRChat`: Evita que NDMF mezcle FX/Parameters/Menu con el avatar
+  - Util para debugging y pruebas sin cambios automaticos
+- Nueva seccion "NDMF - Control de Procesos" en el inspector de MRMenuRadial
+- Advertencia visual cuando los procesos estan desactivados
+
+### Mejorado
+- MRCoserRopaPlugin verifica flag antes de ejecutar cosido
+- MRMenuRadialPlugin verifica flag antes de ejecutar merge
+- Documentacion actualizada en CLAUDE.md
+
 ## [0.8.2] - 2026-01-16
 
 ### Corregido

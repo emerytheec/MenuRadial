@@ -22,6 +22,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private SerializedProperty _outputPathProperty;
         private SerializedProperty _outputPrefixProperty;
         private SerializedProperty _writeDefaultValuesProperty;
+        private SerializedProperty _disableBoneStitchingProperty;
+        private SerializedProperty _disableVRChatMergeProperty;
         private MRMenuRadial _target;
 
         private GUIStyle _headerStyle;
@@ -41,6 +43,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             _outputPathProperty = serializedObject.FindProperty("_outputPath");
             _outputPrefixProperty = serializedObject.FindProperty("_outputPrefix");
             _writeDefaultValuesProperty = serializedObject.FindProperty("_writeDefaultValues");
+            _disableBoneStitchingProperty = serializedObject.FindProperty("_disableBoneStitchingNDMF");
+            _disableVRChatMergeProperty = serializedObject.FindProperty("_disableVRChatMergeNDMF");
             RefreshMenuControlCache();
         }
 
@@ -84,6 +88,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.Space(10);
 
             DrawOutputPathField();
+            EditorGUILayout.Space(10);
+
+            DrawNDMFControlPanel();
             EditorGUILayout.Space(10);
 
             DrawStatusPanel();
@@ -180,6 +187,42 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.Space(5);
 
             EditorGUILayout.PropertyField(_writeDefaultValuesProperty, new GUIContent("Write Default Values", "writeDefaultValues para las capas del controlador FX"));
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawNDMFControlPanel()
+        {
+            EditorGUILayout.BeginVertical(_boxStyle);
+            EditorGUILayout.LabelField("NDMF - Control de Procesos", EditorStyles.boldLabel);
+
+            EditorGUILayout.HelpBox("Controla qué procesos se ejecutan automáticamente durante Play Mode o al subir el avatar.", MessageType.Info);
+
+            EditorGUILayout.Space(5);
+
+            // Checkbox para desactivar cosido de huesos
+            EditorGUILayout.PropertyField(_disableBoneStitchingProperty, new GUIContent(
+                "Desactivar Cosido de Huesos",
+                "Si está activado, NDMF NO cosera automáticamente los armatures de ropa al avatar durante el build."));
+
+            // Checkbox para desactivar merge de VRChat
+            EditorGUILayout.PropertyField(_disableVRChatMergeProperty, new GUIContent(
+                "Desactivar Merge VRChat",
+                "Si está activado, NDMF NO mezclará automáticamente los archivos VRChat (FX, Parameters, Menu) durante el build."));
+
+            // Mostrar advertencia si alguno está activado
+            if (_disableBoneStitchingProperty.boolValue || _disableVRChatMergeProperty.boolValue)
+            {
+                EditorGUILayout.Space(5);
+                string warning = "NDMF procesos desactivados:\n";
+                if (_disableBoneStitchingProperty.boolValue)
+                    warning += "• Cosido de huesos\n";
+                if (_disableVRChatMergeProperty.boolValue)
+                    warning += "• Merge de archivos VRChat\n";
+                warning += "\nEl avatar en Play Mode/Upload NO tendrá estos cambios aplicados.";
+
+                EditorGUILayout.HelpBox(warning, MessageType.Warning);
+            }
 
             EditorGUILayout.EndVertical();
         }

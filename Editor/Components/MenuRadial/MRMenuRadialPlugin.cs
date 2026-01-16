@@ -106,6 +106,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 return;
             }
 
+            // Verificar si el merge de VRChat está desactivado
+            foreach (var menuRadial in menuRadials)
+            {
+                if (menuRadial != null && menuRadial.DisableVRChatMergeNDMF)
+                {
+                    Debug.Log("[MRMenuRadial NDMF] Merge de archivos VRChat DESACTIVADO desde MRMenuRadial. Saltando proceso.");
+                    return;
+                }
+            }
+
             Debug.Log($"[MRMenuRadial NDMF] Procesando {menuRadials.Length} componente(s) MRMenuRadial...");
 
             // Obtener AnimatorServicesContext

@@ -1,11 +1,13 @@
 #if MR_NDMF_AVAILABLE
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using nadena.dev.ndmf;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.CoserRopa.MRCoserRopaPlugin))]
 
@@ -52,6 +54,33 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
         protected override void Execute(BuildContext context)
         {
+            // Verificar si el cosido está desactivado desde MRMenuRadial
+            var menuRadials = context.AvatarRootObject.GetComponentsInChildren<MRMenuRadial>(true);
+            if (menuRadials.Length == 0)
+            {
+                // Buscar MRMenuRadial externo que referencie este avatar
+                string avatarName = context.AvatarRootObject.name;
+                if (avatarName.EndsWith("(Clone)"))
+                {
+                    avatarName = avatarName.Substring(0, avatarName.Length - 7).Trim();
+                }
+
+                var allMenuRadials = UnityEngine.Object.FindObjectsByType<MRMenuRadial>(FindObjectsSortMode.None);
+                menuRadials = allMenuRadials
+                    .Where(mr => mr != null && mr.AvatarRoot != null && mr.AvatarRoot.name == avatarName)
+                    .ToArray();
+            }
+
+            // Si algún MRMenuRadial tiene el cosido desactivado, saltar el proceso
+            foreach (var menuRadial in menuRadials)
+            {
+                if (menuRadial != null && menuRadial.DisableBoneStitchingNDMF)
+                {
+                    Debug.Log("[MRCoserRopa NDMF] Cosido de huesos DESACTIVADO desde MRMenuRadial. Saltando proceso.");
+                    return;
+                }
+            }
+
             // Buscar todos los componentes MRCoserRopa en el avatar
             var coserRopaComponents = context.AvatarRootObject.GetComponentsInChildren<MRCoserRopa>(true);
 
