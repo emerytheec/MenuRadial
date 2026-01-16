@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.2] - 2026-01-16
+
+### Corregido
+- **RadialPuppet**: Los valores ahora persisten correctamente al salir del menu
+  - parameter.name debe estar vacio para RadialPuppet (parametro va solo en subParameters)
+  - writeDefaultValues=false para estados Linear en FX controller
+
+### Agregado
+- **MRMenuRadialPlugin**: Plugin NDMF con integracion AnimatorServicesContext
+  - Genera layers, parametros y menus automaticamente durante el build
+  - Soporte para valores por defecto en parametros
+
+### Mejorado
+- MRFXControllerGenerator usa valores por defecto apropiados para parametros
+- MRSubMenuManager y AutoMenuGenerator con mejoras varias
+
 ## [0.8.1] - 2026-01-15
 
 ### Eliminado
