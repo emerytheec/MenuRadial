@@ -20,6 +20,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private SerializedProperty _autoDetectProperty;
         private SerializedProperty _autoGenerateMenuProperty;
         private SerializedProperty _outputPathProperty;
+        private SerializedProperty _outputPrefixProperty;
+        private SerializedProperty _writeDefaultValuesProperty;
         private MRMenuRadial _target;
 
         private GUIStyle _headerStyle;
@@ -37,6 +39,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             _autoDetectProperty = serializedObject.FindProperty("_autoDetectOnAvatarAssign");
             _autoGenerateMenuProperty = serializedObject.FindProperty("_autoGenerateMenuStructure");
             _outputPathProperty = serializedObject.FindProperty("_outputPath");
+            _outputPrefixProperty = serializedObject.FindProperty("_outputPrefix");
+            _writeDefaultValuesProperty = serializedObject.FindProperty("_writeDefaultValues");
             RefreshMenuControlCache();
         }
 
@@ -113,6 +117,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             {
                 serializedObject.ApplyModifiedProperties();
                 _target.PropagateAvatarToChildren();
+                // Refrescar serializedObject para mostrar el OutputPrefix auto-asignado
+                serializedObject.Update();
                 RefreshMenuControlCache();
                 EditorUtility.SetDirty(_target);
             }
@@ -156,6 +162,24 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.PropertyField(_outputPathProperty, new GUIContent("Output Path", "Ruta donde se guardarán animaciones y archivos VRChat"));
 
             EditorGUILayout.HelpBox("Esta ruta se usa para generar animaciones y archivos VRChat.", MessageType.Info);
+
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(10);
+
+            // Sección de Namespace del Avatar (Configuración VRChat)
+            EditorGUILayout.BeginVertical(_boxStyle);
+            EditorGUILayout.LabelField("Namespace del Avatar", EditorStyles.boldLabel);
+
+            EditorGUILayout.PropertyField(_outputPrefixProperty, new GUIContent("Output Prefix", "Prefijo único para este avatar. Crea subcarpeta y prefija nombres de archivo. Dejar vacío para comportamiento legacy."));
+
+            // Preview de la ruta de salida completa
+            string outputDir = _target.GetVRChatOutputDirectory();
+            EditorGUILayout.HelpBox($"Ruta de salida: {outputDir}", MessageType.None);
+
+            EditorGUILayout.Space(5);
+
+            EditorGUILayout.PropertyField(_writeDefaultValuesProperty, new GUIContent("Write Default Values", "writeDefaultValues para las capas del controlador FX"));
 
             EditorGUILayout.EndVertical();
         }

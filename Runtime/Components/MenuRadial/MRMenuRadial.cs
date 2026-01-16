@@ -38,6 +38,15 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         [Tooltip("Ruta donde se guardarán las animaciones y archivos VRChat generados")]
         private string _outputPath = MRConstants.ANIMATION_OUTPUT_PATH;
 
+        [Header("Configuración VRChat")]
+        [SerializeField]
+        [Tooltip("Prefijo único para este avatar. Crea subcarpeta y prefija nombres de archivo. Dejar vacío para comportamiento legacy.")]
+        private string _outputPrefix = "";
+
+        [SerializeField]
+        [Tooltip("writeDefaultValues para las capas del controlador FX")]
+        private bool _writeDefaultValues = true;
+
         #endregion
 
         #region Child Component References (cached)
@@ -99,6 +108,43 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     _outputPath = value;
                 }
             }
+        }
+
+        /// <summary>
+        /// Prefijo de salida para archivos VRChat. Crea subcarpeta y prefija nombres de archivo.
+        /// </summary>
+        public string OutputPrefix
+        {
+            get => _outputPrefix;
+            set => _outputPrefix = value;
+        }
+
+        /// <summary>
+        /// WriteDefaultValues para las capas del controlador FX.
+        /// </summary>
+        public bool WriteDefaultValues
+        {
+            get => _writeDefaultValues;
+            set => _writeDefaultValues = value;
+        }
+
+        /// <summary>
+        /// Verifica si hay un prefijo configurado.
+        /// </summary>
+        public bool HasPrefix => !string.IsNullOrEmpty(_outputPrefix);
+
+        /// <summary>
+        /// Obtiene el directorio de salida incluyendo subcarpeta si hay prefijo.
+        /// </summary>
+        public string GetVRChatOutputDirectory()
+        {
+            string effectiveBasePath = string.IsNullOrEmpty(_outputPath)
+                ? MRConstants.VRCHAT_OUTPUT_PATH
+                : _outputPath.TrimEnd('/') + "/";
+
+            if (string.IsNullOrEmpty(_outputPrefix))
+                return effectiveBasePath;
+            return $"{effectiveBasePath}{_outputPrefix}/";
         }
 
         /// <summary>
@@ -187,10 +233,17 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Propaga el avatar actual a todos los componentes hijos que lo necesitan.
         /// También ejecuta auto-detección si está habilitada.
+        /// Auto-asigna OutputPrefix con el nombre del avatar si está vacío.
         /// </summary>
         public void PropagateAvatarToChildren()
         {
             InvalidateCache();
+
+            // Auto-asignar OutputPrefix si está vacío y hay avatar
+            if (string.IsNullOrEmpty(_outputPrefix) && _avatarRoot != null)
+            {
+                _outputPrefix = _avatarRoot.name;
+            }
 
             if (CoserRopa != null)
                 CoserRopa.AvatarRoot = _avatarRoot;

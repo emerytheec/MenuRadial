@@ -264,110 +264,49 @@ public class MRMenuControlInspector : Editor
         DrawAddComponentButtons(target);
         GUILayout.Space(10);
         
-        // Solo mostrar configuración VRChat en menús raíz (sin padre)
-        if (!target.HasParent)
+        serializedObject.ApplyModifiedProperties();
+
+        // Verificar y mostrar conflictos de nombres (útil en cualquier nivel)
+        var slotManager = target.GetSlotManager();
+        bool hasConflicts = slotManager != null && slotManager.HasConflicts();
+
+        if (hasConflicts)
         {
-            // Sección de Namespace del Avatar
-            EditorGUILayout.Space(5);
-            EditorGUILayout.LabelField(MRLocalization.Get(L.Menu.NAMESPACE_SECTION), EditorStyles.boldLabel);
-
-            var vrchatConfigProp = serializedObject.FindProperty("vrchatConfig");
-            if (vrchatConfigProp != null)
-            {
-                // Campo de Output Prefix
-                var outputPrefixProp = vrchatConfigProp.FindPropertyRelative("_outputPrefix");
-                if (outputPrefixProp != null)
-                {
-                    EditorGUILayout.PropertyField(outputPrefixProp, MRLocalization.GetContent(L.Menu.OUTPUT_PREFIX, L.Menu.OUTPUT_PREFIX_TOOLTIP));
-
-                    // Preview de la ruta de salida
-                    string outputDir = target.VRChatConfig?.GetOutputDirectory() ?? "Assets/Bender_Dios/Generated/";
-                    EditorGUILayout.HelpBox(MRLocalization.Get(L.Menu.OUTPUT_PATH, outputDir), MessageType.None);
-                }
-
-                EditorGUILayout.Space(5);
-
-                // Write Default Values
-                var writeDefaultValuesProp = vrchatConfigProp.FindPropertyRelative("writeDefaultValues");
-                if (writeDefaultValuesProp != null)
-                {
-                    EditorGUILayout.PropertyField(writeDefaultValuesProp, new GUIContent(MRLocalization.Get(L.Menu.WRITE_DEFAULT_VALUES)));
-                }
-            }
-
-            serializedObject.ApplyModifiedProperties();
-
             GUILayout.Space(10);
+            EditorGUILayout.HelpBox(
+                MRLocalization.Get(L.Menu.NAME_CONFLICTS),
+                MessageType.Warning);
 
-            // Verificar y mostrar conflictos de nombres
-            var slotManager = target.GetSlotManager();
-            bool hasConflicts = slotManager != null && slotManager.HasConflicts();
-
-            if (hasConflicts)
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button(MRLocalization.Get(L.Menu.VIEW_CONFLICTS), GUILayout.Width(100)))
             {
-                EditorGUILayout.HelpBox(
-                    MRLocalization.Get(L.Menu.NAME_CONFLICTS),
-                    MessageType.Warning);
-
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(MRLocalization.Get(L.Menu.VIEW_CONFLICTS), GUILayout.Width(100)))
-                {
-                    string summary = slotManager.GetConflictsSummary();
-                    EditorUtility.DisplayDialog(MRLocalization.Get(L.Menu.NAME_CONFLICTS), summary, MRLocalization.Get(L.Common.OK));
-                }
-                if (GUILayout.Button(MRLocalization.Get(L.Menu.AUTO_RESOLVE), GUILayout.Width(100)))
-                {
-                    if (slotManager.AutoResolveConflicts())
-                    {
-                        EditorUtility.SetDirty(target);
-                        Repaint();
-                    }
-                }
-                EditorGUILayout.EndHorizontal();
-
-                GUILayout.Space(5);
+                string summary = slotManager.GetConflictsSummary();
+                EditorUtility.DisplayDialog(MRLocalization.Get(L.Menu.NAME_CONFLICTS), summary, MRLocalization.Get(L.Common.OK));
             }
-
-            GUILayout.Space(10);
-
-            // Botón de creación de archivos
-            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-            buttonStyle.fontSize = 14;
-            buttonStyle.fontStyle = FontStyle.Bold;
-
-            bool canCreate = target.AllSlotsValid && !hasConflicts;
-            GUI.enabled = canCreate;
-            if (GUILayout.Button(MRLocalization.Get(L.Menu.CREATE_VRCHAT_FILES), buttonStyle, GUILayout.Height(40)))
+            if (GUILayout.Button(MRLocalization.Get(L.Menu.AUTO_RESOLVE), GUILayout.Width(100)))
             {
-                if (EditorUtility.DisplayDialog(MRLocalization.Get(L.Menu.CREATE_VRCHAT_FILES),
-                    MRLocalization.Get(L.Menu.CREATE_FILES_CONFIRM), MRLocalization.Get(L.Common.CREATE), MRLocalization.Get(L.Common.CANCEL)))
+                if (slotManager.AutoResolveConflicts())
                 {
-                    target.CreateVRChatFiles();
+                    EditorUtility.SetDirty(target);
+                    Repaint();
                 }
             }
-            GUI.enabled = true;
+            EditorGUILayout.EndHorizontal();
+        }
 
-            // Mensajes de ayuda
-            if (!target.AllSlotsValid)
-            {
-                EditorGUILayout.HelpBox(MRLocalization.Get(L.Menu.SLOTS_NOT_CONFIGURED), MessageType.Warning);
-            }
-            else if (hasConflicts)
-            {
-                EditorGUILayout.HelpBox(MRLocalization.Get(L.Menu.NAME_CONFLICTS_RESOLVE), MessageType.Warning);
-            }
-            else
-            {
-                EditorGUILayout.HelpBox(MRLocalization.Get(L.Menu.READY_TO_CREATE), MessageType.Info);
-            }
+        // Información de navegación
+        GUILayout.Space(10);
+        if (target.HasParent)
+        {
+            EditorGUILayout.HelpBox(
+                MRLocalization.Get(L.Menu.IS_SUBMENU, target.GetRootMenu()?.name ?? "Menu Principal"),
+                MessageType.Info);
         }
         else
         {
-            // Mensaje informativo para submenús
-            serializedObject.ApplyModifiedProperties();
-            GUILayout.Space(10);
+            // Menú raíz: indicar dónde generar archivos
             EditorGUILayout.HelpBox(
-                MRLocalization.Get(L.Menu.IS_SUBMENU, target.GetRootMenu()?.name ?? "Menu Principal"),
+                "La configuración de namespace y la generación de archivos VRChat se realiza desde el componente MR Menu Radial.",
                 MessageType.Info);
         }
         

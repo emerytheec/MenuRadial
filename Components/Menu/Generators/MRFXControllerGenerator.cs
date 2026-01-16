@@ -94,7 +94,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
         }
 
         /// <summary>
-        /// Agrega un parámetro al controller
+        /// Agrega un parámetro al controller con valor por defecto apropiado
         /// </summary>
         private void AddParameter(AnimatorController controller, MRSlotInfo slotInfo)
         {
@@ -104,21 +104,48 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
             if (controller.parameters.Any(p => p.name == paramName))
                 return;
 
-            AnimatorControllerParameterType paramType;
+            AnimatorControllerParameter param;
             switch (slotInfo.AnimationType)
             {
                 case AnimationType.OnOff:
+                    bool defaultIsOn = false;
+                    if (slotInfo.AnimationProvider is MRUnificarObjetos radialMenu)
+                    {
+                        defaultIsOn = radialMenu.DefaultStateIsOn;
+                    }
+                    param = new AnimatorControllerParameter
+                    {
+                        name = paramName,
+                        type = AnimatorControllerParameterType.Bool,
+                        defaultBool = defaultIsOn
+                    };
+                    break;
+
                 case AnimationType.AB:
-                    paramType = AnimatorControllerParameterType.Bool;
+                    param = new AnimatorControllerParameter
+                    {
+                        name = paramName,
+                        type = AnimatorControllerParameterType.Bool,
+                        defaultBool = false
+                    };
                     break;
+
                 case AnimationType.Linear:
-                    paramType = AnimatorControllerParameterType.Float;
+                    // Usar valor por defecto apropiado (0 para normal, 0.5 para iluminación)
+                    float defaultFloat = slotInfo.IsIllumination ? MRIlluminationConstants.VRCHAT_DEFAULT_VALUE : 0f;
+                    param = new AnimatorControllerParameter
+                    {
+                        name = paramName,
+                        type = AnimatorControllerParameterType.Float,
+                        defaultFloat = defaultFloat
+                    };
                     break;
+
                 default:
                     return;
             }
 
-            controller.AddParameter(paramName, paramType);
+            controller.AddParameter(param);
         }
 
         /// <summary>
@@ -217,12 +244,12 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
 
             var state = stateMachine.AddState("Linear", new Vector3(250, 0, 0));
             state.motion = slotInfo.AnimationClips[0];
-            state.writeDefaultValues = _config.writeDefaultValues;
+            state.writeDefaultValues = false; // Write Defaults OFF para radiales
 
             // Motion Time: el parámetro Float controla la posición en la animación
             state.timeParameterActive = true;
             state.timeParameter = paramName;
-            state.speed = 1f;
+            state.speed = 1f; // Speed 1 como los radiales estándar de VRChat
 
             stateMachine.defaultState = state;
         }

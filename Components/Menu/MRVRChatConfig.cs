@@ -5,44 +5,123 @@ namespace Bender_Dios.MenuRadial.Components.Menu
 {
     /// <summary>
     /// Configuración específica para la generación de archivos VRChat.
-    /// Contiene todos los parámetros necesarios para crear archivos FX, Parameters y Menu.
+    /// Los valores principales (OutputPrefix, WriteDefaultValues) se obtienen desde MRMenuRadial.
     /// </summary>
     [System.Serializable]
     public class MRVRChatConfig
     {
-        #region Namespace Configuration
+        #region Cached Values from MRMenuRadial
 
-        [Header("Namespace del Avatar")]
-        [Tooltip("Prefijo único para este avatar. Crea subcarpeta y prefija nombres de archivo. Dejar vacío para comportamiento legacy.")]
-        [SerializeField] private string _outputPrefix = "";
-
-        /// <summary>
-        /// Prefijo de salida para archivos. Si está vacío, usa comportamiento legacy.
-        /// </summary>
-        public string OutputPrefix => _outputPrefix;
+        // Valores cacheados desde MRMenuRadial (no serializados, se obtienen dinámicamente)
+        [System.NonSerialized] private string _cachedOutputPrefix = "";
+        [System.NonSerialized] private bool _cachedWriteDefaultValues = true;
+        [System.NonSerialized] private string _cachedOutputPath = "";
+        [System.NonSerialized] private bool _valuesFromMenuRadial = false;
 
         /// <summary>
-        /// Obtiene el directorio de salida usando la ruta base proporcionada, incluyendo subcarpeta si hay prefijo.
+        /// Sincroniza los valores desde MRMenuRadial.
+        /// Llamar antes de usar la configuración.
         /// </summary>
-        /// <param name="basePath">Ruta base desde MRMenuRadial</param>
-        public string GetOutputDirectory(string basePath)
+        /// <param name="menuControlTransform">Transform del MRMenuControl para buscar MRMenuRadial en ancestros</param>
+        public void SyncFromMenuRadial(Transform menuControlTransform)
         {
-            // Usar la ruta base proporcionada o fallback a constante
-            string effectiveBasePath = string.IsNullOrEmpty(basePath)
-                ? MRConstants.VRCHAT_OUTPUT_PATH
-                : basePath.TrimEnd('/') + "/";
+            if (menuControlTransform == null)
+            {
+                _valuesFromMenuRadial = false;
+                return;
+            }
 
-            if (string.IsNullOrEmpty(_outputPrefix))
-                return effectiveBasePath;
-            return $"{effectiveBasePath}{_outputPrefix}/";
+            // Buscar MRMenuRadial en ancestros usando reflexión (cross-assembly)
+            Transform current = menuControlTransform;
+            while (current != null)
+            {
+                var components = current.GetComponents<MonoBehaviour>();
+                foreach (var comp in components)
+                {
+                    if (comp != null && comp.GetType().Name == "MRMenuRadial")
+                    {
+                        // Obtener OutputPrefix
+                        var outputPrefixProp = comp.GetType().GetProperty("OutputPrefix");
+                        if (outputPrefixProp != null)
+                        {
+                            _cachedOutputPrefix = (string)outputPrefixProp.GetValue(comp) ?? "";
+                        }
+
+                        // Obtener WriteDefaultValues
+                        var writeDefaultProp = comp.GetType().GetProperty("WriteDefaultValues");
+                        if (writeDefaultProp != null)
+                        {
+                            _cachedWriteDefaultValues = (bool)writeDefaultProp.GetValue(comp);
+                        }
+
+                        // Obtener OutputPath
+                        var outputPathProp = comp.GetType().GetProperty("OutputPath");
+                        if (outputPathProp != null)
+                        {
+                            _cachedOutputPath = (string)outputPathProp.GetValue(comp) ?? "";
+                        }
+
+                        _valuesFromMenuRadial = true;
+                        return;
+                    }
+                }
+                current = current.parent;
+            }
+
+            _valuesFromMenuRadial = false;
         }
 
+        #endregion
+
+        #region Namespace Configuration
+
         /// <summary>
-        /// Obtiene el directorio de salida usando la ruta por defecto (legacy).
+        /// Prefijo de salida para archivos. Obtenido desde MRMenuRadial.
+        /// </summary>
+        public string OutputPrefix => _valuesFromMenuRadial ? _cachedOutputPrefix : "";
+
+        /// <summary>
+        /// Obtiene el directorio de salida usando la ruta desde MRMenuRadial, incluyendo subcarpeta si hay prefijo.
         /// </summary>
         public string GetOutputDirectory()
         {
-            return GetOutputDirectory(null);
+            // Usar la ruta desde MRMenuRadial o fallback a constante
+            string effectiveBasePath = string.IsNullOrEmpty(_cachedOutputPath)
+                ? MRConstants.VRCHAT_OUTPUT_PATH
+                : _cachedOutputPath.TrimEnd('/') + "/";
+
+            string prefix = OutputPrefix;
+            if (string.IsNullOrEmpty(prefix))
+                return effectiveBasePath;
+            return $"{effectiveBasePath}{prefix}/";
+        }
+
+        /// <summary>
+        /// Obtiene el directorio de salida usando una ruta base específica.
+        /// Siempre añade el prefijo si está configurado.
+        /// </summary>
+        /// <param name="basePath">Ruta base override (si es null, usa la ruta de MRMenuRadial)</param>
+        public string GetOutputDirectory(string basePath)
+        {
+            // Determinar la ruta base efectiva
+            string effectiveBasePath;
+            if (string.IsNullOrEmpty(basePath))
+            {
+                // Sin basePath, usar la ruta cacheada de MRMenuRadial o fallback
+                effectiveBasePath = string.IsNullOrEmpty(_cachedOutputPath)
+                    ? MRConstants.VRCHAT_OUTPUT_PATH
+                    : _cachedOutputPath.TrimEnd('/') + "/";
+            }
+            else
+            {
+                effectiveBasePath = basePath.TrimEnd('/') + "/";
+            }
+
+            // Siempre añadir el prefijo si existe
+            string prefix = OutputPrefix;
+            if (string.IsNullOrEmpty(prefix))
+                return effectiveBasePath;
+            return $"{effectiveBasePath}{prefix}/";
         }
 
         /// <summary>
@@ -52,23 +131,25 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// <returns>Nombre con prefijo o el nombre base si no hay prefijo</returns>
         public string GetPrefixedFileName(string baseFileName)
         {
-            if (string.IsNullOrEmpty(_outputPrefix))
+            string prefix = OutputPrefix;
+            if (string.IsNullOrEmpty(prefix))
                 return baseFileName;
-            return $"{_outputPrefix}_{baseFileName}";
+            return $"{prefix}_{baseFileName}";
         }
 
         /// <summary>
         /// Verifica si hay un prefijo configurado.
         /// </summary>
-        public bool HasPrefix => !string.IsNullOrEmpty(_outputPrefix);
+        public bool HasPrefix => !string.IsNullOrEmpty(OutputPrefix);
 
         #endregion
 
         #region General Configuration
 
-        [Header("Configuración General")]
-        [Tooltip("writeDefaultValues para las capas del controlador FX")]
-        public bool writeDefaultValues = true;
+        /// <summary>
+        /// WriteDefaultValues para las capas del controlador FX. Obtenido desde MRMenuRadial.
+        /// </summary>
+        public bool writeDefaultValues => _valuesFromMenuRadial ? _cachedWriteDefaultValues : true;
 
         #endregion
 

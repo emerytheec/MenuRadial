@@ -75,25 +75,37 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                 navigationManager.ParentMenu = ownerMenu;
             }
 
-            // Añadir nuevo slot al menú padre y asignar el submenú
-            // Acceder directamente a la lista de AnimationSlots del owner
+            // Añadir al slot del menú padre
+            // Primero buscar slot vacío, si no hay crear uno nuevo
             var animationSlots = ownerMenu.AnimationSlots;
-            if (animationSlots.Count < MRSlotManager.MAX_SLOTS)
+            bool slotAssigned = false;
+
+            // Buscar primer slot vacío (targetObject == null)
+            for (int i = 0; i < animationSlots.Count; i++)
             {
-                // Crear nuevo slot
+                if (animationSlots[i].targetObject == null)
+                {
+                    // Usar el slot vacío existente
+                    animationSlots[i].slotName = subMenuName;
+                    animationSlots[i].targetObject = subMenuObject;
+                    animationSlots[i].ValidateSlot();
+                    slotManager.UpdateSlots(animationSlots);
+                    slotAssigned = true;
+                    break;
+                }
+            }
+
+            // Si no se asignó a slot vacío, crear uno nuevo si hay espacio
+            if (!slotAssigned && animationSlots.Count < MRSlotManager.MAX_SLOTS)
+            {
                 var newSlot = new MRAnimationSlot
                 {
                     slotName = subMenuName,
                     targetObject = subMenuObject
                 };
 
-                // Añadir a la lista
                 animationSlots.Add(newSlot);
-
-                // Validar el slot
                 newSlot.ValidateSlot();
-
-                // Actualizar el slotManager con la lista modificada
                 slotManager.UpdateSlots(animationSlots);
             }
 
@@ -258,11 +270,28 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         }
 
         /// <summary>
-        /// Añade un GameObject a un nuevo slot del menú
+        /// Añade un GameObject a un slot del menú.
+        /// Primero busca un slot vacío existente, si no hay crea uno nuevo.
         /// </summary>
         private void AddToSlot(GameObject targetObject, string slotName)
         {
             var animationSlots = ownerMenu.AnimationSlots;
+
+            // Buscar primer slot vacío (targetObject == null)
+            for (int i = 0; i < animationSlots.Count; i++)
+            {
+                if (animationSlots[i].targetObject == null)
+                {
+                    // Usar el slot vacío existente
+                    animationSlots[i].slotName = slotName;
+                    animationSlots[i].targetObject = targetObject;
+                    animationSlots[i].ValidateSlot();
+                    slotManager.UpdateSlots(animationSlots);
+                    return;
+                }
+            }
+
+            // Si no hay slot vacío, crear uno nuevo si hay espacio
             if (animationSlots.Count < MRSlotManager.MAX_SLOTS)
             {
                 var newSlot = new MRAnimationSlot

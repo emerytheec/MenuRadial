@@ -6,6 +6,7 @@ using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.Frame;
 using Bender_Dios.MenuRadial.Components.Radial;
+using Bender_Dios.MenuRadial.Components.Illumination;
 
 namespace Bender_Dios.MenuRadial.Components.MenuRadial
 {
@@ -49,6 +50,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             public string Message;
             public Component MenuControl;
             public MRUnificarObjetos UnificarObjetos;
+            public MRIluminacionRadial IluminacionRadial;
             public List<MRAgruparObjetos> CreatedFrames;
             public int ClothingFramesCreated;
             public int AvatarMeshesIncluded;
@@ -91,6 +93,13 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
             result.UnificarObjetos = unificarObjetos;
 
+            // Crear MRIluminacionRadial
+            var iluminacionRadial = CreateIluminacionRadial(menuControl);
+            if (iluminacionRadial != null)
+            {
+                result.IluminacionRadial = iluminacionRadial;
+            }
+
             // Crear frame para el avatar PRIMERO (solo accesorios, sin body/head/hair)
             var avatarFrame = CreateFrameForAvatar(unificarObjetos, out int included, out int excluded);
             if (avatarFrame != null)
@@ -128,7 +137,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
-        /// Verifica si ya existe una estructura generada (MRUnificarObjetos "Outfits")
+        /// Verifica si ya existe una estructura generada (cualquier MRUnificarObjetos o slot con targetObject)
         /// </summary>
         public bool HasExistingStructure()
         {
@@ -139,13 +148,35 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (menuControl == null)
                 return false;
 
-            // Verificar si existe un MRUnificarObjetos "Outfits" como hijo del MenuControl
-            var outfitsTransform = menuControl.transform.Find("Outfits");
-            if (outfitsTransform != null)
+            // Verificar si existe CUALQUIER MRUnificarObjetos como hijo del MenuControl
+            var unificarComponents = menuControl.GetComponentsInChildren<MRUnificarObjetos>(true);
+            if (unificarComponents != null && unificarComponents.Length > 0)
+                return true;
+
+            // Verificar si existe CUALQUIER MRIluminacionRadial como hijo del MenuControl
+            var iluminacionComponents = menuControl.GetComponentsInChildren<MRIluminacionRadial>(true);
+            if (iluminacionComponents != null && iluminacionComponents.Length > 0)
+                return true;
+
+            // También verificar si hay slots con targetObject asignado en MRMenuControl
+            // Esto cubre el caso donde el usuario creó componentes manualmente
+            var animationSlotsProperty = menuControl.GetType().GetProperty("AnimationSlots");
+            if (animationSlotsProperty != null)
             {
-                var unificar = outfitsTransform.GetComponent<MRUnificarObjetos>();
-                if (unificar != null)
-                    return true;
+                var slots = animationSlotsProperty.GetValue(menuControl) as System.Collections.IList;
+                if (slots != null && slots.Count > 0)
+                {
+                    foreach (var slot in slots)
+                    {
+                        var targetObjectField = slot.GetType().GetField("targetObject");
+                        if (targetObjectField != null)
+                        {
+                            var targetObject = targetObjectField.GetValue(slot) as GameObject;
+                            if (targetObject != null)
+                                return true;
+                        }
+                    }
+                }
             }
 
             return false;
@@ -252,7 +283,47 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
-        /// Añade un componente al slot del MenuControl via reflexión
+        /// Crea un MRIluminacionRadial como hijo del MenuControl
+        /// </summary>
+        private MRIluminacionRadial CreateIluminacionRadial(Component menuControl)
+        {
+            string componentName = "Iluminacion";
+
+#if UNITY_EDITOR
+            UnityEditor.Undo.RecordObject(menuControl, "Create IluminacionRadial");
+            var componentObject = new GameObject(componentName);
+            UnityEditor.Undo.RegisterCreatedObjectUndo(componentObject, "Create IluminacionRadial");
+#else
+            var componentObject = new GameObject(componentName);
+#endif
+
+            componentObject.transform.SetParent(menuControl.transform);
+            componentObject.transform.localPosition = Vector3.zero;
+            componentObject.transform.localRotation = Quaternion.identity;
+            componentObject.transform.localScale = Vector3.one;
+
+            var iluminacionRadial = componentObject.AddComponent<MRIluminacionRadial>();
+
+            // Asignar el avatar como RootObject del componente
+            if (_avatarRoot != null)
+            {
+                iluminacionRadial.RootObject = _avatarRoot;
+            }
+
+            // Añadir al slot del MenuControl
+            AddToMenuControlSlot(menuControl, componentObject, componentName);
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(menuControl);
+            UnityEditor.EditorUtility.SetDirty(iluminacionRadial);
+#endif
+
+            return iluminacionRadial;
+        }
+
+        /// <summary>
+        /// Añade un componente al slot del MenuControl via reflexión.
+        /// Primero busca un slot vacío existente, si no hay crea uno nuevo.
         /// </summary>
         private void AddToMenuControlSlot(Component menuControl, GameObject targetObject, string slotName)
         {
@@ -270,23 +341,39 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (slots == null)
                 return;
 
-            // Obtener MAX_SLOTS via reflexión
+            // Obtener tipo del slot
+            var slotType = type.Assembly.GetType("Bender_Dios.MenuRadial.Components.Menu.MRAnimationSlot");
+            if (slotType == null)
+                return;
+
+            var slotNameField = slotType.GetField("slotName");
+            var targetObjectField = slotType.GetField("targetObject");
+
+            // Buscar primer slot vacío (targetObject == null)
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var slot = slots[i];
+                var existingTarget = targetObjectField?.GetValue(slot) as GameObject;
+                if (existingTarget == null)
+                {
+                    // Usar el slot vacío existente
+                    if (slotNameField != null) slotNameField.SetValue(slot, slotName);
+                    if (targetObjectField != null) targetObjectField.SetValue(slot, targetObject);
+#if UNITY_EDITOR
+                    UnityEditor.EditorUtility.SetDirty(menuControl);
+#endif
+                    return;
+                }
+            }
+
+            // Si no hay slot vacío, crear uno nuevo si hay espacio
             var maxSlotsField = type.GetField("MAX_SLOTS", BindingFlags.Public | BindingFlags.Static);
             int maxSlots = maxSlotsField != null ? (int)maxSlotsField.GetValue(null) : 8;
 
             if (slots.Count >= maxSlots)
                 return;
 
-            // Crear nuevo slot via reflexión
-            var slotType = type.Assembly.GetType("Bender_Dios.MenuRadial.Components.Menu.MRAnimationSlot");
-            if (slotType == null)
-                return;
-
             var newSlot = System.Activator.CreateInstance(slotType);
-
-            // Asignar propiedades del slot
-            var slotNameField = slotType.GetField("slotName");
-            var targetObjectField = slotType.GetField("targetObject");
 
             if (slotNameField != null) slotNameField.SetValue(newSlot, slotName);
             if (targetObjectField != null) targetObjectField.SetValue(newSlot, targetObject);

@@ -111,7 +111,9 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
                     break;
 
                 case AnimationType.Linear:
+                    // Para RadialPuppet: parameter.name debe estar vacío, el parámetro va en subParameters
                     control.type = VRCExpressionsMenu.Control.ControlType.RadialPuppet;
+                    control.parameter = new VRCExpressionsMenu.Control.Parameter { name = "" };
                     control.subParameters = new VRCExpressionsMenu.Control.Parameter[]
                     {
                         new VRCExpressionsMenu.Control.Parameter
@@ -119,7 +121,9 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
                             name = slotInfo.Slot.slotName
                         }
                     };
-                    Debug.Log($"[MRMenuGenerator] Creando RadialPuppet para '{slotInfo.Slot.slotName}' (Linear)");
+                    // Establecer valor por defecto para el RadialPuppet (0 para normal, 0.5 para iluminación)
+                    control.value = slotInfo.IsIllumination ? MRIlluminationConstants.VRCHAT_DEFAULT_VALUE : 0f;
+                    Debug.Log($"[MRMenuGenerator] Creando RadialPuppet para '{slotInfo.Slot.slotName}' (Linear) con valor={control.value}");
                     break;
 
                 case AnimationType.SubMenu:
