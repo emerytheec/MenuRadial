@@ -410,7 +410,8 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
             float tEnd = ToSec(MRAnimationConstants.TOTAL_FRAMES);
             
             // Diccionarios para agrupar bindings por tipo
-            var gameObjectBindings = new Dictionary<string, List<(int frameIndex, float tStart)>>();
+            // CORREGIDO: Ahora guarda isActive para respetar el valor configurado en cada frame
+            var gameObjectBindings = new Dictionary<string, List<(int frameIndex, float tStart, bool isActive)>>();
             var materialBindings = new Dictionary<string, List<(int frameIndex, float tStart, Material activeMat, Material baseMat)>>();
             var blendshapeBindings = new Dictionary<string, List<(int frameIndex, float tStart, float activeValue, float baseValue)>>();
             
@@ -429,16 +430,17 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
                     foreach (var objRef in activeFrame.ObjectReferences)
                     {
                         if (objRef?.GameObject == null) continue;
-                        
+
                         string relativePath = GetRelativePath(animationData.AvatarRoot, objRef.GameObject.transform);
                         if (string.IsNullOrEmpty(relativePath)) continue;
-                        
+
                         string bindingKey = $"{relativePath}|GameObject|m_IsActive";
-                        
+
                         if (!gameObjectBindings.ContainsKey(bindingKey))
-                            gameObjectBindings[bindingKey] = new List<(int frameIndex, float tStart)>();
-                            
-                        gameObjectBindings[bindingKey].Add((regionIndex, tStart));
+                            gameObjectBindings[bindingKey] = new List<(int frameIndex, float tStart, bool isActive)>();
+
+                        // CORREGIDO: Guardar el valor IsActive configurado por el usuario
+                        gameObjectBindings[bindingKey].Add((regionIndex, tStart, objRef.IsActive));
                     }
                 }
                 
@@ -498,38 +500,57 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
             {
                 var bindingKey = kvp.Key;
                 var regions = kvp.Value;
-                
+
                 var bindingParts = bindingKey.Split('|');
                 string path = bindingParts[0];
-                
+
                 var curve = new AnimationCurve();
-                
+
                 // Añadir keyframes para cada región
                 for (int regionIndex = 0; regionIndex < timeRegions.Count; regionIndex++)
                 {
                     float tStart = ToSec(timeRegions[regionIndex].StartStep);
-                    
-                    bool isActiveInRegion = regions.Any(r => r.frameIndex == regionIndex);
-                    float value = isActiveInRegion ? 1f : 0f;
-                    
+
+                    // CORREGIDO: Buscar si el objeto está registrado en esta región y usar su valor IsActive
+                    var regionData = regions.FirstOrDefault(r => r.frameIndex == regionIndex);
+                    float value;
+                    if (regions.Any(r => r.frameIndex == regionIndex))
+                    {
+                        // El objeto está en esta región, usar su valor IsActive configurado
+                        value = regionData.isActive ? 1f : 0f;
+                    }
+                    else
+                    {
+                        // El objeto NO está en esta región, ponerlo en 0
+                        value = 0f;
+                    }
+
                     var keyframe = new Keyframe(tStart, value);
                     keyframe.inTangent = 0f;
                     keyframe.outTangent = 0f;
                     var idx = curve.AddKey(keyframe);
-                    
+
                     AnimationUtility.SetKeyLeftTangentMode(curve, idx, AnimationUtility.TangentMode.Constant);
                     AnimationUtility.SetKeyRightTangentMode(curve, idx, AnimationUtility.TangentMode.Constant);
                 }
-                
+
                 // Keyframe final en tEnd con valor de la última región
-                bool lastRegionActive = regions.Any(r => r.frameIndex == timeRegions.Count - 1);
-                float finalValue = lastRegionActive ? 1f : 0f;
-                
+                var lastRegionData = regions.FirstOrDefault(r => r.frameIndex == timeRegions.Count - 1);
+                float finalValue;
+                if (regions.Any(r => r.frameIndex == timeRegions.Count - 1))
+                {
+                    finalValue = lastRegionData.isActive ? 1f : 0f;
+                }
+                else
+                {
+                    finalValue = 0f;
+                }
+
                 var finalKeyframe = new Keyframe(tEnd, finalValue);
                 finalKeyframe.inTangent = 0f;
                 finalKeyframe.outTangent = 0f;
                 var finalIdx = curve.AddKey(finalKeyframe);
-                
+
                 AnimationUtility.SetKeyLeftTangentMode(curve, finalIdx, AnimationUtility.TangentMode.Constant);
                 AnimationUtility.SetKeyRightTangentMode(curve, finalIdx, AnimationUtility.TangentMode.Constant);
                 AnimationUtility.SetEditorCurve(animation, new EditorCurveBinding

@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.5] - 2026-01-16
+
+### Corregido
+- **RadialAnimationBuilder**: Bug en animaciones lineales (3+ frames)
+  - El codigo ignoraba el valor `IsActive` de cada ObjectReference
+  - Si un objeto estaba en un frame, siempre se ponia en 1 sin importar su IsActive
+  - Ahora guarda y usa el valor IsActive configurado por el usuario en cada frame
+  - Permite tener el mismo objeto en multiples frames con diferentes estados (ON/OFF)
+
 ## [0.8.4] - 2026-01-16
 
 ### Cambiado
