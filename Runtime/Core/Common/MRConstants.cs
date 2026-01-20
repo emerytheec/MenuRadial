@@ -21,8 +21,11 @@ namespace Bender_Dios.MenuRadial.Core.Common
         public const string VRCHAT_OUTPUT_PATH = "Assets/Bender_Dios/Generated/";
 
         /// <summary>
-        /// Ruta de iconos del sistema
+        /// Ruta de iconos del sistema.
+        /// NOTA: Esta ruta solo funciona cuando el paquete está en Assets/.
+        /// Para instalaciones VPM, usar Resources.Load() directamente.
         /// </summary>
+        [System.Obsolete("Use Resources.Load() instead for VPM compatibility")]
         public const string ICONS_PATH = "Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/";
 
         /// <summary>

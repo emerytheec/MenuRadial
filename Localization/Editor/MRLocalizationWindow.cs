@@ -177,8 +177,19 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
 
                 if (GUILayout.Button("Abrir Carpeta de Locales"))
                 {
-                    string path = "Assets/Bender_Dios/MenuRadial/Localization/Resources/Locales";
-                    var folder = AssetDatabase.LoadAssetAtPath<Object>(path);
+                    // Buscar la carpeta Locales en cualquier ubicación (Assets o Packages)
+                    string[] guids = AssetDatabase.FindAssets("Locales", new[] { "Assets", "Packages" });
+                    Object folder = null;
+                    foreach (string guid in guids)
+                    {
+                        string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                        if (assetPath.Contains("MenuRadial") && assetPath.Contains("Localization") && assetPath.EndsWith("Locales"))
+                        {
+                            folder = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
+                            break;
+                        }
+                    }
+
                     if (folder != null)
                     {
                         EditorGUIUtility.PingObject(folder);
@@ -186,7 +197,7 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
                     }
                     else
                     {
-                        Debug.LogWarning($"[MRLocalization] Carpeta no encontrada: {path}");
+                        Debug.LogWarning("[MRLocalization] Carpeta de Locales no encontrada");
                     }
                 }
 

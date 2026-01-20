@@ -2,7 +2,6 @@
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
-using System.IO;
 using Bender_Dios.MenuRadial.Core.Common;
 
 namespace Bender_Dios.MenuRadial.Components.Menu
@@ -14,33 +13,42 @@ namespace Bender_Dios.MenuRadial.Components.Menu
     public static class MRIconLoader
     {
         private static Dictionary<string, Texture2D> _iconCache = new Dictionary<string, Texture2D>();
-        private static readonly string IconsPath = "Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/";
-        
+
         /// <summary>
-        /// Carga un icono por nombre desde la carpeta de iconos
+        /// Carga un icono por nombre desde la carpeta Resources.
+        /// Usa Resources.Load para compatibilidad con instalación via VPM.
         /// </summary>
         public static Texture2D LoadIcon(string iconName)
         {
             if (string.IsNullOrEmpty(iconName))
                 return null;
-                
+
             // Verificar cache primero
-            if (_iconCache.ContainsKey(iconName))
-                return _iconCache[iconName];
-            
-            // Construir ruta completa
-            string iconPath = Path.Combine(IconsPath, iconName + ".png");
-            
-            // Cargar desde AssetDatabase
-            Texture2D icon = AssetDatabase.LoadAssetAtPath<Texture2D>(iconPath);
-            
-            // Guardar en cache (incluso si es null para evitar búsquedas repetidas)
-            _iconCache[iconName] = icon;
-            
+            if (_iconCache.TryGetValue(iconName, out var cachedIcon))
+                return cachedIcon;
+
+            // Cargar usando Resources.Load (funciona sin importar dónde esté el paquete)
+            Texture2D icon = Resources.Load<Texture2D>(iconName);
+
+            // Si no se encuentra, intentar con AssetDatabase como fallback (solo editor)
             if (icon == null)
             {
+                // Buscar en todas las carpetas Resources del proyecto
+                string[] guids = AssetDatabase.FindAssets($"{iconName} t:Texture2D");
+                foreach (string guid in guids)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (path.Contains("Resources") && path.EndsWith($"{iconName}.png"))
+                    {
+                        icon = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                        if (icon != null) break;
+                    }
+                }
             }
-            
+
+            // Guardar en cache (incluso si es null para evitar búsquedas repetidas)
+            _iconCache[iconName] = icon;
+
             return icon;
         }
         
