@@ -5,6 +5,34 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.8] - 2026-01-20
+
+### Agregado
+- **Compatibilidad con Modular Avatar**:
+  - `ModularAvatarDetector`: Detecta componentes MA via reflexión sin dependencia directa
+  - MRCoserRopa detecta y respeta MA Merge Armature en ropas (MA tiene prioridad)
+  - Detección de MA Shape Changer con advertencias en editor
+  - Detección y desactivación automática de MA Mesh Settings para evitar conflictos
+- **Anchor Override en MRAjustarBounds**:
+  - Nueva opción para unificar Probe Anchor de todos los meshes
+  - Auto-detección del hueso Chest del avatar
+  - Mismo funcionamiento que MA Mesh Settings
+- **Configuración de integración del menú VRChat**:
+  - Campo de nombre personalizado para el menú
+  - Campo de icono personalizado (Texture2D)
+  - Tres modos de ubicación: Menú Raíz, Submenú existente, Ruta personalizada
+  - Creación automática de rutas de menús anidados (ej: "Outfits/Casual")
+
+### Corregido
+- **Iconos no aparecían en instalaciones VPM**:
+  - MRIconLoader ahora usa `Resources.Load()` en lugar de rutas hardcodeadas
+  - Funciona correctamente cuando el paquete está en `Packages/` (VPM) o `Assets/`
+- **Auto-generación de menú**: Meshes ahora se configuran como `IsActive=true` por defecto
+
+### Mejorado
+- MRLocalizationWindow busca carpeta Locales dinámicamente
+- ICONS_PATH marcado como obsoleto con guía para usar Resources.Load
+
 ## [0.8.7] - 2026-01-16
 
 ### Corregido
