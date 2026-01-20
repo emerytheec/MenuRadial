@@ -28,6 +28,12 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         [SerializeField]
         private string _hierarchyPath;
 
+        [SerializeField]
+        private Transform _originalProbeAnchor;
+
+        [SerializeField]
+        private bool _hadOriginalProbeAnchor;
+
         /// <summary>
         /// Referencia al SkinnedMeshRenderer
         /// </summary>
@@ -83,6 +89,24 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         }
 
         /// <summary>
+        /// Probe Anchor original del renderer
+        /// </summary>
+        public Transform OriginalProbeAnchor
+        {
+            get => _originalProbeAnchor;
+            set => _originalProbeAnchor = value;
+        }
+
+        /// <summary>
+        /// Indica si el renderer tenia un Probe Anchor antes de modificar
+        /// </summary>
+        public bool HadOriginalProbeAnchor
+        {
+            get => _hadOriginalProbeAnchor;
+            set => _hadOriginalProbeAnchor = value;
+        }
+
+        /// <summary>
         /// Constructor por defecto
         /// </summary>
         public MeshBoundsInfo() { }
@@ -99,6 +123,10 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
                 _meshName = renderer.name;
                 _hierarchyPath = GetHierarchyPath(renderer.transform);
                 _isValid = true;
+
+                // Capturar probe anchor original
+                _originalProbeAnchor = renderer.probeAnchor;
+                _hadOriginalProbeAnchor = renderer.probeAnchor != null;
             }
         }
 
@@ -158,6 +186,28 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
             if (_renderer != null)
             {
                 _renderer.localBounds = _originalBounds;
+            }
+        }
+
+        /// <summary>
+        /// Aplica un probe anchor al renderer
+        /// </summary>
+        public void ApplyProbeAnchor(Transform anchor)
+        {
+            if (_renderer != null)
+            {
+                _renderer.probeAnchor = anchor;
+            }
+        }
+
+        /// <summary>
+        /// Restaura el probe anchor original
+        /// </summary>
+        public void RestoreOriginalProbeAnchor()
+        {
+            if (_renderer != null)
+            {
+                _renderer.probeAnchor = _hadOriginalProbeAnchor ? _originalProbeAnchor : null;
             }
         }
     }

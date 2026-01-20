@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Bender_Dios.MenuRadial.Core.Utils;
 
 namespace Bender_Dios.MenuRadial.Components.MenuRadial
 {
@@ -348,34 +349,25 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         #region Utilidades
 
         /// <summary>
-        /// Encuentra el armature dentro de un contenedor
+        /// Encuentra el armature dentro de un contenedor.
+        /// Usa ArmatureFinder con estrategia combinada:
+        /// 1. Humanoid API
+        /// 2. Nombre exacto
+        /// 3. Patron de nombre (Contains)
+        /// 4. Analisis de huesos de SkinnedMeshRenderer
+        /// 5. Fallback
         /// </summary>
         public static Transform FindArmature(Transform container)
         {
-            if (container == null)
-                return null;
+            return ArmatureFinder.Find(container);
+        }
 
-            // Nombres comunes de armature
-            string[] armatureNames = { "Armature", "armature", "Skeleton", "skeleton", "Root", "Rig", "Bones" };
-
-            foreach (var name in armatureNames)
-            {
-                var armature = container.Find(name);
-                if (armature != null)
-                    return armature;
-            }
-
-            // Buscar el primer hijo que tenga muchos hijos (probable armature)
-            foreach (Transform child in container)
-            {
-                // Si tiene hijos y no es un mesh, probablemente es el armature
-                if (child.childCount > 0 && child.GetComponent<Renderer>() == null)
-                {
-                    return child;
-                }
-            }
-
-            return null;
+        /// <summary>
+        /// Encuentra el armature con informacion detallada del metodo usado.
+        /// </summary>
+        public static ArmatureFinder.FindResult FindArmatureDetailed(Transform container, Animator animator = null)
+        {
+            return ArmatureFinder.FindArmature(container, animator);
         }
 
         /// <summary>

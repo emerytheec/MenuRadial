@@ -35,6 +35,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         private static readonly Color DisabledColor = new Color(0.6f, 0.6f, 0.6f);
         private static readonly Color SelectedBgColor = new Color(0.24f, 0.48f, 0.9f, 0.4f);
         private static readonly Color WarningColor = new Color(0.9f, 0.7f, 0.2f);
+        private static readonly Color ModularAvatarColor = new Color(0.4f, 0.7f, 1f); // Azul para MA
 
         private void OnEnable()
         {
@@ -269,12 +270,29 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
             x += objectFieldWidth + 5f;
 
-            // Info de huesos
+            // Info de huesos o MA
             var bonesRect = new Rect(x, rect.y, BONES_INFO_WIDTH, rect.height);
-            GUI.contentColor = clothing.Enabled
-                ? (clothing.HasValidMappings ? EnabledColor : WarningColor)
-                : DisabledColor;
-            EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} huesos", EditorStyles.miniLabel);
+
+            if (clothing.HasModularAvatar)
+            {
+                // Mostrar que tiene Modular Avatar
+                GUI.contentColor = ModularAvatarColor;
+                string maLabel = clothing.HasMAShapeChanger ? "MA+SC" : "MA";
+                EditorGUI.LabelField(bonesRect, maLabel, EditorStyles.miniLabel);
+            }
+            else if (clothing.HasMAShapeChanger)
+            {
+                // Solo tiene Shape Changer (sin Merge Armature)
+                GUI.contentColor = ModularAvatarColor;
+                EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount}+SC", EditorStyles.miniLabel);
+            }
+            else
+            {
+                GUI.contentColor = clothing.Enabled
+                    ? (clothing.HasValidMappings ? EnabledColor : WarningColor)
+                    : DisabledColor;
+                EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} huesos", EditorStyles.miniLabel);
+            }
             GUI.contentColor = originalColor;
 
             // Boton eliminar (rojo)
@@ -337,7 +355,47 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             // Titulo
             EditorGUILayout.LabelField($"Detalles: {selected.Name}", EditorStyles.boldLabel);
 
-            // Info
+            // Mostrar si tiene Modular Avatar
+            if (selected.HasModularAvatar)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUI.contentColor = ModularAvatarColor;
+                EditorGUILayout.LabelField("Modular Avatar detectado", EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+                EditorGUILayout.EndHorizontal();
+
+                string maMessage = $"Esta ropa tiene {selected.ModularAvatarComponentType} configurado.\n" +
+                    "Modular Avatar se encargará del cosido de huesos.\n" +
+                    "MRCoserRopa no procesará esta prenda.";
+
+                if (selected.HasMAShapeChanger)
+                {
+                    maMessage += "\n\nTambién tiene MA Shape Changer: los blendshapes son controlados por MA.";
+                }
+
+                EditorGUILayout.HelpBox(maMessage, MessageType.Info);
+
+                EditorGUILayout.EndVertical();
+                return; // No mostrar más detalles para prendas con MA
+            }
+
+            // Mostrar si solo tiene MA Shape Changer (sin Merge Armature)
+            if (selected.HasMAShapeChanger)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUI.contentColor = ModularAvatarColor;
+                EditorGUILayout.LabelField("MA Shape Changer detectado", EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.HelpBox(
+                    "Esta ropa tiene MA Shape Changer configurado.\n" +
+                    "Los blendshapes son controlados por Modular Avatar.\n" +
+                    "MRCoserRopa procesará los huesos, pero evita configurar blendshapes en MRAgruparObjetos para esta prenda.",
+                    MessageType.Warning);
+            }
+
+            // Info (solo para prendas sin MA)
             EditorGUILayout.LabelField($"Huesos: {selected.MappedBoneCount} mapeados de {selected.TotalBoneCount}", EditorStyles.miniLabel);
 
             // Detectar y mostrar prefijos/sufijos
@@ -698,14 +756,39 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             // Resumen de estado
             int enabledCount = _target.EnabledClothingCount;
             int totalBones = _target.TotalMappedBones;
+            int maCount = _target.ModularAvatarClothingCount;
+
+            // Mostrar info de Modular Avatar si hay prendas con MA
+            if (maCount > 0)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                GUI.contentColor = ModularAvatarColor;
+                EditorGUILayout.LabelField($"[MA] {maCount} ropa(s) con Modular Avatar", EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+
+                EditorGUILayout.LabelField(
+                    "Estas ropas serán procesadas por Modular Avatar, no por MRCoserRopa.",
+                    EditorStyles.wordWrappedMiniLabel);
+
+                // Listar las ropas con MA
+                foreach (var clothing in _target.ModularAvatarClothings)
+                {
+                    EditorGUILayout.LabelField($"  • {clothing.Name} ({clothing.ModularAvatarComponentType})",
+                        EditorStyles.miniLabel);
+                }
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(4);
+            }
 
             if (enabledCount > 0 && totalBones > 0)
             {
-                // Estado listo
+                // Estado listo para MRCoserRopa
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = EnabledColor;
-                EditorGUILayout.LabelField($"[OK] {enabledCount} ropa(s) lista(s) - {totalBones} huesos", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"[MR] {enabledCount} ropa(s) lista(s) - {totalBones} huesos", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
@@ -725,9 +808,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                     "Verifica que las ropas tengan armature con huesos humanoid.",
                     MessageType.Warning);
             }
-            else
+            else if (maCount == 0)
             {
-                // Sin ropas habilitadas
+                // Sin ropas habilitadas (y sin MA)
                 EditorGUILayout.HelpBox(
                     "Habilita al menos una ropa para que se procese automáticamente.",
                     MessageType.Info);

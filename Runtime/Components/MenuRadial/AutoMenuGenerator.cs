@@ -7,6 +7,7 @@ using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.Frame;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.Illumination;
+using Bender_Dios.MenuRadial.Core.Utils;
 
 namespace Bender_Dios.MenuRadial.Components.MenuRadial
 {
@@ -397,11 +398,24 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             Transform armature = clothing.ArmatureReference.ArmatureRoot;
             if (armature == null)
             {
-                armature = BodyMeshDetector.FindArmature(clothing.GameObject.transform);
+                // Usar busqueda avanzada con ArmatureFinder
+                var findResult = BodyMeshDetector.FindArmatureDetailed(clothing.GameObject.transform);
+                armature = findResult.Armature;
+
+                if (armature != null)
+                {
+                    Debug.Log($"[AutoMenuGenerator] Armature encontrado para '{clothing.Name}': " +
+                             $"'{armature.name}' via {findResult.Method} ({findResult.HumanoidBoneCount} huesos humanoid). " +
+                             $"{findResult.Details}");
+                }
             }
 
             if (armature == null)
+            {
+                Debug.LogWarning($"[AutoMenuGenerator] No se pudo encontrar armature para ropa '{clothing.Name}'. " +
+                                "Verifique que la ropa tenga un armature con huesos humanoid.");
                 return null;
+            }
 
             // Obtener meshes hermanos del armature
             var meshes = BodyMeshDetector.GetAllSiblingMeshes(armature);
@@ -413,11 +427,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (frame == null)
                 return null;
 
-            // Añadir cada mesh al frame con su estado actual
+            // Añadir cada mesh al frame con IsActive = true
+            // Los meshes se agregan siempre como activos porque representan el estado "visible" del outfit
             foreach (var mesh in meshes)
             {
-                bool isActive = mesh.gameObject.activeSelf;
-                frame.AddGameObject(mesh.gameObject, isActive);
+                frame.AddGameObject(mesh.gameObject, isActive: true);
             }
 
 #if UNITY_EDITOR
@@ -482,11 +496,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (frame == null)
                 return null;
 
-            // Añadir meshes incluidos
+            // Añadir meshes incluidos con IsActive = true
+            // Los meshes se agregan siempre como activos porque representan el estado "visible" del avatar
             foreach (var included in includedMeshes)
             {
-                bool isActive = included.Mesh.gameObject.activeSelf;
-                frame.AddGameObject(included.Mesh.gameObject, isActive);
+                frame.AddGameObject(included.Mesh.gameObject, isActive: true);
             }
 
 #if UNITY_EDITOR

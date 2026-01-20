@@ -6,6 +6,7 @@ using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.Radial;
+using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
 
 namespace Bender_Dios.MenuRadial.Components.MenuRadial
 {
@@ -47,6 +48,27 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         [Tooltip("writeDefaultValues para las capas del controlador FX")]
         private bool _writeDefaultValues = true;
 
+        [Header("Integración del Menú")]
+        [SerializeField]
+        [Tooltip("Nombre que aparecerá en el menú VRChat. Si está vacío, usa el prefijo.")]
+        private string _menuName = "";
+
+        [SerializeField]
+        [Tooltip("Icono que aparecerá junto al nombre en el menú VRChat.")]
+        private Texture2D _menuIcon;
+
+        [SerializeField]
+        [Tooltip("Modo de integración: Menú Raíz, Submenú existente, o Ruta personalizada.")]
+        private MenuIntegrationMode _menuIntegrationMode = MenuIntegrationMode.RootMenu;
+
+        [SerializeField]
+        [Tooltip("Índice del submenú existente donde integrar (solo si el modo es ExistingSubMenu).")]
+        private int _targetSubMenuIndex = -1;
+
+        [SerializeField]
+        [Tooltip("Ruta personalizada para crear menús anidados (ej: 'Outfits/Casual'). Solo si el modo es CustomPath.")]
+        private string _customMenuPath = "";
+
         [Header("NDMF - Control de Procesos")]
         [SerializeField]
         [Tooltip("Desactiva el cosido automático de huesos de ropa durante el build (NDMF). Útil para probar sin merge de armatures.")]
@@ -55,6 +77,10 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         [SerializeField]
         [Tooltip("Desactiva el merge automático de archivos VRChat (FX, Parameters, Menu) durante el build (NDMF). Útil para probar sin integración.")]
         private bool _disableVRChatMergeNDMF = false;
+
+        [SerializeField]
+        [Tooltip("Desactiva TODOS los componentes de Modular Avatar durante el build (NDMF). Útil cuando hay conflictos entre MR y MA. Solo afecta al build, no modifica la escena.")]
+        private bool _disableModularAvatarNDMF = false;
 
         #endregion
 
@@ -143,6 +169,67 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         public bool HasPrefix => !string.IsNullOrEmpty(_outputPrefix);
 
         /// <summary>
+        /// Nombre del menú que aparecerá en VRChat.
+        /// Si está vacío, usa el prefijo o "Menu Radial" por defecto.
+        /// </summary>
+        public string MenuName
+        {
+            get => _menuName;
+            set => _menuName = value;
+        }
+
+        /// <summary>
+        /// Obtiene el nombre efectivo del menú (MenuName, OutputPrefix, o "Menu Radial").
+        /// </summary>
+        public string EffectiveMenuName
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(_menuName))
+                    return _menuName;
+                if (!string.IsNullOrEmpty(_outputPrefix))
+                    return _outputPrefix;
+                return "Menu Radial";
+            }
+        }
+
+        /// <summary>
+        /// Icono del menú que aparecerá en VRChat.
+        /// </summary>
+        public Texture2D MenuIcon
+        {
+            get => _menuIcon;
+            set => _menuIcon = value;
+        }
+
+        /// <summary>
+        /// Modo de integración del menú en el avatar.
+        /// </summary>
+        public MenuIntegrationMode MenuIntegrationMode
+        {
+            get => _menuIntegrationMode;
+            set => _menuIntegrationMode = value;
+        }
+
+        /// <summary>
+        /// Índice del submenú existente donde integrar (para modo ExistingSubMenu).
+        /// </summary>
+        public int TargetSubMenuIndex
+        {
+            get => _targetSubMenuIndex;
+            set => _targetSubMenuIndex = value;
+        }
+
+        /// <summary>
+        /// Ruta personalizada para crear menús anidados (para modo CustomPath).
+        /// </summary>
+        public string CustomMenuPath
+        {
+            get => _customMenuPath;
+            set => _customMenuPath = value;
+        }
+
+        /// <summary>
         /// Si está activado, desactiva el cosido automático de huesos durante NDMF build.
         /// </summary>
         public bool DisableBoneStitchingNDMF
@@ -158,6 +245,17 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         {
             get => _disableVRChatMergeNDMF;
             set => _disableVRChatMergeNDMF = value;
+        }
+
+        /// <summary>
+        /// Si está activado, desactiva TODOS los componentes de Modular Avatar durante NDMF build.
+        /// Útil cuando hay conflictos entre MR Menu Radial y Modular Avatar.
+        /// Solo afecta al build (clon del avatar), no modifica la escena original.
+        /// </summary>
+        public bool DisableModularAvatarNDMF
+        {
+            get => _disableModularAvatarNDMF;
+            set => _disableModularAvatarNDMF = value;
         }
 
         /// <summary>

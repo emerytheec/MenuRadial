@@ -21,6 +21,10 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         [SerializeField] private string _bonePrefix = "";
         [SerializeField] private string _boneSuffix = "";
 
+        [SerializeField] private bool _hasModularAvatar = false;
+        [SerializeField] private string _modularAvatarComponentType = "";
+        [SerializeField] private bool _hasMAShapeChanger = false;
+
         /// <summary>
         /// GameObject raiz de la ropa
         /// </summary>
@@ -126,6 +130,41 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         /// Indica si tiene prefijo o sufijo configurado
         /// </summary>
         public bool HasCustomNaming => !string.IsNullOrEmpty(_bonePrefix) || !string.IsNullOrEmpty(_boneSuffix);
+
+        /// <summary>
+        /// Indica si esta ropa tiene componentes de Modular Avatar configurados.
+        /// Si es true, MRCoserRopa no procesará esta ropa y dejará que MA lo haga.
+        /// </summary>
+        public bool HasModularAvatar
+        {
+            get => _hasModularAvatar;
+            set => _hasModularAvatar = value;
+        }
+
+        /// <summary>
+        /// Tipo de componente de Modular Avatar detectado (ej: "ModularAvatarMergeArmature")
+        /// </summary>
+        public string ModularAvatarComponentType
+        {
+            get => _modularAvatarComponentType ?? "";
+            set => _modularAvatarComponentType = value ?? "";
+        }
+
+        /// <summary>
+        /// Indica si esta ropa debe ser procesada por MRCoserRopa.
+        /// False si tiene Modular Avatar configurado (MA tiene prioridad).
+        /// </summary>
+        public bool ShouldProcessByMR => !_hasModularAvatar;
+
+        /// <summary>
+        /// Indica si esta ropa tiene MA Shape Changer configurado.
+        /// Si es true, los blendshapes son controlados por MA.
+        /// </summary>
+        public bool HasMAShapeChanger
+        {
+            get => _hasMAShapeChanger;
+            set => _hasMAShapeChanger = value;
+        }
 
         /// <summary>
         /// Constructor por defecto

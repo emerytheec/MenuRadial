@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Validation.Models;
+using Bender_Dios.MenuRadial.Core.Utils;
 
 namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
 {
@@ -94,51 +95,25 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         }
 
         /// <summary>
-        /// Intenta encontrar el transform raiz del armature
+        /// Intenta encontrar el transform raiz del armature.
+        /// Usa ArmatureFinder con estrategia combinada:
+        /// 1. Humanoid API (Hips.parent)
+        /// 2. Nombre exacto
+        /// 3. Patron de nombre (Contains)
+        /// 4. Analisis de huesos de SkinnedMeshRenderer
+        /// 5. Fallback (primer hijo con hijos)
         /// </summary>
         public bool TryFindArmatureRoot()
         {
             if (_rootObject == null) return false;
 
-            // Si tenemos Animator humanoid, usar Hips como referencia
-            if (_animator != null && _animator.isHuman)
-            {
-                var hips = _animator.GetBoneTransform(HumanBodyBones.Hips);
-                if (hips != null && hips.parent != null)
-                {
-                    _armatureRoot = hips.parent;
-                    return true;
-                }
-            }
+            // Usar ArmatureFinder con estrategia combinada
+            var result = ArmatureFinder.FindArmature(_rootObject.transform, _animator);
 
-            // Lista de nombres comunes para la raiz del armature
-            string[] commonArmatureNames = new[]
+            if (result.Success)
             {
-                "Armature", "armature",
-                "Skeleton", "skeleton",
-                "Root", "root",
-                "Rig", "rig",
-                "Bones", "bones",
-                "Bip01", "bip01",
-                "mixamorig:Hips", // Mixamo
-                "Hips", "hips" // Algunos modelos tienen Hips directamente
-            };
-
-            foreach (var name in commonArmatureNames)
-            {
-                _armatureRoot = FindChildByName(_rootObject.transform, name);
-                if (_armatureRoot != null) return true;
-            }
-
-            // Si no encontramos por nombre, buscar el primer hijo que tenga hijos
-            // (probablemente es el armature)
-            foreach (Transform child in _rootObject.transform)
-            {
-                if (child.childCount > 0 && !child.name.Contains("mesh", StringComparison.OrdinalIgnoreCase))
-                {
-                    _armatureRoot = child;
-                    return true;
-                }
+                _armatureRoot = result.Armature;
+                return true;
             }
 
             return false;
@@ -176,24 +151,6 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
             }
 
             return result;
-        }
-
-        private static Transform FindChildByName(Transform parent, string name)
-        {
-            foreach (Transform child in parent)
-            {
-                if (child.name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                    return child;
-            }
-
-            // Buscar recursivamente
-            foreach (Transform child in parent)
-            {
-                var found = FindChildByName(child, name);
-                if (found != null) return found;
-            }
-
-            return null;
         }
 
         private static string GetHierarchyPath(Transform transform)

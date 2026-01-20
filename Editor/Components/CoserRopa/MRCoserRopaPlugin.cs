@@ -9,6 +9,8 @@ using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
 
+using MADetector = Bender_Dios.MenuRadial.Components.CoserRopa.Controllers.ModularAvatarDetector;
+
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.CoserRopa.MRCoserRopaPlugin))]
 
 namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
@@ -121,6 +123,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                     // Solo procesar ropas habilitadas
                     if (clothingEntry == null || !clothingEntry.Enabled || clothingEntry.GameObject == null)
                     {
+                        continue;
+                    }
+
+                    // Verificar si tiene Modular Avatar configurado - MA tiene prioridad
+                    if (clothingEntry.HasModularAvatar)
+                    {
+                        Debug.Log($"[MRCoserRopa NDMF] Saltando '{clothingEntry.Name}': tiene Modular Avatar ({clothingEntry.ModularAvatarComponentType}). MA lo procesará.");
+                        continue;
+                    }
+
+                    // Re-verificar MA en runtime por si se agregó después de la detección
+                    var maResult = MADetector.Instance.DetectModularAvatar(clothingEntry.GameObject);
+                    if (maResult.HasMergeArmature)
+                    {
+                        Debug.Log($"[MRCoserRopa NDMF] Saltando '{clothingEntry.Name}': ModularAvatarMergeArmature detectado en runtime. MA lo procesará.");
                         continue;
                     }
 

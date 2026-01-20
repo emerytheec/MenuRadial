@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.AjustarBounds.Models;
+using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
@@ -53,6 +54,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
                 EditorGUILayout.Space(8);
 
+                // Anchor Override
+                DrawAnchorSection();
+
+                EditorGUILayout.Space(8);
+
                 // Resultado del calculo
                 DrawResultSection();
 
@@ -70,6 +76,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
                 // Seccion de particulas
                 DrawParticleSection();
+
+                EditorGUILayout.Space(8);
+
+                // Advertencia de MA Mesh Settings
+                DrawMAMeshSettingsWarning();
 
                 EditorGUILayout.Space(8);
 
@@ -162,6 +173,138 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        #endregion
+
+        #region Anchor Override
+
+        private void DrawAnchorSection()
+        {
+            EditorGUILayout.LabelField("Anchor Override (Iluminacion)", EditorStyles.boldLabel);
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // Toggle para habilitar anchor
+            EditorGUI.BeginChangeCheck();
+            bool newUnifyAnchor = EditorGUILayout.Toggle(
+                new GUIContent("Unificar Iluminacion", "Todos los meshes usaran el mismo punto de referencia para iluminacion"),
+                _target.UnifyAnchorOverride);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_target, "Toggle Anchor Override");
+                _target.UnifyAnchorOverride = newUnifyAnchor;
+                EditorUtility.SetDirty(_target);
+            }
+
+            if (_target.UnifyAnchorOverride)
+            {
+                EditorGUILayout.Space(3);
+
+                // Auto-detectar Chest
+                EditorGUI.BeginChangeCheck();
+                bool newAutoDetect = EditorGUILayout.Toggle(
+                    new GUIContent("Auto-detectar Chest", "Usar automaticamente el hueso Chest del avatar"),
+                    _target.AutoDetectChest);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(_target, "Toggle Auto-detectar Chest");
+                    _target.AutoDetectChest = newAutoDetect;
+                    EditorUtility.SetDirty(_target);
+                }
+
+                // Campo para anchor manual (solo si no es auto-detectar)
+                if (!_target.AutoDetectChest)
+                {
+                    EditorGUI.BeginChangeCheck();
+                    var newAnchor = (Transform)EditorGUILayout.ObjectField(
+                        new GUIContent("Anchor Manual", "Transform a usar como punto de referencia"),
+                        _target.AnchorOverride, typeof(Transform), true);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        Undo.RecordObject(_target, "Cambiar Anchor");
+                        _target.AnchorOverride = newAnchor;
+                        EditorUtility.SetDirty(_target);
+                    }
+                }
+
+                // Mostrar anchor efectivo
+                var effectiveAnchor = _target.EffectiveAnchor;
+                if (effectiveAnchor != null)
+                {
+                    EditorGUILayout.Space(3);
+                    GUI.contentColor = SuccessColor;
+                    EditorGUILayout.LabelField($"Anchor: {effectiveAnchor.name}", EditorStyles.miniLabel);
+                    GUI.contentColor = Color.white;
+
+                    // Estado de aplicacion
+                    if (_target.AnchorApplied)
+                    {
+                        GUI.contentColor = AppliedColor;
+                        EditorGUILayout.LabelField("Anchor APLICADO", EditorStyles.miniBoldLabel);
+                        GUI.contentColor = Color.white;
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.Space(3);
+                    GUI.contentColor = WarningColor;
+                    EditorGUILayout.LabelField("No se detecto hueso Chest", EditorStyles.miniLabel);
+                    GUI.contentColor = Color.white;
+                }
+
+                EditorGUILayout.Space(5);
+
+                // Botones de accion para anchor
+                EditorGUILayout.BeginHorizontal();
+
+                // Boton Aplicar Anchor
+                GUI.enabled = effectiveAnchor != null && !_target.AnchorApplied;
+                if (GUILayout.Button("Aplicar Anchor", EditorStyles.miniButton))
+                {
+                    Undo.RecordObject(_target, "Aplicar Anchor Override");
+                    foreach (var meshInfo in _target.DetectedMeshes)
+                    {
+                        if (meshInfo.IsValid && meshInfo.Renderer != null)
+                        {
+                            Undo.RecordObject(meshInfo.Renderer, "Aplicar Anchor Override");
+                        }
+                    }
+                    _target.ApplyAnchorOverride();
+                    EditorUtility.SetDirty(_target);
+                }
+                GUI.enabled = true;
+
+                // Boton Restaurar Anchor
+                GUI.enabled = _target.AnchorApplied;
+                if (GUILayout.Button("Restaurar Anchor", EditorStyles.miniButton))
+                {
+                    Undo.RecordObject(_target, "Restaurar Anchor Override");
+                    foreach (var meshInfo in _target.DetectedMeshes)
+                    {
+                        if (meshInfo.IsValid && meshInfo.Renderer != null)
+                        {
+                            Undo.RecordObject(meshInfo.Renderer, "Restaurar Anchor Override");
+                        }
+                    }
+                    _target.RestoreAnchorOverride();
+                    EditorUtility.SetDirty(_target);
+                }
+                GUI.enabled = true;
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndVertical();
+
+            // Ayuda contextual
+            if (_target.UnifyAnchorOverride && _target.EffectiveAnchor == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "El Anchor Override unifica la iluminacion de todos los meshes.\n" +
+                    "Sin esto, diferentes partes del avatar pueden verse mas claras u oscuras.",
+                    MessageType.Info);
+            }
         }
 
         #endregion
@@ -598,6 +741,40 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
         #endregion
 
+        #region MA Mesh Settings Warning
+
+        private void DrawMAMeshSettingsWarning()
+        {
+            if (_target.AvatarRoot == null)
+                return;
+
+            // Verificar si hay MA Mesh Settings en el avatar
+            bool hasMAMeshSettings = ModularAvatarDetector.Instance.HasMeshSettings(_target.AvatarRoot);
+
+            if (hasMAMeshSettings)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                GUI.contentColor = new Color(0.4f, 0.7f, 1f); // Azul MA
+                EditorGUILayout.LabelField("[MA] Modular Avatar Mesh Settings detectado", EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+
+                EditorGUILayout.LabelField(
+                    "Se han encontrado componentes MA Mesh Settings en el avatar.\n" +
+                    "Estos seran DESACTIVADOS automaticamente durante el build.\n" +
+                    "MRAjustarBounds tiene prioridad.",
+                    EditorStyles.wordWrappedMiniLabel);
+
+                // Contar componentes
+                var components = ModularAvatarDetector.Instance.GetMeshSettingsComponents(_target.AvatarRoot);
+                EditorGUILayout.LabelField($"Componentes a desactivar: {components.Length}", EditorStyles.miniLabel);
+
+                EditorGUILayout.EndVertical();
+            }
+        }
+
+        #endregion
+
         #region NDMF Info
 
         private void DrawNDMFInfo()
@@ -606,13 +783,33 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
+                // Estado de bounds
                 GUI.contentColor = SuccessColor;
-                string status = _target.BoundsApplied ? "aplicados" : "listos para aplicar";
-                EditorGUILayout.LabelField($"[OK] {_target.ValidMeshCount} mesh(es) con bounds {status}", EditorStyles.boldLabel);
+                string boundsStatus = _target.BoundsApplied ? "aplicados" : "listos";
+                EditorGUILayout.LabelField($"[OK] Bounds: {_target.ValidMeshCount} mesh(es) {boundsStatus}", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
+                // Estado de anchor
+                if (_target.UnifyAnchorOverride)
+                {
+                    var anchor = _target.EffectiveAnchor;
+                    if (anchor != null)
+                    {
+                        string anchorStatus = _target.AnchorApplied ? "aplicado" : "listo";
+                        GUI.contentColor = SuccessColor;
+                        EditorGUILayout.LabelField($"[OK] Anchor: {anchor.name} ({anchorStatus})", EditorStyles.boldLabel);
+                        GUI.contentColor = Color.white;
+                    }
+                    else
+                    {
+                        GUI.contentColor = WarningColor;
+                        EditorGUILayout.LabelField("[!] Anchor: no detectado", EditorStyles.boldLabel);
+                        GUI.contentColor = Color.white;
+                    }
+                }
+
                 EditorGUILayout.LabelField(
-                    "Los bounds se procesaran automaticamente al:",
+                    "Se procesara automaticamente al:",
                     EditorStyles.wordWrappedMiniLabel);
                 EditorGUILayout.LabelField(
                     "  - Entrar en Play Mode\n  - Subir el avatar a VRChat",

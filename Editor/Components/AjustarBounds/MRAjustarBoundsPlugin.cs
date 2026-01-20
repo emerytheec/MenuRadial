@@ -4,6 +4,7 @@ using nadena.dev.ndmf;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers;
+using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.AjustarBounds.MRAjustarBoundsPlugin))]
 
@@ -58,12 +59,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                 return; // No hay nada que procesar
             }
 
+            // Desactivar MA Mesh Settings para evitar conflictos
+            // MRAjustarBounds tiene prioridad sobre MA Mesh Settings
+            int disabledMAComponents = DisableMAMeshSettings(context.AvatarRootObject);
+            if (disabledMAComponents > 0)
+            {
+                Debug.Log($"[MRAjustarBounds NDMF] Desactivados {disabledMAComponents} componente(s) MA Mesh Settings (MRAjustarBounds tiene prioridad)");
+            }
+
             Debug.Log($"[MRAjustarBounds NDMF] Procesando {ajustarBoundsComponents.Length} componente(s) MRAjustarBounds...");
 
             var calculator = new BoundsCalculator();
             int totalProcessed = 0;
             int totalMeshes = 0;
             int totalParticles = 0;
+            int totalAnchors = 0;
 
             foreach (var ajustarBounds in ajustarBoundsComponents)
             {
@@ -152,6 +162,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                         int particlesProcessed = ProcessParticles(ajustarBounds, avatarRoot, calculator);
                         totalParticles += particlesProcessed;
                     }
+
+                    // Procesar anchor override si esta habilitado
+                    if (ajustarBounds.UnifyAnchorOverride)
+                    {
+                        int anchorsProcessed = ProcessAnchorOverride(ajustarBounds, avatarRoot);
+                        totalAnchors += anchorsProcessed;
+                    }
                 }
                 catch (Exception e)
                 {
@@ -164,7 +181,99 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             }
 
             string particleInfo = totalParticles > 0 ? $", {totalParticles} particula(s)" : "";
-            Debug.Log($"[MRAjustarBounds NDMF] Procesamiento completado: {totalProcessed} componente(s), {totalMeshes} mesh(es){particleInfo} actualizados");
+            string anchorInfo = totalAnchors > 0 ? $", {totalAnchors} anchor(s)" : "";
+            Debug.Log($"[MRAjustarBounds NDMF] Procesamiento completado: {totalProcessed} componente(s), {totalMeshes} mesh(es){particleInfo}{anchorInfo} actualizados");
+        }
+
+        /// <summary>
+        /// Procesa el anchor override de un componente MRAjustarBounds
+        /// </summary>
+        private int ProcessAnchorOverride(MRAjustarBounds ajustarBounds, GameObject avatarRoot)
+        {
+            try
+            {
+                // Obtener el anchor efectivo
+                var anchor = ajustarBounds.EffectiveAnchor;
+                if (anchor == null)
+                {
+                    // Intentar detectar el chest en el avatar del build
+                    anchor = DetectChestBone(avatarRoot);
+                }
+
+                if (anchor == null)
+                {
+                    Debug.LogWarning($"[MRAjustarBounds NDMF] No se pudo detectar anchor (Chest) para '{avatarRoot.name}'");
+                    return 0;
+                }
+
+                // Aplicar anchor a todos los SkinnedMeshRenderers
+                var renderers = avatarRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                int applied = 0;
+
+                foreach (var renderer in renderers)
+                {
+                    if (renderer != null)
+                    {
+                        renderer.probeAnchor = anchor;
+                        applied++;
+                    }
+                }
+
+                Debug.Log($"[MRAjustarBounds NDMF] Anchor Override aplicado a {applied} meshes (usando '{anchor.name}')");
+                return applied;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MRAjustarBounds NDMF] Error procesando anchor override: {e.Message}");
+                Debug.LogException(e);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Detecta el hueso Chest del avatar
+        /// </summary>
+        private Transform DetectChestBone(GameObject avatarRoot)
+        {
+            var animator = avatarRoot.GetComponent<Animator>();
+            if (animator != null && animator.isHuman)
+            {
+                var chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+                if (chest != null) return chest;
+
+                var upperChest = animator.GetBoneTransform(HumanBodyBones.UpperChest);
+                if (upperChest != null) return upperChest;
+
+                var spine = animator.GetBoneTransform(HumanBodyBones.Spine);
+                if (spine != null) return spine;
+            }
+
+            // Buscar por nombre si no hay Animator humanoid
+            foreach (var child in avatarRoot.GetComponentsInChildren<Transform>(true))
+            {
+                var name = child.name.ToLowerInvariant();
+                if (name == "chest" || name == "spine2" || name == "uppertorso")
+                    return child;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Desactiva todos los componentes MA Mesh Settings en el avatar.
+        /// MRAjustarBounds tiene prioridad sobre MA Mesh Settings.
+        /// </summary>
+        private int DisableMAMeshSettings(GameObject avatarRoot)
+        {
+            try
+            {
+                return ModularAvatarDetector.Instance.DisableMeshSettingsComponents(avatarRoot);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[MRAjustarBounds NDMF] Error al desactivar MA Mesh Settings: {e.Message}");
+                return 0;
+            }
         }
 
         /// <summary>

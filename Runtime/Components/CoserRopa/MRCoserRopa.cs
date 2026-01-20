@@ -6,6 +6,8 @@ using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 
+// Detector de Modular Avatar para prioridad de cosido
+
 namespace Bender_Dios.MenuRadial.Components.CoserRopa
 {
     /// <summary>
@@ -95,10 +97,22 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         public List<ClothingEntry> DetectedClothings => _detectedClothings;
 
         /// <summary>
-        /// Ropas habilitadas para coser
+        /// Ropas habilitadas para coser por MRCoserRopa.
+        /// Excluye las que tienen Modular Avatar configurado (MA tiene prioridad).
         /// </summary>
         public IEnumerable<ClothingEntry> EnabledClothings =>
-            _detectedClothings?.Where(c => c.Enabled && c.IsValid) ?? Enumerable.Empty<ClothingEntry>();
+            _detectedClothings?.Where(c => c.Enabled && c.IsValid && c.ShouldProcessByMR) ?? Enumerable.Empty<ClothingEntry>();
+
+        /// <summary>
+        /// Ropas que serán procesadas por Modular Avatar
+        /// </summary>
+        public IEnumerable<ClothingEntry> ModularAvatarClothings =>
+            _detectedClothings?.Where(c => c.HasModularAvatar) ?? Enumerable.Empty<ClothingEntry>();
+
+        /// <summary>
+        /// Cantidad de ropas que serán procesadas por Modular Avatar
+        /// </summary>
+        public int ModularAvatarClothingCount => ModularAvatarClothings.Count();
 
         /// <summary>
         /// Cantidad de ropas detectadas
@@ -415,15 +429,40 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                     Enabled = true
                 };
 
+                // Detectar si tiene Modular Avatar configurado
+                var maResult = ModularAvatarDetector.Instance.DetectModularAvatar(candidate.Root);
+                if (maResult.HasMergeArmature)
+                {
+                    entry.HasModularAvatar = true;
+                    entry.ModularAvatarComponentType = maResult.PrimaryComponent;
+                    Debug.Log($"[MRCoserRopa] Ropa '{candidate.Root.name}' tiene Modular Avatar ({maResult.PrimaryComponent}). MA tendrá prioridad.");
+                }
+
+                // Detectar si tiene MA Shape Changer (controla blendshapes)
+                if (maResult.HasShapeChanger || maResult.HasBlendshapeControl)
+                {
+                    entry.HasMAShapeChanger = true;
+                    Debug.Log($"[MRCoserRopa] Ropa '{candidate.Root.name}' tiene MA Shape Changer. Los blendshapes serán controlados por MA.");
+                }
+
                 // Detectar mapeos de huesos
                 DetectBoneMappingsForClothing(entry);
 
-                // Solo agregar si tiene mapeos validos
-                if (entry.MappedBoneCount > 0)
+                // Solo agregar si tiene mapeos validos O si tiene MA (para mostrar en la lista)
+                if (entry.MappedBoneCount > 0 || entry.HasModularAvatar)
                 {
                     _detectedClothings.Add(entry);
-                    Debug.Log($"[MRCoserRopa] Ropa detectada: '{candidate.Root.name}' " +
-                              $"({candidate.SkinnedMeshRenderers.Count} SMRs, {entry.MappedBoneCount} huesos)");
+
+                    if (entry.HasModularAvatar)
+                    {
+                        Debug.Log($"[MRCoserRopa] Ropa detectada: '{candidate.Root.name}' " +
+                                  $"(Modular Avatar: {entry.ModularAvatarComponentType})");
+                    }
+                    else
+                    {
+                        Debug.Log($"[MRCoserRopa] Ropa detectada: '{candidate.Root.name}' " +
+                                  $"({candidate.SkinnedMeshRenderers.Count} SMRs, {entry.MappedBoneCount} huesos)");
+                    }
                 }
                 else
                 {

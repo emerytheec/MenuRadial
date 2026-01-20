@@ -10,6 +10,7 @@ using UnityEditor.Animations;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
+using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
 using Bender_Dios.MenuRadial.Components.Menu;
 using Bender_Dios.MenuRadial.Core.Common;
 
@@ -159,6 +160,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             bool writeDefaults = menuRadial.WriteDefaultValues;
             string menuRadialName = menuRadial.gameObject.name;
 
+            // Guardar configuración de integración del menú
+            string effectiveMenuName = menuRadial.EffectiveMenuName;
+            Texture2D menuIcon = menuRadial.MenuIcon;
+            MenuIntegrationMode integrationMode = menuRadial.MenuIntegrationMode;
+            int targetSubMenuIndex = menuRadial.TargetSubMenuIndex;
+            string customMenuPath = menuRadial.CustomMenuPath;
+
             Debug.Log($"[MRMenuRadial NDMF] Buscando archivos en: {outputDir}");
 
             // Construir nombres de archivos
@@ -209,8 +217,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             // 2. Mezclar Parameters
             MergeParameters(context, avatar, generatedParams);
 
-            // 3. Mezclar Menu
-            MergeMenu(context, avatar, generatedMenu, prefix);
+            // 3. Mezclar Menu con la configuración de integración
+            MergeMenu(context, avatar, generatedMenu, effectiveMenuName, menuIcon, integrationMode, targetSubMenuIndex, customMenuPath);
 
             // 4. Limpiar componentes MR del avatar clonado SOLO si es interno
             // NO destruir MRMenuRadial externos porque no son parte del clon
@@ -452,9 +460,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         /// <summary>
         /// Mezcla el menú generado con el del avatar.
-        /// Añade el menú generado como submenú del menú principal del avatar.
+        /// Soporta diferentes modos de integración: RootMenu, ExistingSubMenu, CustomPath.
         /// </summary>
-        private void MergeMenu(BuildContext context, VRCAvatarDescriptor avatar, VRCExpressionsMenu generatedMenu, string prefix)
+        private void MergeMenu(
+            BuildContext context,
+            VRCAvatarDescriptor avatar,
+            VRCExpressionsMenu generatedMenu,
+            string menuName,
+            Texture2D menuIcon,
+            MenuIntegrationMode integrationMode,
+            int targetSubMenuIndex,
+            string customMenuPath)
         {
             // Obtener o crear menú del avatar
             if (avatar.expressionsMenu == null)
@@ -475,33 +491,140 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             // Clonar el menú generado y sus submenús recursivamente
             var clonedMenu = CloneMenuRecursive(context, generatedMenu);
 
-            // Nombre del submenú
-            string subMenuName = string.IsNullOrEmpty(prefix) ? "Menu Radial" : prefix;
+            // Determinar el menú destino según el modo de integración
+            VRCExpressionsMenu targetMenu = avatar.expressionsMenu;
 
-            // Verificar si ya existe un control con ese nombre
-            var existingControl = avatar.expressionsMenu.controls.FirstOrDefault(c => c.name == subMenuName);
+            switch (integrationMode)
+            {
+                case MenuIntegrationMode.RootMenu:
+                    // Agregar directamente al menú raíz
+                    targetMenu = avatar.expressionsMenu;
+                    Debug.Log($"[MRMenuRadial NDMF] Modo: Menú Raíz");
+                    break;
+
+                case MenuIntegrationMode.ExistingSubMenu:
+                    // Buscar el submenú existente por índice
+                    if (targetSubMenuIndex >= 0 && targetSubMenuIndex < avatar.expressionsMenu.controls.Count)
+                    {
+                        var targetControl = avatar.expressionsMenu.controls[targetSubMenuIndex];
+                        if (targetControl.type == VRCExpressionsMenu.Control.ControlType.SubMenu && targetControl.subMenu != null)
+                        {
+                            // Clonar el submenú destino para no modificar el original
+                            var clonedTargetMenu = CloneMenuRecursive(context, targetControl.subMenu);
+                            targetControl.subMenu = clonedTargetMenu;
+                            targetMenu = clonedTargetMenu;
+                            Debug.Log($"[MRMenuRadial NDMF] Modo: Submenú existente '{targetControl.name}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[MRMenuRadial NDMF] El control en índice {targetSubMenuIndex} no es un submenú válido. Usando menú raíz.");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[MRMenuRadial NDMF] Índice de submenú {targetSubMenuIndex} inválido. Usando menú raíz.");
+                    }
+                    break;
+
+                case MenuIntegrationMode.CustomPath:
+                    // Crear la ruta de menús personalizada
+                    if (!string.IsNullOrEmpty(customMenuPath))
+                    {
+                        targetMenu = CreateOrGetMenuPath(context, avatar.expressionsMenu, customMenuPath);
+                        Debug.Log($"[MRMenuRadial NDMF] Modo: Ruta personalizada '{customMenuPath}'");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[MRMenuRadial NDMF] Ruta personalizada vacía. Usando menú raíz.");
+                    }
+                    break;
+            }
+
+            // Crear el control del submenú
+            var control = new VRCExpressionsMenu.Control
+            {
+                name = menuName,
+                type = VRCExpressionsMenu.Control.ControlType.SubMenu,
+                subMenu = clonedMenu,
+                icon = menuIcon
+            };
+
+            // Verificar si ya existe un control con ese nombre en el menú destino
+            var existingControl = targetMenu.controls.FirstOrDefault(c => c.name == menuName);
             if (existingControl != null)
             {
                 // Actualizar el submenú existente
                 existingControl.subMenu = clonedMenu;
-                Debug.Log($"[MRMenuRadial NDMF] Actualizado submenú existente: {subMenuName}");
+                existingControl.icon = menuIcon;
+                Debug.Log($"[MRMenuRadial NDMF] Actualizado submenú existente: {menuName}");
             }
             else
             {
                 // Añadir como nuevo submenú
-                var control = new VRCExpressionsMenu.Control
-                {
-                    name = subMenuName,
-                    type = VRCExpressionsMenu.Control.ControlType.SubMenu,
-                    subMenu = clonedMenu
-                };
-
-                avatar.expressionsMenu.controls.Add(control);
-                Debug.Log($"[MRMenuRadial NDMF] Añadido submenú: {subMenuName}");
+                targetMenu.controls.Add(control);
+                Debug.Log($"[MRMenuRadial NDMF] Añadido submenú: {menuName}" + (menuIcon != null ? " (con icono)" : ""));
 
                 // Si excede el límite de 8 controles, crear submenú "More"
-                SplitMenuIfNeeded(context, avatar.expressionsMenu);
+                SplitMenuIfNeeded(context, targetMenu);
             }
+        }
+
+        /// <summary>
+        /// Crea o navega a una ruta de menús (ej: "Outfits/Casual").
+        /// Si los menús intermedios no existen, los crea.
+        /// </summary>
+        private VRCExpressionsMenu CreateOrGetMenuPath(BuildContext context, VRCExpressionsMenu rootMenu, string path)
+        {
+            var pathParts = path.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (pathParts.Length == 0)
+                return rootMenu;
+
+            VRCExpressionsMenu currentMenu = rootMenu;
+
+            foreach (var part in pathParts)
+            {
+                // Buscar si ya existe un submenú con este nombre
+                var existingControl = currentMenu.controls.FirstOrDefault(c =>
+                    c.type == VRCExpressionsMenu.Control.ControlType.SubMenu &&
+                    c.name.Equals(part, StringComparison.OrdinalIgnoreCase));
+
+                if (existingControl != null && existingControl.subMenu != null)
+                {
+                    // Clonar el submenú existente si no está ya clonado
+                    if (!AssetDatabase.Contains(existingControl.subMenu) ||
+                        AssetDatabase.GetAssetPath(existingControl.subMenu).StartsWith("Assets/"))
+                    {
+                        var clonedSubMenu = CloneMenuRecursive(context, existingControl.subMenu);
+                        existingControl.subMenu = clonedSubMenu;
+                    }
+                    currentMenu = existingControl.subMenu;
+                }
+                else
+                {
+                    // Crear nuevo submenú
+                    var newSubMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+                    newSubMenu.name = part;
+                    context.AssetSaver.SaveAsset(newSubMenu);
+
+                    var newControl = new VRCExpressionsMenu.Control
+                    {
+                        name = part,
+                        type = VRCExpressionsMenu.Control.ControlType.SubMenu,
+                        subMenu = newSubMenu
+                    };
+
+                    currentMenu.controls.Add(newControl);
+                    Debug.Log($"[MRMenuRadial NDMF] Creado menú intermedio: {part}");
+
+                    // Si excede el límite, dividir
+                    SplitMenuIfNeeded(context, currentMenu);
+
+                    currentMenu = newSubMenu;
+                }
+            }
+
+            return currentMenu;
         }
 
         /// <summary>

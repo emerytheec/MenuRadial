@@ -39,6 +39,22 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         [Tooltip("Aplicar bounds automaticamente al detectar cambios")]
         private bool _autoApply = false;
 
+        [Header("Anchor Override (Iluminacion)")]
+        [SerializeField]
+        [Tooltip("Unificar el punto de referencia de iluminacion para todos los meshes")]
+        private bool _unifyAnchorOverride = true;
+
+        [SerializeField]
+        [Tooltip("Transform a usar como anchor. Si es null, se auto-detecta el hueso Chest.")]
+        private Transform _anchorOverride;
+
+        [SerializeField]
+        [Tooltip("Auto-detectar el hueso Chest del avatar como anchor")]
+        private bool _autoDetectChest = true;
+
+        [SerializeField]
+        private bool _anchorApplied = false;
+
         [Header("Particulas")]
         [SerializeField]
         [Tooltip("Incluir sistemas de particulas en el ajuste de bounds")]
@@ -155,6 +171,63 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         /// </summary>
         public Bounds? UnifiedBounds => HasValidCalculation ? _lastCalculationResult.UnifiedBoundsWithMargin : null;
 
+        #region Anchor Override Properties
+
+        /// <summary>
+        /// Unificar el punto de referencia de iluminacion
+        /// </summary>
+        public bool UnifyAnchorOverride
+        {
+            get => _unifyAnchorOverride;
+            set => _unifyAnchorOverride = value;
+        }
+
+        /// <summary>
+        /// Transform a usar como anchor override
+        /// </summary>
+        public Transform AnchorOverride
+        {
+            get => _anchorOverride;
+            set => _anchorOverride = value;
+        }
+
+        /// <summary>
+        /// Auto-detectar el hueso Chest como anchor
+        /// </summary>
+        public bool AutoDetectChest
+        {
+            get => _autoDetectChest;
+            set => _autoDetectChest = value;
+        }
+
+        /// <summary>
+        /// Indica si el anchor ha sido aplicado
+        /// </summary>
+        public bool AnchorApplied
+        {
+            get => _anchorApplied;
+            private set => _anchorApplied = value;
+        }
+
+        /// <summary>
+        /// Obtiene el anchor efectivo (el configurado o el auto-detectado)
+        /// </summary>
+        public Transform EffectiveAnchor
+        {
+            get
+            {
+                if (_anchorOverride != null)
+                    return _anchorOverride;
+
+                if (_autoDetectChest && _avatarRoot != null)
+                    return DetectChestBone();
+
+                return null;
+            }
+        }
+
+        #endregion
+
         #region Particle Properties
 
         /// <summary>
@@ -266,6 +339,11 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
                 {
                     ApplyParticleBounds();
                 }
+
+                if (_unifyAnchorOverride)
+                {
+                    ApplyAnchorOverride();
+                }
             }
         }
 
@@ -341,6 +419,108 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
             Debug.Log($"[MRAjustarBounds] Bounds originales restaurados en {restored} meshes");
         }
 
+        #region Anchor Override Methods
+
+        /// <summary>
+        /// Detecta automaticamente el hueso Chest del avatar usando el Animator
+        /// </summary>
+        public Transform DetectChestBone()
+        {
+            if (_avatarRoot == null)
+                return null;
+
+            var animator = _avatarRoot.GetComponent<Animator>();
+            if (animator == null || !animator.isHuman)
+            {
+                // Buscar por nombre si no hay Animator humanoid
+                return FindBoneByName(_avatarRoot.transform, "Chest", "chest", "Spine2", "spine2", "UpperTorso");
+            }
+
+            // Intentar obtener Chest, si no existe usar Spine
+            var chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+            if (chest != null)
+                return chest;
+
+            var upperChest = animator.GetBoneTransform(HumanBodyBones.UpperChest);
+            if (upperChest != null)
+                return upperChest;
+
+            var spine = animator.GetBoneTransform(HumanBodyBones.Spine);
+            if (spine != null)
+                return spine;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Busca un hueso por nombre en la jerarquia
+        /// </summary>
+        private Transform FindBoneByName(Transform root, params string[] possibleNames)
+        {
+            foreach (var child in root.GetComponentsInChildren<Transform>(true))
+            {
+                foreach (var name in possibleNames)
+                {
+                    if (child.name.Equals(name, System.StringComparison.OrdinalIgnoreCase))
+                        return child;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Aplica el anchor override a todos los meshes
+        /// </summary>
+        public void ApplyAnchorOverride()
+        {
+            if (!_unifyAnchorOverride)
+            {
+                Debug.LogWarning("[MRAjustarBounds] Anchor Override esta desactivado");
+                return;
+            }
+
+            var anchor = EffectiveAnchor;
+            if (anchor == null)
+            {
+                Debug.LogWarning("[MRAjustarBounds] No se encontro anchor valido (Chest no detectado)");
+                return;
+            }
+
+            int applied = 0;
+            foreach (var meshInfo in _detectedMeshes)
+            {
+                if (meshInfo.IsValid && meshInfo.Renderer != null)
+                {
+                    meshInfo.ApplyProbeAnchor(anchor);
+                    applied++;
+                }
+            }
+
+            _anchorApplied = applied > 0;
+            Debug.Log($"[MRAjustarBounds] Anchor Override aplicado a {applied} meshes (usando '{anchor.name}')");
+        }
+
+        /// <summary>
+        /// Restaura los anchors originales de todos los meshes
+        /// </summary>
+        public void RestoreAnchorOverride()
+        {
+            int restored = 0;
+            foreach (var meshInfo in _detectedMeshes)
+            {
+                if (meshInfo.IsValid && meshInfo.Renderer != null)
+                {
+                    meshInfo.RestoreOriginalProbeAnchor();
+                    restored++;
+                }
+            }
+
+            _anchorApplied = false;
+            Debug.Log($"[MRAjustarBounds] Anchor Override restaurado en {restored} meshes");
+        }
+
+        #endregion
+
         /// <summary>
         /// Refresca la deteccion y calculo
         /// </summary>
@@ -350,6 +530,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
             {
                 bool wasApplied = _boundsApplied;
                 bool wasParticlesApplied = _particleBoundsApplied;
+                bool wasAnchorApplied = _anchorApplied;
 
                 // Restaurar primero si estaban aplicados
                 if (wasApplied)
@@ -359,6 +540,10 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
                 if (wasParticlesApplied)
                 {
                     RestoreParticleBounds();
+                }
+                if (wasAnchorApplied)
+                {
+                    RestoreAnchorOverride();
                 }
 
                 // Re-escanear y recalcular meshes
@@ -380,6 +565,10 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
                 if (wasParticlesApplied && _includeParticles)
                 {
                     ApplyParticleBounds();
+                }
+                if (wasAnchorApplied && _unifyAnchorOverride)
+                {
+                    ApplyAnchorOverride();
                 }
             }
         }

@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEditor;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
+using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
 using Bender_Dios.MenuRadial.Components.Menu;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
+using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 {
@@ -24,6 +26,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private SerializedProperty _writeDefaultValuesProperty;
         private SerializedProperty _disableBoneStitchingProperty;
         private SerializedProperty _disableVRChatMergeProperty;
+        private SerializedProperty _disableModularAvatarProperty;
+
+        // Menu integration properties
+        private SerializedProperty _menuNameProperty;
+        private SerializedProperty _menuIconProperty;
+        private SerializedProperty _menuIntegrationModeProperty;
+        private SerializedProperty _targetSubMenuIndexProperty;
+        private SerializedProperty _customMenuPathProperty;
+
         private MRMenuRadial _target;
 
         private GUIStyle _headerStyle;
@@ -45,6 +56,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             _writeDefaultValuesProperty = serializedObject.FindProperty("_writeDefaultValues");
             _disableBoneStitchingProperty = serializedObject.FindProperty("_disableBoneStitchingNDMF");
             _disableVRChatMergeProperty = serializedObject.FindProperty("_disableVRChatMergeNDMF");
+            _disableModularAvatarProperty = serializedObject.FindProperty("_disableModularAvatarNDMF");
+
+            // Menu integration properties
+            _menuNameProperty = serializedObject.FindProperty("_menuName");
+            _menuIconProperty = serializedObject.FindProperty("_menuIcon");
+            _menuIntegrationModeProperty = serializedObject.FindProperty("_menuIntegrationMode");
+            _targetSubMenuIndexProperty = serializedObject.FindProperty("_targetSubMenuIndex");
+            _customMenuPathProperty = serializedObject.FindProperty("_customMenuPath");
+
             RefreshMenuControlCache();
         }
 
@@ -88,6 +108,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.Space(10);
 
             DrawOutputPathField();
+            EditorGUILayout.Space(10);
+
+            DrawMenuIntegrationSection();
             EditorGUILayout.Space(10);
 
             DrawNDMFControlPanel();
@@ -191,6 +214,141 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.EndVertical();
         }
 
+        private void DrawMenuIntegrationSection()
+        {
+            EditorGUILayout.BeginVertical(_boxStyle);
+            EditorGUILayout.LabelField("Integración del Menú VRChat", EditorStyles.boldLabel);
+
+            EditorGUILayout.HelpBox("Configura cómo y dónde se integrará el menú MR en el avatar.", MessageType.Info);
+
+            EditorGUILayout.Space(5);
+
+            // Nombre del menú
+            EditorGUILayout.PropertyField(_menuNameProperty, new GUIContent(
+                "Nombre",
+                "Nombre que aparecerá en el menú VRChat. Si está vacío, usa el prefijo o 'Menu Radial'."));
+
+            // Preview del nombre efectivo
+            string effectiveName = _target.EffectiveMenuName;
+            EditorGUILayout.LabelField("Nombre efectivo:", effectiveName, EditorStyles.miniLabel);
+
+            EditorGUILayout.Space(5);
+
+            // Icono del menú
+            EditorGUILayout.PropertyField(_menuIconProperty, new GUIContent(
+                "Icono",
+                "Icono que aparecerá junto al nombre en el menú VRChat."));
+
+            EditorGUILayout.Space(10);
+
+            // Modo de integración
+            EditorGUILayout.PropertyField(_menuIntegrationModeProperty, new GUIContent(
+                "Ubicación",
+                "Define dónde se ubicará el menú MR dentro del menú del avatar."));
+
+            EditorGUILayout.Space(5);
+
+            // Mostrar opciones según el modo seleccionado
+            var integrationMode = (MenuIntegrationMode)_menuIntegrationModeProperty.enumValueIndex;
+
+            switch (integrationMode)
+            {
+                case MenuIntegrationMode.RootMenu:
+                    EditorGUILayout.HelpBox("El menú se añadirá directamente al menú raíz del avatar.", MessageType.None);
+                    break;
+
+                case MenuIntegrationMode.ExistingSubMenu:
+                    DrawExistingSubMenuSelector();
+                    break;
+
+                case MenuIntegrationMode.CustomPath:
+                    EditorGUILayout.PropertyField(_customMenuPathProperty, new GUIContent(
+                        "Ruta",
+                        "Ruta de carpetas separadas por '/' (ej: 'Outfits/Casual'). Si no existen, se crearán."));
+
+                    if (!string.IsNullOrEmpty(_customMenuPathProperty.stringValue))
+                    {
+                        EditorGUILayout.HelpBox($"Se creará la ruta: {_customMenuPathProperty.stringValue}/{effectiveName}", MessageType.None);
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("Ingresa una ruta para crear menús anidados.", MessageType.Warning);
+                    }
+                    break;
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawExistingSubMenuSelector()
+        {
+            // Obtener el menú del avatar para listar los submenús existentes
+            var avatarGO = _avatarRootProperty.objectReferenceValue as GameObject;
+            if (avatarGO == null)
+            {
+                EditorGUILayout.HelpBox("Primero asigna un avatar para ver los submenús disponibles.", MessageType.Warning);
+                return;
+            }
+
+            // Buscar VRCAvatarDescriptor
+            var descriptor = avatarGO.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            if (descriptor == null)
+            {
+                EditorGUILayout.HelpBox("El avatar no tiene VRCAvatarDescriptor.", MessageType.Warning);
+                return;
+            }
+
+            var expressionsMenu = descriptor.expressionsMenu;
+            if (expressionsMenu == null || expressionsMenu.controls == null || expressionsMenu.controls.Count == 0)
+            {
+                EditorGUILayout.HelpBox("El avatar no tiene un menú de expresiones configurado o está vacío.", MessageType.Warning);
+                return;
+            }
+
+            // Construir lista de submenús
+            var subMenuOptions = new System.Collections.Generic.List<string>();
+            var subMenuIndices = new System.Collections.Generic.List<int>();
+
+            for (int i = 0; i < expressionsMenu.controls.Count; i++)
+            {
+                var control = expressionsMenu.controls[i];
+                if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && control.subMenu != null)
+                {
+                    subMenuOptions.Add($"{i}: {control.name}");
+                    subMenuIndices.Add(i);
+                }
+            }
+
+            if (subMenuOptions.Count == 0)
+            {
+                EditorGUILayout.HelpBox("El menú del avatar no tiene submenús. Usa 'Menú Raíz' o 'Ruta personalizada'.", MessageType.Warning);
+                return;
+            }
+
+            // Encontrar el índice actual en la lista
+            int currentIndex = subMenuIndices.IndexOf(_targetSubMenuIndexProperty.intValue);
+            if (currentIndex < 0) currentIndex = 0;
+
+            // Dropdown para seleccionar
+            int newIndex = EditorGUILayout.Popup(
+                new GUIContent("Submenú destino", "Selecciona un submenú existente donde añadir el menú MR."),
+                currentIndex,
+                subMenuOptions.ToArray());
+
+            if (newIndex >= 0 && newIndex < subMenuIndices.Count)
+            {
+                _targetSubMenuIndexProperty.intValue = subMenuIndices[newIndex];
+            }
+
+            // Mostrar info del submenú seleccionado
+            if (_targetSubMenuIndexProperty.intValue >= 0 && _targetSubMenuIndexProperty.intValue < expressionsMenu.controls.Count)
+            {
+                var selectedControl = expressionsMenu.controls[_targetSubMenuIndexProperty.intValue];
+                int controlCount = selectedControl.subMenu?.controls?.Count ?? 0;
+                EditorGUILayout.HelpBox($"Submenú '{selectedControl.name}' tiene {controlCount}/8 controles.", MessageType.None);
+            }
+        }
+
         private void DrawNDMFControlPanel()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
@@ -210,15 +368,46 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 "Desactivar Merge VRChat",
                 "Si está activado, NDMF NO mezclará automáticamente los archivos VRChat (FX, Parameters, Menu) durante el build."));
 
+            EditorGUILayout.Space(10);
+
+            // Separador visual
+            EditorGUILayout.LabelField("Integración con Otros Plugins", EditorStyles.boldLabel);
+
+            // Checkbox para desactivar Modular Avatar
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(_disableModularAvatarProperty, new GUIContent(
+                "Desactivar Modular Avatar",
+                "Si está activado, TODOS los componentes de Modular Avatar serán desactivados durante el build. " +
+                "Útil cuando hay conflictos entre MR Menu Radial y Modular Avatar. " +
+                "Solo afecta al build (clon del avatar), NO modifica la escena original."));
+
+            if (EditorGUI.EndChangeCheck() && _disableModularAvatarProperty.boolValue)
+            {
+                // Mostrar advertencia al activar
+                EditorUtility.DisplayDialog("Advertencia",
+                    "Al activar esta opción, Modular Avatar NO procesará este avatar durante el build.\n\n" +
+                    "Esto significa que:\n" +
+                    "• Los componentes de MA (MergeArmature, MenuInstaller, etc.) serán ignorados\n" +
+                    "• Las ropas con MA deberán ser procesadas por MR Coser Ropa\n\n" +
+                    "Esta opción es segura y solo afecta al build, no modifica tu escena.",
+                    "Entendido");
+            }
+
             // Mostrar advertencia si alguno está activado
-            if (_disableBoneStitchingProperty.boolValue || _disableVRChatMergeProperty.boolValue)
+            bool anyDisabled = _disableBoneStitchingProperty.boolValue ||
+                              _disableVRChatMergeProperty.boolValue ||
+                              _disableModularAvatarProperty.boolValue;
+
+            if (anyDisabled)
             {
                 EditorGUILayout.Space(5);
-                string warning = "NDMF procesos desactivados:\n";
+                string warning = "Procesos desactivados durante el build:\n";
                 if (_disableBoneStitchingProperty.boolValue)
-                    warning += "• Cosido de huesos\n";
+                    warning += "• Cosido de huesos (MR)\n";
                 if (_disableVRChatMergeProperty.boolValue)
-                    warning += "• Merge de archivos VRChat\n";
+                    warning += "• Merge de archivos VRChat (MR)\n";
+                if (_disableModularAvatarProperty.boolValue)
+                    warning += "• Modular Avatar (TODOS sus componentes)\n";
                 warning += "\nEl avatar en Play Mode/Upload NO tendrá estos cambios aplicados.";
 
                 EditorGUILayout.HelpBox(warning, MessageType.Warning);
