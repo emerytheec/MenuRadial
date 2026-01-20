@@ -7,6 +7,8 @@ using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.Frame;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.Illumination;
+using Bender_Dios.MenuRadial.Components.UnifyMaterial;
+using Bender_Dios.MenuRadial.Components.AlternativeMaterial;
 using Bender_Dios.MenuRadial.Core.Utils;
 
 namespace Bender_Dios.MenuRadial.Components.MenuRadial
@@ -56,6 +58,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             public int ClothingFramesCreated;
             public int AvatarMeshesIncluded;
             public int AvatarMeshesExcluded;
+
+            // Material system fields
+            public MRUnificarMateriales UnificarMateriales;
+            public List<MRAgruparMateriales> CreatedMaterialFrames;
+            public int MaterialSlotsDetected;
         }
 
         /// <summary>
@@ -67,7 +74,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             var result = new GenerationResult
             {
                 Success = false,
-                CreatedFrames = new List<MRAgruparObjetos>()
+                CreatedFrames = new List<MRAgruparObjetos>(),
+                CreatedMaterialFrames = new List<MRAgruparMateriales>()
             };
 
             // Validaciones
@@ -127,12 +135,38 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
+            // Crear MRUnificarMateriales (solo si hay ropas detectadas)
+            if (_coserRopa != null && _coserRopa.DetectedClothings != null && _coserRopa.DetectedClothings.Any(c => c.IsValid))
+            {
+                var unificarMateriales = CreateUnificarMateriales(menuControl);
+                if (unificarMateriales != null)
+                {
+                    result.UnificarMateriales = unificarMateriales;
+
+                    // Crear MRAgruparMateriales para cada ropa (NO para avatar)
+                    foreach (var clothing in _coserRopa.DetectedClothings)
+                    {
+                        if (!clothing.IsValid)
+                            continue;
+
+                        var materialFrame = CreateMaterialFrameForClothing(unificarMateriales, clothing);
+                        if (materialFrame != null)
+                        {
+                            result.CreatedMaterialFrames.Add(materialFrame);
+                            result.MaterialSlotsDetected += materialFrame.SlotCount;
+                        }
+                    }
+                }
+            }
+
             // Resultado exitoso
             result.Success = true;
             result.Message = $"Generación exitosa: {result.ClothingFramesCreated} ropas, " +
                            $"{result.AvatarMeshesIncluded} meshes de avatar incluidos, " +
                            $"{result.AvatarMeshesExcluded} excluidos, " +
-                           $"{result.CreatedFrames.Count} frames totales";
+                           $"{result.CreatedFrames.Count} frames totales, " +
+                           $"{result.CreatedMaterialFrames?.Count ?? 0} frames de materiales, " +
+                           $"{result.MaterialSlotsDetected} slots de material detectados";
 
             return result;
         }
@@ -157,6 +191,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             // Verificar si existe CUALQUIER MRIluminacionRadial como hijo del MenuControl
             var iluminacionComponents = menuControl.GetComponentsInChildren<MRIluminacionRadial>(true);
             if (iluminacionComponents != null && iluminacionComponents.Length > 0)
+                return true;
+
+            // Verificar si existe CUALQUIER MRUnificarMateriales como hijo del MenuControl
+            var unificarMaterialesComponents = menuControl.GetComponentsInChildren<MRUnificarMateriales>(true);
+            if (unificarMaterialesComponents != null && unificarMaterialesComponents.Length > 0)
                 return true;
 
             // También verificar si hay slots con targetObject asignado en MRMenuControl
@@ -320,6 +359,96 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 #endif
 
             return iluminacionRadial;
+        }
+
+        /// <summary>
+        /// Crea un MRUnificarMateriales como hijo del MenuControl
+        /// </summary>
+        private MRUnificarMateriales CreateUnificarMateriales(Component menuControl)
+        {
+            string componentName = "Materiales";
+
+#if UNITY_EDITOR
+            UnityEditor.Undo.RecordObject(menuControl, "Create UnificarMateriales");
+            var componentObject = new GameObject(componentName);
+            UnityEditor.Undo.RegisterCreatedObjectUndo(componentObject, "Create UnificarMateriales");
+#else
+            var componentObject = new GameObject(componentName);
+#endif
+
+            componentObject.transform.SetParent(menuControl.transform);
+            componentObject.transform.localPosition = Vector3.zero;
+            componentObject.transform.localRotation = Quaternion.identity;
+            componentObject.transform.localScale = Vector3.one;
+
+            var unificarMateriales = componentObject.AddComponent<MRUnificarMateriales>();
+
+            // Añadir al slot del MenuControl
+            AddToMenuControlSlot(menuControl, componentObject, componentName);
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(menuControl);
+            UnityEditor.EditorUtility.SetDirty(unificarMateriales);
+#endif
+
+            return unificarMateriales;
+        }
+
+        /// <summary>
+        /// Crea un MRAgruparMateriales como hijo del MRUnificarMateriales
+        /// </summary>
+        private MRAgruparMateriales CreateAgruparMateriales(
+            MRUnificarMateriales unificarMateriales,
+            string frameName,
+            GameObject sourceObject)
+        {
+#if UNITY_EDITOR
+            UnityEditor.Undo.RecordObject(unificarMateriales, "Create AgruparMateriales");
+            var frameGO = new GameObject(frameName);
+            UnityEditor.Undo.RegisterCreatedObjectUndo(frameGO, "Create AgruparMateriales");
+#else
+            var frameGO = new GameObject(frameName);
+#endif
+
+            frameGO.transform.SetParent(unificarMateriales.transform);
+            frameGO.transform.localPosition = Vector3.zero;
+            frameGO.transform.localRotation = Quaternion.identity;
+            frameGO.transform.localScale = Vector3.one;
+
+            var agruparMateriales = frameGO.AddComponent<MRAgruparMateriales>();
+
+            // Guardar referencia al GameObject fuente para re-escaneo
+            agruparMateriales.SourceGameObject = sourceObject;
+            agruparMateriales.ComponentName = frameName;
+
+            // Escanear materiales del GameObject fuente
+            agruparMateriales.ScanGameObject(sourceObject, includeChildren: true);
+
+            // Añadir al MRUnificarMateriales
+            unificarMateriales.AddAlternativeMaterial(agruparMateriales);
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(unificarMateriales);
+            UnityEditor.EditorUtility.SetDirty(agruparMateriales);
+#endif
+
+            return agruparMateriales;
+        }
+
+        /// <summary>
+        /// Crea un MRAgruparMateriales para una ropa específica
+        /// </summary>
+        private MRAgruparMateriales CreateMaterialFrameForClothing(
+            MRUnificarMateriales unificarMateriales,
+            ClothingEntry clothing)
+        {
+            if (clothing?.GameObject == null)
+                return null;
+
+            // Crear el MRAgruparMateriales con el nombre de la ropa
+            var frame = CreateAgruparMateriales(unificarMateriales, clothing.Name, clothing.GameObject);
+
+            return frame;
         }
 
         /// <summary>

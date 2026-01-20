@@ -17,6 +17,7 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
         [SerializeField] private string _componentName = "Nueva Prenda";
         [SerializeField] private List<MRMaterialSlot> _slots = new List<MRMaterialSlot>();
         [SerializeField] private List<MRMaterialGroup> _groups = new List<MRMaterialGroup>();
+        [SerializeField] private GameObject _sourceGameObject;
 
         #region Properties
 
@@ -38,6 +39,16 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
         /// Lista de grupos de materiales
         /// </summary>
         public List<MRMaterialGroup> Groups => _groups;
+
+        /// <summary>
+        /// GameObject raíz desde el cual se escanearon los materiales.
+        /// Permite re-escanear si se modifica la ropa.
+        /// </summary>
+        public GameObject SourceGameObject
+        {
+            get => _sourceGameObject;
+            set => _sourceGameObject = value;
+        }
 
         /// <summary>
         /// Cantidad de slots
@@ -91,6 +102,19 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
             }
 
             return addedCount;
+        }
+
+        /// <summary>
+        /// Re-escanea los slots de material desde el SourceGameObject guardado.
+        /// Útil cuando se modifica la ropa después de la generación automática.
+        /// </summary>
+        /// <returns>Cantidad de slots añadidos, o 0 si no hay SourceGameObject</returns>
+        public int RescanFromSource()
+        {
+            if (_sourceGameObject == null) return 0;
+
+            ClearAllSlots();
+            return ScanGameObject(_sourceGameObject, includeChildren: true);
         }
 
         /// <summary>
