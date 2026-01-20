@@ -5,6 +5,20 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.10] - 2026-01-20
+
+### Agregado
+- **Auto-generación de estructura de materiales**: Al asignar avatar con ropas detectadas
+  - Crea MRUnificarMateriales como hijo de MenuControl
+  - Crea MRAgruparMateriales por cada ropa detectada (no para avatar base)
+  - Escanea automáticamente los slots de material de cada ropa
+- **MRAgruparMateriales.SourceGameObject**: Nueva propiedad para rastrear el GameObject escaneado
+- **MRAgruparMateriales.RescanFromSource()**: Método para re-escanear materiales si se modifica la ropa
+
+### Mejorado
+- **HasExistingStructure()**: Ahora detecta MRUnificarMateriales existente para evitar regeneración
+- **GenerationResult**: Incluye información de materiales (frames creados, slots detectados)
+
 ## [0.8.9] - 2026-01-20
 
 ### Mejorado
