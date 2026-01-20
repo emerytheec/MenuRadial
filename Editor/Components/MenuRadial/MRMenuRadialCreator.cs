@@ -13,7 +13,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
     /// </summary>
     public static class MRMenuRadialCreator
     {
-        private const string MENU_PATH_GAMEOBJECT = "GameObject/Bender Dios/MR Menu Radial";
+        private const string MENU_PATH_GAMEOBJECT = "GameObject/MR Menu Radial";
         private const string MENU_PATH_TOOLS = "Tools/Menu Radial/MR Menu Radial";
 
         private const int MENU_PRIORITY_GAMEOBJECT = 10;
