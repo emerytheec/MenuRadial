@@ -582,6 +582,36 @@ namespace Bender_Dios.MenuRadial.Localization
             public string linkToSlot;
             public string unlinkSlot;
 
+            // AlternativeMaterial - Sugerencias automáticas
+            public string suggestionsSection;
+            public string detectAlternatives;
+            public string detecting;
+            public string noSuggestions;
+            public string suggestionsFound;
+            public string confidence;
+            public string reasons;
+            public string acceptSelected;
+            public string acceptAllHigh;
+            public string clearSuggestions;
+            public string highConfidence;
+            public string mediumConfidence;
+            public string lowConfidence;
+            public string suggestionForSlot;
+            public string currentMaterial;
+            public string suggestedAlternatives;
+            public string selectAllSuggestions;
+            public string deselectAllSuggestions;
+            public string createGroupFromSelection;
+            public string suggestionsHint;
+            public string sameFolder;
+            public string nearbyFolder;
+            public string sharedPrefix;
+            public string colorVariant;
+            public string versionVariant;
+            public string styleVariant;
+            public string sameShader;
+            public string sameVariantType;
+
             // Validation
             public string invalidReferences;
             public string avatarNotFound;

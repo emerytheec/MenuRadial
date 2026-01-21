@@ -287,6 +287,36 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string LINKED_SLOTS = "alternativeMaterial.linkedSlots";
             public const string UNLINKED_SLOTS = "alternativeMaterial.unlinkedSlots";
             public const string TOTAL_GROUPS = "alternativeMaterial.totalGroups";
+
+            // Sugerencias automáticas
+            public const string SUGGESTIONS_SECTION = "alternativeMaterial.suggestionsSection";
+            public const string DETECT_ALTERNATIVES = "alternativeMaterial.detectAlternatives";
+            public const string DETECTING = "alternativeMaterial.detecting";
+            public const string NO_SUGGESTIONS = "alternativeMaterial.noSuggestions";
+            public const string SUGGESTIONS_FOUND = "alternativeMaterial.suggestionsFound";
+            public const string CONFIDENCE = "alternativeMaterial.confidence";
+            public const string REASONS = "alternativeMaterial.reasons";
+            public const string ACCEPT_SELECTED = "alternativeMaterial.acceptSelected";
+            public const string ACCEPT_ALL_HIGH = "alternativeMaterial.acceptAllHigh";
+            public const string CLEAR_SUGGESTIONS = "alternativeMaterial.clearSuggestions";
+            public const string HIGH_CONFIDENCE = "alternativeMaterial.highConfidence";
+            public const string MEDIUM_CONFIDENCE = "alternativeMaterial.mediumConfidence";
+            public const string LOW_CONFIDENCE = "alternativeMaterial.lowConfidence";
+            public const string SUGGESTION_FOR_SLOT = "alternativeMaterial.suggestionForSlot";
+            public const string CURRENT_MATERIAL = "alternativeMaterial.currentMaterial";
+            public const string SUGGESTED_ALTERNATIVES = "alternativeMaterial.suggestedAlternatives";
+            public const string SELECT_ALL_SUGGESTIONS = "alternativeMaterial.selectAllSuggestions";
+            public const string DESELECT_ALL_SUGGESTIONS = "alternativeMaterial.deselectAllSuggestions";
+            public const string CREATE_GROUP_FROM_SELECTION = "alternativeMaterial.createGroupFromSelection";
+            public const string SUGGESTIONS_HINT = "alternativeMaterial.suggestionsHint";
+            public const string SAME_FOLDER = "alternativeMaterial.sameFolder";
+            public const string NEARBY_FOLDER = "alternativeMaterial.nearbyFolder";
+            public const string SHARED_PREFIX = "alternativeMaterial.sharedPrefix";
+            public const string COLOR_VARIANT = "alternativeMaterial.colorVariant";
+            public const string VERSION_VARIANT = "alternativeMaterial.versionVariant";
+            public const string STYLE_VARIANT = "alternativeMaterial.styleVariant";
+            public const string SAME_SHADER = "alternativeMaterial.sameShader";
+            public const string SAME_VARIANT_TYPE = "alternativeMaterial.sameVariantType";
         }
 
         /// <summary>

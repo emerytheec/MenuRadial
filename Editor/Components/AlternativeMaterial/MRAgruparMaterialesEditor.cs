@@ -31,9 +31,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
         private int _previewFrame = 0;
         private Dictionary<MRMaterialSlot, Material> _originalMaterials = new Dictionary<MRMaterialSlot, Material>();
 
+        // Sugerencias
+        private MaterialSuggestionResult _suggestionResult;
+        private bool _showSuggestions = false;
+        private Dictionary<MRMaterialSlot, HashSet<Material>> _selectedSuggestions = new Dictionary<MRMaterialSlot, HashSet<Material>>();
+        private Dictionary<MRMaterialSlot, bool> _slotSuggestionFoldouts = new Dictionary<MRMaterialSlot, bool>();
+        private MaterialAlternativeDetector _detector;
+
         // Estilos
         private GUIStyle _dropAreaStyle;
         private GUIStyle _headerStyle;
+        private GUIStyle _suggestionHighStyle;
+        private GUIStyle _suggestionMediumStyle;
+        private GUIStyle _suggestionLowStyle;
         private bool _stylesInitialized;
 
         private void OnEnable()
@@ -42,6 +52,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             _componentNameProperty = serializedObject.FindProperty("_componentName");
             _slotsProperty = serializedObject.FindProperty("_slots");
             _groupsProperty = serializedObject.FindProperty("_groups");
+            _detector = new MaterialAlternativeDetector();
         }
 
         private void OnDisable()
@@ -71,7 +82,30 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
                 fontSize = 12
             };
 
+            // Estilos para niveles de confianza
+            _suggestionHighStyle = new GUIStyle(EditorStyles.helpBox);
+            _suggestionHighStyle.normal.background = MakeTex(2, 2, new Color(0.2f, 0.6f, 0.2f, 0.3f));
+
+            _suggestionMediumStyle = new GUIStyle(EditorStyles.helpBox);
+            _suggestionMediumStyle.normal.background = MakeTex(2, 2, new Color(0.6f, 0.5f, 0.2f, 0.3f));
+
+            _suggestionLowStyle = new GUIStyle(EditorStyles.helpBox);
+            _suggestionLowStyle.normal.background = MakeTex(2, 2, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+
             _stylesInitialized = true;
+        }
+
+        private Texture2D MakeTex(int width, int height, Color col)
+        {
+            Color[] pix = new Color[width * height];
+            for (int i = 0; i < pix.Length; ++i)
+            {
+                pix[i] = col;
+            }
+            Texture2D result = new Texture2D(width, height);
+            result.SetPixels(pix);
+            result.Apply();
+            return result;
         }
 
         public override void OnInspectorGUI()
@@ -89,6 +123,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             EditorGUILayout.Space(5);
 
             DrawSlotsSection();
+            EditorGUILayout.Space(5);
+
+            DrawSuggestionsSection();
             EditorGUILayout.Space(5);
 
             DrawMaterialDropArea();
@@ -533,6 +570,418 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
                 }
                 EditorUtility.SetDirty(_target);
             }
+        }
+
+        #endregion
+
+        #region Suggestions Section
+
+        private void DrawSuggestionsSection()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // Header con foldout
+            EditorGUILayout.BeginHorizontal();
+            _showSuggestions = EditorGUILayout.Foldout(_showSuggestions,
+                MRLocalization.Get(L.AlternativeMaterial.SUGGESTIONS_SECTION), true);
+
+            // Botón detectar
+            if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.DETECT_ALTERNATIVES),
+                GUILayout.Width(150), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+            {
+                DetectAlternatives();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if (_showSuggestions)
+            {
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.AlternativeMaterial.SUGGESTIONS_HINT), MessageType.Info);
+
+                if (_suggestionResult == null || !_suggestionResult.HasAnySuggestions)
+                {
+                    if (_suggestionResult != null)
+                    {
+                        EditorGUILayout.HelpBox(MRLocalization.Get(L.AlternativeMaterial.NO_SUGGESTIONS), MessageType.Info);
+                    }
+                }
+                else
+                {
+                    // Resumen
+                    EditorGUILayout.LabelField(
+                        MRLocalization.Get(L.AlternativeMaterial.SUGGESTIONS_FOUND,
+                            _suggestionResult.TotalSuggestionsFound,
+                            _suggestionResult.SlotsWithSuggestions),
+                        EditorStyles.boldLabel);
+
+                    EditorGUILayout.Space(5);
+
+                    // Botones de acción global
+                    DrawSuggestionGlobalActions();
+
+                    EditorGUILayout.Space(5);
+
+                    // Dibujar sugerencias por slot
+                    foreach (var slotResult in _suggestionResult.GetSlotsWithSuggestions())
+                    {
+                        DrawSlotSuggestions(slotResult);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DetectAlternatives()
+        {
+            if (_target.SlotCount == 0)
+            {
+                Debug.LogWarning("[MR Alternative Material] No hay slots para analizar. Arrastra meshes primero.");
+                return;
+            }
+
+            _suggestionResult = _detector.DetectAlternatives(_target);
+            _selectedSuggestions.Clear();
+            _slotSuggestionFoldouts.Clear();
+
+            // Inicializar selecciones con sugerencias de alta confianza
+            foreach (var slotResult in _suggestionResult.GetSlotsWithSuggestions())
+            {
+                _selectedSuggestions[slotResult.Slot] = new HashSet<Material>();
+                _slotSuggestionFoldouts[slotResult.Slot] = false; // Colapsado por defecto
+
+                // Pre-seleccionar alta confianza
+                foreach (var suggestion in slotResult.GetHighConfidenceSuggestions())
+                {
+                    _selectedSuggestions[slotResult.Slot].Add(suggestion.Material);
+                }
+            }
+
+            Debug.Log($"[MR Alternative Material] Detección completada: {_suggestionResult.TotalSuggestionsFound} sugerencias para {_suggestionResult.SlotsWithSuggestions} slots");
+        }
+
+        private void DrawSuggestionGlobalActions()
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            // Aceptar todas las de alta confianza
+            if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.ACCEPT_ALL_HIGH),
+                GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+            {
+                AcceptAllHighConfidence();
+            }
+
+            // Limpiar sugerencias
+            if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.CLEAR_SUGGESTIONS),
+                GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+            {
+                _suggestionResult = null;
+                _selectedSuggestions.Clear();
+                _slotSuggestionFoldouts.Clear();
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawSlotSuggestions(SlotSuggestionResult slotResult)
+        {
+            if (slotResult.Slot == null) return;
+
+            // Asegurar foldout existe (colapsado por defecto)
+            if (!_slotSuggestionFoldouts.ContainsKey(slotResult.Slot))
+                _slotSuggestionFoldouts[slotResult.Slot] = false;
+
+            if (!_selectedSuggestions.ContainsKey(slotResult.Slot))
+                _selectedSuggestions[slotResult.Slot] = new HashSet<Material>();
+
+            // Determinar estilo según mejor confianza
+            GUIStyle boxStyle = EditorStyles.helpBox;
+            if (slotResult.Suggestions.Count > 0)
+            {
+                var bestConfidence = slotResult.Suggestions[0].ConfidenceLevel;
+                boxStyle = bestConfidence switch
+                {
+                    ConfidenceLevel.High => _suggestionHighStyle ?? EditorStyles.helpBox,
+                    ConfidenceLevel.Medium => _suggestionMediumStyle ?? EditorStyles.helpBox,
+                    _ => _suggestionLowStyle ?? EditorStyles.helpBox
+                };
+            }
+
+            EditorGUILayout.BeginVertical(boxStyle);
+
+            // Header del slot
+            EditorGUILayout.BeginHorizontal();
+
+            string slotName = slotResult.Slot.TargetRenderer != null
+                ? slotResult.Slot.TargetRenderer.name
+                : "[Missing]";
+
+            // Obtener el porcentaje más alto
+            string bestConfidenceStr = "";
+            if (slotResult.Suggestions.Count > 0)
+            {
+                bestConfidenceStr = $" - {slotResult.Suggestions[0].GetConfidencePercentage()}";
+            }
+
+            _slotSuggestionFoldouts[slotResult.Slot] = EditorGUILayout.Foldout(
+                _slotSuggestionFoldouts[slotResult.Slot],
+                $"{slotName} [{slotResult.Slot.MaterialIndex}] - {slotResult.SuggestionCount} sugerencias{bestConfidenceStr}",
+                true);
+
+            // Botón crear grupo para este slot
+            int selectedCount = _selectedSuggestions[slotResult.Slot].Count;
+            EditorGUI.BeginDisabledGroup(selectedCount == 0);
+            if (GUILayout.Button($"{MRLocalization.Get(L.AlternativeMaterial.CREATE_GROUP_FROM_SELECTION)} ({selectedCount})",
+                GUILayout.Width(180)))
+            {
+                CreateGroupFromSlotSuggestions(slotResult);
+            }
+            EditorGUI.EndDisabledGroup();
+
+            EditorGUILayout.EndHorizontal();
+
+            if (_slotSuggestionFoldouts[slotResult.Slot])
+            {
+                EditorGUI.indentLevel++;
+
+                // Material actual
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AlternativeMaterial.CURRENT_MATERIAL, ""),
+                    GUILayout.Width(100));
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.ObjectField(slotResult.CurrentMaterial, typeof(Material), false);
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(3);
+
+                // Botones seleccionar/deseleccionar
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.SELECT_ALL_SUGGESTIONS), GUILayout.Width(120)))
+                {
+                    foreach (var s in slotResult.Suggestions)
+                        _selectedSuggestions[slotResult.Slot].Add(s.Material);
+                }
+                if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.DESELECT_ALL_SUGGESTIONS), GUILayout.Width(120)))
+                {
+                    _selectedSuggestions[slotResult.Slot].Clear();
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(3);
+
+                // Lista de sugerencias
+                foreach (var suggestion in slotResult.Suggestions)
+                {
+                    DrawSuggestionItem(slotResult.Slot, suggestion);
+                }
+
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(2);
+        }
+
+        private void DrawSuggestionItem(MRMaterialSlot slot, MaterialSuggestion suggestion)
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            // Checkbox
+            bool isSelected = _selectedSuggestions[slot].Contains(suggestion.Material);
+            bool newSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+            if (newSelected != isSelected)
+            {
+                if (newSelected)
+                    _selectedSuggestions[slot].Add(suggestion.Material);
+                else
+                    _selectedSuggestions[slot].Remove(suggestion.Material);
+            }
+
+            // Indicador de confianza con color
+            Color confColor = suggestion.ConfidenceLevel switch
+            {
+                ConfidenceLevel.High => new Color(0.3f, 0.8f, 0.3f),
+                ConfidenceLevel.Medium => new Color(0.8f, 0.7f, 0.3f),
+                _ => new Color(0.6f, 0.6f, 0.6f)
+            };
+
+            Color prevColor = GUI.backgroundColor;
+            GUI.backgroundColor = confColor;
+            GUILayout.Box(suggestion.GetConfidencePercentage(), GUILayout.Width(45), GUILayout.Height(18));
+            GUI.backgroundColor = prevColor;
+
+            // Material
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.ObjectField(suggestion.Material, typeof(Material), false);
+            EditorGUI.EndDisabledGroup();
+
+            EditorGUILayout.EndHorizontal();
+
+            // Razones (más pequeño, debajo)
+            if (suggestion.Reasons.Count > 0)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(25);
+                EditorGUILayout.LabelField(suggestion.GetReasonsText(), EditorStyles.miniLabel);
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private void AcceptAllHighConfidence()
+        {
+            if (_suggestionResult == null) return;
+
+            Undo.RecordObject(_target, "Accept High Confidence Suggestions");
+
+            int groupsCreated = 0;
+            int slotsLinked = 0;
+
+            foreach (var slotResult in _suggestionResult.GetSlotsWithSuggestions())
+            {
+                var highConfidence = slotResult.GetHighConfidenceSuggestions();
+                if (highConfidence.Count == 0) continue;
+
+                // Crear lista de materiales: actual + sugeridos
+                var materials = new List<Material> { slotResult.CurrentMaterial };
+                foreach (var suggestion in highConfidence)
+                {
+                    if (!materials.Contains(suggestion.Material))
+                        materials.Add(suggestion.Material);
+                }
+
+                if (materials.Count >= 2)
+                {
+                    // Buscar grupo existente que contenga el material actual
+                    var existingGroup = FindGroupContainingMaterial(slotResult.CurrentMaterial);
+
+                    if (existingGroup != null)
+                    {
+                        // Añadir materiales que falten al grupo existente
+                        foreach (var mat in materials)
+                        {
+                            if (!existingGroup.ContainsMaterial(mat))
+                                existingGroup.AddMaterial(mat);
+                        }
+                        // Vincular slot al grupo existente
+                        slotResult.Slot.LinkToGroup(existingGroup.GroupIndex);
+                        slotsLinked++;
+                    }
+                    else
+                    {
+                        // Crear grupo nuevo
+                        var group = _target.CreateGroup(materials);
+                        groupsCreated++;
+                        slotResult.Slot.LinkToGroup(group.GroupIndex);
+                        slotsLinked++;
+                    }
+                }
+            }
+
+            EditorUtility.SetDirty(_target);
+
+            if (groupsCreated > 0 || slotsLinked > 0)
+            {
+                Debug.Log($"[MR Alternative Material] {groupsCreated} grupos creados, {slotsLinked} slots vinculados");
+                // Limpiar sugerencias de los slots ya procesados
+                _suggestionResult = _detector.DetectAlternatives(_target);
+            }
+        }
+
+        /// <summary>
+        /// Busca un grupo existente que contenga el material especificado,
+        /// o un material con el mismo nombre base.
+        /// </summary>
+        private MRMaterialGroup FindGroupContainingMaterial(Material material)
+        {
+            if (material == null) return null;
+
+            // First, try exact match
+            foreach (var group in _target.Groups)
+            {
+                if (group.ContainsMaterial(material))
+                    return group;
+            }
+
+            // Second, try matching by base name
+            string materialBaseName = MaterialAlternativeDetector.ExtractBaseName(material.name);
+            if (string.IsNullOrEmpty(materialBaseName))
+                return null;
+
+            foreach (var group in _target.Groups)
+            {
+                foreach (var groupMaterial in group.Materials)
+                {
+                    if (groupMaterial == null) continue;
+
+                    string groupMaterialBaseName = MaterialAlternativeDetector.ExtractBaseName(groupMaterial.name);
+                    if (!string.IsNullOrEmpty(groupMaterialBaseName) &&
+                        materialBaseName.Equals(groupMaterialBaseName, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        return group;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private void CreateGroupFromSlotSuggestions(SlotSuggestionResult slotResult)
+        {
+            if (slotResult?.Slot == null) return;
+
+            var selected = _selectedSuggestions.ContainsKey(slotResult.Slot)
+                ? _selectedSuggestions[slotResult.Slot]
+                : new HashSet<Material>();
+
+            if (selected.Count == 0) return;
+
+            Undo.RecordObject(_target, "Create Group from Suggestions");
+
+            // Crear lista: material actual + seleccionados
+            var materials = new List<Material> { slotResult.CurrentMaterial };
+            foreach (var mat in selected)
+            {
+                if (!materials.Contains(mat))
+                    materials.Add(mat);
+            }
+
+            // Buscar grupo existente que contenga el material actual
+            var existingGroup = FindGroupContainingMaterial(slotResult.CurrentMaterial);
+            string actionMessage;
+
+            if (existingGroup != null)
+            {
+                // Añadir materiales que falten al grupo existente
+                int added = 0;
+                foreach (var mat in materials)
+                {
+                    if (!existingGroup.ContainsMaterial(mat))
+                    {
+                        existingGroup.AddMaterial(mat);
+                        added++;
+                    }
+                }
+                // Vincular slot al grupo existente
+                slotResult.Slot.LinkToGroup(existingGroup.GroupIndex);
+                actionMessage = $"Slot vinculado a {existingGroup.DisplayName} ({added} materiales añadidos)";
+            }
+            else
+            {
+                // Crear grupo nuevo
+                var group = _target.CreateGroup(materials);
+                slotResult.Slot.LinkToGroup(group.GroupIndex);
+                actionMessage = $"Creado {group.DisplayName} con {materials.Count} materiales";
+            }
+
+            EditorUtility.SetDirty(_target);
+
+            // Limpiar selecciones de este slot
+            _selectedSuggestions[slotResult.Slot].Clear();
+
+            Debug.Log($"[MR Alternative Material] {actionMessage}");
+
+            // Refrescar sugerencias
+            _suggestionResult = _detector.DetectAlternatives(_target);
         }
 
         #endregion
