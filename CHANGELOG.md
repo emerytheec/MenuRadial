@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.11] - 2026-01-21
+
+### Agregado
+- **Sistema de detección automática de materiales alternativos**:
+  - `MaterialAlternativeDetector`: Analiza estructura de carpetas y patrones de nombres
+  - `MaterialSuggestion`: Estructuras de datos para sugerencias con niveles de confianza
+  - UI de sugerencias colapsable en el inspector de MRAgruparMateriales
+  - Detección de carpetas hermanas de variantes
+  - Soporte para colores simples, compuestos (Wine_Red), y con número (brown1)
+  - Reconocimiento de sub-partes (kanagu, button, lace, etc.)
+  - Manejo de sufijos de material (_M, _Mat, _Texture)
+  - División por CamelCase para nombres sin separadores (mt1A → mt1 + A)
+  - Patrones de versión extendidos (a-f, v1, ver1, alt, var)
+  - Sistema de puntuación de confianza (Alta ≥80%, Media ≥50%, Baja <50%)
+- Localización en español para todas las nuevas funcionalidades
+
 ## [0.8.10] - 2026-01-20
 
 ### Agregado
