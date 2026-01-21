@@ -4,6 +4,7 @@ using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
+using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
@@ -89,6 +90,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         private MRCoserRopa _coserRopa;
         private MROrganizaPB _organizaPB;
         private MRAjustarBounds _ajustarBounds;
+        private MRPesoTexturas _pesoTexturas;
         private Component _menuControl; // Referencia genérica para evitar dependencia de assembly
 
         #endregion
@@ -292,6 +294,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// </summary>
         public MRAjustarBounds AjustarBounds => _ajustarBounds != null ? _ajustarBounds : (_ajustarBounds = GetComponentInChildren<MRAjustarBounds>());
 
+        /// <summary>
+        /// Referencia cacheada al componente MRPesoTexturas hijo.
+        /// </summary>
+        public MRPesoTexturas PesoTexturas => _pesoTexturas != null ? _pesoTexturas : (_pesoTexturas = GetComponentInChildren<MRPesoTexturas>());
+
         #endregion
 
         #region Status Properties
@@ -349,7 +356,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             CoserRopa != null &&
             OrganizaPB != null &&
             MenuControl != null &&
-            AjustarBounds != null;
+            AjustarBounds != null &&
+            PesoTexturas != null;
 
         #endregion
 
@@ -378,6 +386,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             if (AjustarBounds != null)
                 AjustarBounds.AvatarRoot = _avatarRoot;
+
+            if (PesoTexturas != null)
+                PesoTexturas.AvatarRoot = _avatarRoot;
 
             // Auto-detectar si está habilitado y hay avatar
             if (_autoDetectOnAvatarAssign && _avatarRoot != null)
@@ -576,6 +587,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             _organizaPB = null;
             _menuControl = null;
             _ajustarBounds = null;
+            _pesoTexturas = null;
         }
 
         #endregion
@@ -650,6 +662,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             if (AjustarBounds == null)
                 result.AddChild(ValidationResult.Warning("No se encontró componente MRAjustarBounds hijo."));
+
+            if (PesoTexturas == null)
+                result.AddChild(ValidationResult.Warning("No se encontró componente MRPesoTexturas hijo."));
 
             return result;
         }

@@ -402,4 +402,50 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const string IDLE_STATE_NAME = "Idle";
     }
+
+    /// <summary>
+    /// Constantes para el sistema de peso de texturas
+    /// </summary>
+    public static class MRTextureWeightConstants
+    {
+        /// <summary>
+        /// Bytes por pixel para texturas BC1 (sin alpha)
+        /// </summary>
+        public const double BYTES_PER_PIXEL_NO_ALPHA = 0.5;
+
+        /// <summary>
+        /// Bytes por pixel para texturas BC3/BC7 (con alpha)
+        /// </summary>
+        public const double BYTES_PER_PIXEL_WITH_ALPHA = 1.0;
+
+        /// <summary>
+        /// Factor multiplicador para mipmaps
+        /// </summary>
+        public const double MIPMAP_FACTOR = 1.33;
+
+        /// <summary>
+        /// Umbral para textura individual pesada (10 MB)
+        /// </summary>
+        public const long HIGH_WEIGHT_THRESHOLD = 10 * 1024 * 1024;
+
+        /// <summary>
+        /// Umbral para peso total alto (200 MB)
+        /// </summary>
+        public const long HIGH_TOTAL_THRESHOLD = 200 * 1024 * 1024;
+
+        /// <summary>
+        /// Pasos de resolución disponibles
+        /// </summary>
+        public static readonly int[] RESOLUTION_STEPS = { 8192, 4096, 2048, 1024, 512, 256, 128 };
+
+        /// <summary>
+        /// Resolución mínima permitida
+        /// </summary>
+        public const int MIN_RESOLUTION = 128;
+
+        /// <summary>
+        /// Resolución máxima soportada
+        /// </summary>
+        public const int MAX_RESOLUTION = 8192;
+    }
 }

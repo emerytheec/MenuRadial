@@ -4,6 +4,7 @@ using Bender_Dios.MenuRadial.Components.MenuRadial;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
+using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using Bender_Dios.MenuRadial.Components.Menu;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
@@ -60,6 +61,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             CreateChildWithComponent<MROrganizaPB>(menuRadialGO, "Organiza PB");
             CreateChildWithComponent<MRMenuControl>(menuRadialGO, "Menu Control");
             CreateChildWithComponent<MRAjustarBounds>(menuRadialGO, "Ajustar Bounds");
+            CreateChildWithComponent<MRPesoTexturas>(menuRadialGO, "Peso Texturas");
 
             // Registrar para Undo
             Undo.RegisterCreatedObjectUndo(menuRadialGO, "Create MR Menu Radial");
