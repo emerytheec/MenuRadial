@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.14] - 2026-01-22
+
+### Corregido
+- **Localización**: Agregados 50+ campos faltantes en LocaleSection
+  - Corrige textos que aparecían como `[]` en la UI de MRUnificarMateriales y MRAgruparMateriales
+  - Campos para secciones: Common, Radial, Illumination, Menu, CoserRopa, UnifyMaterial, AlternativeMaterial
+- **MRAgruparMateriales**: Corregido NullReferenceException al limpiar sugerencias
+
+### Mejorado
+- **MRAgruparMateriales UI**: Reorganización del inspector
+  - Grupos de materiales ahora están debajo de Slots y arriba de Sugerencias
+  - Grupos colapsados por defecto
+  - Sugerencias de slots colapsadas por defecto al detectar
+  - Nota de ayuda siempre visible arriba de la sección de sugerencias
+
 ## [0.8.13] - 2026-01-22
 
 ### Mejorado
