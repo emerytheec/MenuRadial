@@ -21,6 +21,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         private MRPesoTexturas _target;
         private Vector2 _groupListScrollPos;
         private Vector2 _textureListScrollPos;
+        private bool _showReduceOptions = false;
 
         // Colores
         private static readonly Color SuccessColor = new Color(0.3f, 0.8f, 0.3f);
@@ -75,13 +76,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
                     EditorGUILayout.Space(8);
 
-                    // Preview de ahorro
+                    // Preview de ahorro (incluye boton de reducir)
                     DrawSavingsPreview();
-
-                    EditorGUILayout.Space(8);
-
-                    // Botones de accion global
-                    DrawGlobalActions();
 
                     EditorGUILayout.Space(8);
 
@@ -179,6 +175,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         private void DrawScanButton()
         {
+            EditorGUILayout.BeginHorizontal();
+
             GUI.backgroundColor = HighlightColor;
             if (GUILayout.Button(
                 new GUIContent("Escanear Texturas", "Analiza todas las texturas del avatar y ropas"),
@@ -187,6 +185,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 ScanTextures();
             }
             GUI.backgroundColor = Color.white;
+
+            // Boton Limpiar (solo visible si hay escaneo)
+            if (_target.IsScanned)
+            {
+                if (GUILayout.Button(
+                    new GUIContent("Limpiar", "Limpiar resultados del escaneo"),
+                    GUILayout.Height(30),
+                    GUILayout.Width(80)))
+                {
+                    Undo.RecordObject(_target, "Limpiar Escaneo");
+                    _target.ClearScanResults();
+                    EditorUtility.SetDirty(_target);
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
         }
 
         #endregion
@@ -360,49 +374,33 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 $"Ahorro: {VRChatTextureWeightCalculator.FormatBytes(savings)} (-{savingsPercent:F1}%)",
                 EditorStyles.miniLabel);
 
-            EditorGUILayout.EndVertical();
-        }
+            EditorGUILayout.Space(5);
 
-        #endregion
+            // Foldout para mostrar el boton de reducir
+            _showReduceOptions = EditorGUILayout.Foldout(_showReduceOptions, "Aplicar reduccion", true);
 
-        #region Global Actions
-
-        private void DrawGlobalActions()
-        {
-            EditorGUILayout.BeginHorizontal();
-
-            // Reducir todas un paso
-            GUI.enabled = _target.CanStepDown();
-            GUI.backgroundColor = _target.CanStepDown() ? SavingsColor : Color.white;
-            if (GUILayout.Button(
-                new GUIContent("Reducir Todas (1 paso)", "Reduce la resolucion de todas las texturas habilitadas un paso"),
-                GUILayout.Height(25)))
+            if (_showReduceOptions)
             {
-                if (EditorUtility.DisplayDialog(
-                    "Confirmar Reduccion",
-                    $"Esto reducira la resolucion de todas las texturas habilitadas un paso.\n\n" +
-                    $"Ahorro estimado: {VRChatTextureWeightCalculator.FormatBytes(_target.GetPotentialSavings())}\n\n" +
-                    "Este cambio modifica los archivos de textura. Puedes deshacer con Ctrl+Z.",
-                    "Reducir", "Cancelar"))
+                EditorGUILayout.Space(3);
+                GUI.backgroundColor = SavingsColor;
+                if (GUILayout.Button(
+                    new GUIContent("Reducir Todas (1 paso)", "Reduce la resolucion de todas las texturas habilitadas un paso"),
+                    GUILayout.Height(25)))
                 {
-                    StepDownAllTextures();
+                    if (EditorUtility.DisplayDialog(
+                        "Confirmar Reduccion",
+                        $"Esto reducira la resolucion de todas las texturas habilitadas un paso.\n\n" +
+                        $"Ahorro estimado: {VRChatTextureWeightCalculator.FormatBytes(_target.GetPotentialSavings())}\n\n" +
+                        "Este cambio modifica los archivos de textura. Puedes deshacer con Ctrl+Z.",
+                        "Reducir", "Cancelar"))
+                    {
+                        StepDownAllTextures();
+                    }
                 }
-            }
-            GUI.backgroundColor = Color.white;
-            GUI.enabled = true;
-
-            // Limpiar escaneo
-            if (GUILayout.Button(
-                new GUIContent("Limpiar", "Limpiar resultados del escaneo"),
-                GUILayout.Height(25),
-                GUILayout.Width(80)))
-            {
-                Undo.RecordObject(_target, "Limpiar Escaneo");
-                _target.ClearScanResults();
-                EditorUtility.SetDirty(_target);
+                GUI.backgroundColor = Color.white;
             }
 
-            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
         }
 
         #endregion
@@ -463,6 +461,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             // Boton step-down individual
             GUI.enabled = group.IsEnabled && group.CanStepDown();
+            GUI.backgroundColor = SavingsColor;
             if (GUILayout.Button(new GUIContent("↓", "Reducir resolucion un paso"), GUILayout.Width(25)))
             {
                 if (EditorUtility.DisplayDialog(
@@ -474,6 +473,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     StepDownGroup(group);
                 }
             }
+            GUI.backgroundColor = Color.white;
             GUI.enabled = true;
 
             EditorGUILayout.EndHorizontal();
@@ -513,107 +513,109 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 EditorGUILayout.EndHorizontal();
             }
 
-            EditorGUILayout.Space(3);
+            EditorGUILayout.Space(5);
+
+            // Calcular ancho disponible para la tabla
+            float totalWidth = EditorGUIUtility.currentViewWidth - 70f;
+            float fixedColumnsWidth = 78f + 55f + 45f + 38f; // Resolucion + Peso + Alpha + Mips
+            float nameWidth = Mathf.Max(80f, totalWidth - fixedColumnsWidth);
 
             // Header de tabla
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(
-                new GUIContent("T", "Tipo: N=Normal Map, A=Material Alternativo"),
-                EditorStyles.miniBoldLabel, GUILayout.Width(20));
-            EditorGUILayout.LabelField("Textura", EditorStyles.miniBoldLabel, GUILayout.MinWidth(100));
-            EditorGUILayout.LabelField("Res.", EditorStyles.miniBoldLabel, GUILayout.Width(70));
-            EditorGUILayout.LabelField("Peso", EditorStyles.miniBoldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("Alpha", EditorStyles.miniBoldLabel, GUILayout.Width(40));
-            EditorGUILayout.LabelField("Mip", EditorStyles.miniBoldLabel, GUILayout.Width(30));
+            var headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 20f };
+            EditorGUILayout.BeginHorizontal(headerStyle);
+            EditorGUILayout.LabelField("Textura", EditorStyles.miniBoldLabel, GUILayout.Width(nameWidth));
+            EditorGUILayout.LabelField("Resolucion", EditorStyles.miniBoldLabel, GUILayout.Width(78));
+            EditorGUILayout.LabelField("Peso", EditorStyles.miniBoldLabel, GUILayout.Width(55));
+            EditorGUILayout.LabelField("Alpha", EditorStyles.miniBoldLabel, GUILayout.Width(45));
+            EditorGUILayout.LabelField("Mips", EditorStyles.miniBoldLabel, GUILayout.Width(38));
             EditorGUILayout.EndHorizontal();
 
             // Lista de texturas
+            int index = 0;
             foreach (var texture in group.GetTexturesByWeight())
             {
-                DrawTextureRow(texture);
+                DrawTextureRow(texture, index % 2 == 1, nameWidth);
+                index++;
             }
         }
 
-        private void DrawTextureRow(TextureEntry texture)
+        private void DrawTextureRow(TextureEntry texture, bool alternate, float nameWidth)
         {
-            EditorGUILayout.BeginHorizontal();
+            var rect = EditorGUILayout.BeginHorizontal(GUILayout.Height(18));
+            if (alternate)
+            {
+                EditorGUI.DrawRect(rect, new Color(0.22f, 0.22f, 0.22f, 0.3f));
+            }
 
-            // Indicador de tipo de textura
-            string typeIndicator = "";
-            string typeTooltip = "";
-            Color typeColor = Color.white;
+            // Preparar nombre con prefijo de tipo
+            string prefix = "";
+            Color nameColor = Color.white;
+            string tooltip = texture.TextureName;
 
             if (texture.IsFromAlternativeMaterial)
             {
-                typeIndicator = "A";
-                typeTooltip = "Textura de material alternativo";
-                typeColor = new Color(0.6f, 0.6f, 0.6f);
+                prefix = "[A] ";
+                tooltip = "Material alternativo: " + texture.TextureName;
+                nameColor = new Color(0.6f, 0.6f, 0.6f);
             }
             else if (texture.IsNormalMap)
             {
-                typeIndicator = "N";
-                typeTooltip = "Normal Map (BC5 - 1.0 byte/pixel)";
-                typeColor = new Color(0.5f, 0.7f, 1f);
+                prefix = "[N] ";
+                tooltip = "Normal Map: " + texture.TextureName;
+                nameColor = new Color(0.5f, 0.7f, 1f);
             }
 
-            if (!string.IsNullOrEmpty(typeIndicator))
-            {
-                GUI.contentColor = typeColor;
-                EditorGUILayout.LabelField(
-                    new GUIContent(typeIndicator, typeTooltip),
-                    EditorStyles.miniBoldLabel, GUILayout.Width(20));
-                GUI.contentColor = Color.white;
-            }
-            else
-            {
-                EditorGUILayout.LabelField("", GUILayout.Width(20));
-            }
-
-            // Nombre (clickeable)
             bool isHeavy = VRChatTextureWeightCalculator.IsHighWeight(texture.EstimatedVRAMBytes);
-            GUI.contentColor = texture.IsFromAlternativeMaterial
-                ? new Color(0.6f, 0.6f, 0.6f)
-                : (isHeavy ? WarningColor : Color.white);
+            if (isHeavy && !texture.IsFromAlternativeMaterial)
+            {
+                nameColor = WarningColor;
+            }
+
+            // Columna: Nombre
+            GUI.contentColor = nameColor;
+            string displayName = prefix + texture.TextureName;
+            var content = new GUIContent(displayName, tooltip);
 
             if (texture.Texture != null)
             {
-                if (GUILayout.Button(texture.TextureName, EditorStyles.linkLabel, GUILayout.MinWidth(100)))
+                if (GUILayout.Button(content, EditorStyles.linkLabel, GUILayout.Width(nameWidth)))
                 {
-                    Selection.activeObject = texture.Texture;
                     EditorGUIUtility.PingObject(texture.Texture);
                 }
             }
             else
             {
-                EditorGUILayout.LabelField(texture.TextureName, GUILayout.MinWidth(100));
+                EditorGUILayout.LabelField(content, EditorStyles.miniLabel, GUILayout.Width(nameWidth));
             }
+            GUI.contentColor = Color.white;
 
-            // Resolucion
-            EditorGUILayout.LabelField(texture.ResolutionLabel, EditorStyles.miniLabel, GUILayout.Width(70));
+            // Columna: Resolucion
+            EditorGUILayout.LabelField(texture.ResolutionLabel, EditorStyles.miniLabel, GUILayout.Width(78));
 
-            // Peso
+            // Columna: Peso
+            GUI.contentColor = isHeavy ? WarningColor : Color.white;
             EditorGUILayout.LabelField(
                 VRChatTextureWeightCalculator.FormatBytesCompact(texture.EstimatedVRAMBytes),
-                EditorStyles.miniLabel, GUILayout.Width(60));
+                EditorStyles.miniLabel, GUILayout.Width(55));
+            GUI.contentColor = Color.white;
 
-            // Alpha
-            EditorGUILayout.LabelField(texture.HasAlpha ? "Si" : "No", EditorStyles.miniLabel, GUILayout.Width(40));
+            // Columna: Alpha
+            EditorGUILayout.LabelField(texture.HasAlpha ? "Si" : "-", EditorStyles.miniLabel, GUILayout.Width(45));
 
-            // Mip Streaming indicator
+            // Columna: Mips
             bool needsMipStreaming = texture.HasMipmaps && !texture.HasMipStreaming;
             if (needsMipStreaming)
             {
                 GUI.contentColor = ErrorColor;
                 EditorGUILayout.LabelField(
-                    new GUIContent("!", "Mip Streaming desactivado - requerido por VRChat"),
-                    EditorStyles.miniBoldLabel, GUILayout.Width(30));
+                    new GUIContent("!", "Mip Streaming desactivado"),
+                    EditorStyles.miniBoldLabel, GUILayout.Width(38));
             }
             else
             {
                 GUI.contentColor = SuccessColor;
-                EditorGUILayout.LabelField("OK", EditorStyles.miniLabel, GUILayout.Width(30));
+                EditorGUILayout.LabelField("OK", EditorStyles.miniLabel, GUILayout.Width(38));
             }
-
             GUI.contentColor = Color.white;
 
             EditorGUILayout.EndHorizontal();
