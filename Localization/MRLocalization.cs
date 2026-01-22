@@ -440,6 +440,7 @@ namespace Bender_Dios.MenuRadial.Localization
             public string noItemsFound;
             public string invalidReference;
             public string missingComponent;
+            public string advancedSettings;
 
             // Frame
             public string header;
@@ -481,6 +482,7 @@ namespace Bender_Dios.MenuRadial.Localization
             public string nextFrame;
             public string defaultStateIsOn;
             public string defaultStateIsOnTooltip;
+            public string currentFrame;
 
             // Illumination
             public string rootObject;
@@ -490,6 +492,10 @@ namespace Bender_Dios.MenuRadial.Localization
             public string previewNotAvailable;
             public string illuminationValue;
             public string detectMaterials;
+            public string headerSubtitle;
+            public string assignRootHint;
+            public string generateAnimation;
+            public string statistics;
 
             // Menu
             public string previewTitle;
@@ -522,6 +528,14 @@ namespace Bender_Dios.MenuRadial.Localization
             public string createIluminacion;
             public string createUnificarMateriales;
             public string createSubmenu;
+            public string nameConflictsResolve;
+            public string autoResolve;
+            public string createUnificarObjetosDesc;
+            public string createIluminacionDesc;
+            public string createUnificarMaterialesDesc;
+            public string createSubmenuDesc;
+            public string submenuTitle;
+            public string continueQuestion;
 
             // CoserRopa
             public string subtitle;
@@ -551,8 +565,13 @@ namespace Bender_Dios.MenuRadial.Localization
             public string stitchedBonesDetected;
             public string mergeStitchedButton;
             public string mergeStitchedConfirm;
+            public string notHumanoid;
+            public string fallbackByName;
+            public string searchByName;
+            public string mergeAction;
+            public string stitchAction;
 
-            // Nuevas claves para UI simplificada
+            // CoserRopa - UI simplificada
             public string subtitleNew;
             public string dropAvatarHere;
             public string avatarLabel;
@@ -572,6 +591,16 @@ namespace Bender_Dios.MenuRadial.Localization
             public string createAgruparMateriales;
             public string linkedSlots;
             public string materialGroups;
+            public string emptySlot;
+            public string dropAlternativeMaterials;
+            public string dropOrCreateHint;
+            public string animationInfo;
+            public string animationType;
+            public string systemInfo;
+            public string addAlternativeMaterialToStart;
+            public string configuredWith;
+            public string animationGenerated;
+            public string generationError;
 
             // AlternativeMaterial
             public string groupName;
@@ -581,6 +610,36 @@ namespace Bender_Dios.MenuRadial.Localization
             public string removeMaterial;
             public string linkToSlot;
             public string unlinkSlot;
+            public string name;
+            public string linkSlotsHint;
+            public string meshCapture;
+            public string dropMeshesHere;
+            public string materialSlots;
+            public string updatePaths;
+            public string clearAll;
+            public string clearAllSlotsConfirm;
+            public string noSlots;
+            public string renderer;
+            public string idx;
+            public string material;
+            public string group;
+            public string missing;
+            public string selectRenderer;
+            public string lastPath;
+            public string noGroup;
+            public string groupsSection;
+            public string clearEmpty;
+            public string noGroups;
+            public string groupMaterials;
+            public string dropMaterialsToGroup;
+            public string autoLinking;
+            public string detectLinks;
+            public string unlinkAll;
+            public string detectLinksHint;
+            public string status;
+            public string totalSlots;
+            public string unlinkedSlots;
+            public string totalGroups;
 
             // AlternativeMaterial - Sugerencias automáticas
             public string suggestionsSection;

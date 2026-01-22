@@ -125,13 +125,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             DrawSlotsSection();
             EditorGUILayout.Space(5);
 
-            DrawSuggestionsSection();
-            EditorGUILayout.Space(5);
-
             DrawMaterialDropArea();
             EditorGUILayout.Space(5);
 
             DrawGroupsSection();
+            EditorGUILayout.Space(5);
+
+            DrawSuggestionsSection();
             EditorGUILayout.Space(5);
 
             DrawActionsSection();
@@ -580,6 +580,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
+            // Nota siempre visible
+            EditorGUILayout.HelpBox(MRLocalization.Get(L.AlternativeMaterial.SUGGESTIONS_HINT), MessageType.Info);
+
             // Header con foldout
             EditorGUILayout.BeginHorizontal();
             _showSuggestions = EditorGUILayout.Foldout(_showSuggestions,
@@ -595,8 +598,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
             if (_showSuggestions)
             {
-                EditorGUILayout.HelpBox(MRLocalization.Get(L.AlternativeMaterial.SUGGESTIONS_HINT), MessageType.Info);
-
                 if (_suggestionResult == null || !_suggestionResult.HasAnySuggestions)
                 {
                     if (_suggestionResult != null)
@@ -618,12 +619,23 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
                     // Botones de acción global
                     DrawSuggestionGlobalActions();
 
-                    EditorGUILayout.Space(5);
-
-                    // Dibujar sugerencias por slot
-                    foreach (var slotResult in _suggestionResult.GetSlotsWithSuggestions())
+                    // Verificar si se limpiaron las sugerencias (el botón pudo haber sido presionado)
+                    if (_suggestionResult != null && _suggestionResult.HasAnySuggestions)
                     {
-                        DrawSlotSuggestions(slotResult);
+                        EditorGUILayout.Space(5);
+
+                        // Dibujar sugerencias por slot
+                        var slotsWithSuggestions = _suggestionResult.GetSlotsWithSuggestions();
+                        if (slotsWithSuggestions != null)
+                        {
+                            foreach (var slotResult in slotsWithSuggestions)
+                            {
+                                if (slotResult != null)
+                                {
+                                    DrawSlotSuggestions(slotResult);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -643,11 +655,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             _selectedSuggestions.Clear();
             _slotSuggestionFoldouts.Clear();
 
+            // Expandir sección de sugerencias para mostrar resultados
+            _showSuggestions = true;
+
             // Inicializar selecciones con sugerencias de alta confianza
             foreach (var slotResult in _suggestionResult.GetSlotsWithSuggestions())
             {
                 _selectedSuggestions[slotResult.Slot] = new HashSet<Material>();
-                _slotSuggestionFoldouts[slotResult.Slot] = false; // Colapsado por defecto
+                _slotSuggestionFoldouts[slotResult.Slot] = false; // Cada slot colapsado por defecto
 
                 // Pre-seleccionar alta confianza
                 foreach (var suggestion in slotResult.GetHighConfidenceSuggestions())
@@ -677,6 +692,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
                 _suggestionResult = null;
                 _selectedSuggestions.Clear();
                 _slotSuggestionFoldouts.Clear();
+                _showSuggestions = false; // Colapsar sección al limpiar
             }
 
             EditorGUILayout.EndHorizontal();
@@ -1083,9 +1099,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
         {
             if (group == null) return;
 
-            // Asegurar que existe el foldout para este grupo
+            // Asegurar que existe el foldout para este grupo (colapsado por defecto)
             if (!_groupFoldouts.ContainsKey(group.GroupIndex))
-                _groupFoldouts[group.GroupIndex] = true;
+                _groupFoldouts[group.GroupIndex] = false;
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
