@@ -113,9 +113,30 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         public int TextureCount => _textures?.Count ?? 0;
 
         /// <summary>
-        /// Peso total estimado del grupo en VRAM (bytes)
+        /// Peso total estimado del grupo en VRAM (bytes) - incluye materiales alternativos
         /// </summary>
         public long TotalEstimatedVRAM => _textures?.Sum(t => t.EstimatedVRAMBytes) ?? 0;
+
+        /// <summary>
+        /// Peso estimado solo de texturas actuales (sin materiales alternativos).
+        /// Este valor deberia coincidir con lo que VRChat reporta.
+        /// </summary>
+        public long CurrentEstimatedVRAM => _textures?.Where(t => !t.IsFromAlternativeMaterial).Sum(t => t.EstimatedVRAMBytes) ?? 0;
+
+        /// <summary>
+        /// Peso estimado solo de texturas de materiales alternativos
+        /// </summary>
+        public long AlternativeEstimatedVRAM => _textures?.Where(t => t.IsFromAlternativeMaterial).Sum(t => t.EstimatedVRAMBytes) ?? 0;
+
+        /// <summary>
+        /// Cantidad de texturas de materiales actuales (no alternativos)
+        /// </summary>
+        public int CurrentTextureCount => _textures?.Count(t => !t.IsFromAlternativeMaterial) ?? 0;
+
+        /// <summary>
+        /// Cantidad de texturas de materiales alternativos
+        /// </summary>
+        public int AlternativeTextureCount => _textures?.Count(t => t.IsFromAlternativeMaterial) ?? 0;
 
         /// <summary>
         /// Resolucion maxima encontrada en el grupo

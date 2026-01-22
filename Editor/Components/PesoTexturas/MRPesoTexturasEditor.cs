@@ -106,7 +106,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         {
             EditorGUILayout.LabelField("MR Peso Texturas", EditorStyleManager.HeaderStyle);
             EditorGUILayout.LabelField(
-                "Analiza y optimiza el peso de texturas del avatar",
+                "Analiza el peso de texturas (VRAM) del avatar",
                 EditorStyles.centeredGreyMiniLabel);
         }
 
@@ -199,30 +199,54 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Estado
-            Color statusColor = _target.IsHighTotalWeight ? WarningColor : SuccessColor;
+            // Estado basado en el peso actual (lo que VRChat contara)
+            bool isCurrentHigh = _target.CurrentEstimatedVRAM >= VRChatTextureWeightCalculator.VRCHAT_UNCOMPRESSED_SIZE_LIMIT;
+            Color statusColor = isCurrentHigh ? ErrorColor : SuccessColor;
             GUI.contentColor = statusColor;
-            EditorGUILayout.LabelField($"[{(_target.IsHighTotalWeight ? "ALTO" : "OK")}]", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField($"[{(isCurrentHigh ? "ALTO" : "OK")}]", EditorStyles.boldLabel);
             GUI.contentColor = Color.white;
 
             EditorGUILayout.Space(3);
 
-            // Detalles
-            EditorGUILayout.LabelField($"Texturas totales: {_target.TotalTextureCount}", EditorStyles.miniLabel);
+            // Peso actual (lo que VRChat contara)
+            EditorGUILayout.LabelField("Peso actual (VRChat):", EditorStyles.miniBoldLabel);
+            GUI.contentColor = isCurrentHigh ? ErrorColor : SuccessColor;
+            EditorGUILayout.LabelField($"  {_target.CurrentSizeLabel} ({_target.CurrentTextureCount} texturas)", EditorStyles.miniBoldLabel);
+            GUI.contentColor = Color.white;
+
+            // Si hay materiales alternativos, mostrar el total
+            if (_target.AlternativeTextureCount > 0)
+            {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.LabelField("Con materiales alternativos:", EditorStyles.miniBoldLabel);
+                GUI.contentColor = WarningColor;
+                EditorGUILayout.LabelField($"  {_target.TotalSizeLabel} (+{VRChatTextureWeightCalculator.FormatBytes(_target.AlternativeEstimatedVRAM)} en {_target.AlternativeTextureCount} texturas)", EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+            }
+
+            EditorGUILayout.Space(3);
             EditorGUILayout.LabelField($"Grupos: {_target.GroupCount}", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField($"Peso total estimado: {_target.TotalSizeLabel}", EditorStyles.miniBoldLabel);
 
             if (_target.MaxResolutionFound > 0)
             {
                 EditorGUILayout.LabelField($"Resolucion maxima: {_target.MaxResolutionFound}px", EditorStyles.miniLabel);
             }
 
-            // Advertencia si es alto
-            if (_target.IsHighTotalWeight)
+            EditorGUILayout.Space(5);
+
+            // Mostrar limites de VRChat
+            EditorGUILayout.LabelField("Limites de VRChat (PC):", EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField("  Download Size: 200 MB (archivo comprimido)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  Uncompressed Size: 500 MB (bundle descomprimido)", EditorStyles.miniLabel);
+
+            // Advertencia si supera el limite
+            if (isCurrentHigh)
             {
                 EditorGUILayout.Space(3);
-                GUI.contentColor = WarningColor;
-                EditorGUILayout.LabelField("El peso total supera los 200 MB recomendados", EditorStyles.miniLabel);
+                GUI.contentColor = ErrorColor;
+                EditorGUILayout.LabelField(
+                    "El peso actual supera los 500 MB. El avatar podria no subirse.",
+                    EditorStyles.miniLabel);
                 GUI.contentColor = Color.white;
             }
 
@@ -493,6 +517,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             // Header de tabla
             EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(
+                new GUIContent("T", "Tipo: N=Normal Map, A=Material Alternativo"),
+                EditorStyles.miniBoldLabel, GUILayout.Width(20));
             EditorGUILayout.LabelField("Textura", EditorStyles.miniBoldLabel, GUILayout.MinWidth(100));
             EditorGUILayout.LabelField("Res.", EditorStyles.miniBoldLabel, GUILayout.Width(70));
             EditorGUILayout.LabelField("Peso", EditorStyles.miniBoldLabel, GUILayout.Width(60));
@@ -511,9 +538,42 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         {
             EditorGUILayout.BeginHorizontal();
 
+            // Indicador de tipo de textura
+            string typeIndicator = "";
+            string typeTooltip = "";
+            Color typeColor = Color.white;
+
+            if (texture.IsFromAlternativeMaterial)
+            {
+                typeIndicator = "A";
+                typeTooltip = "Textura de material alternativo";
+                typeColor = new Color(0.6f, 0.6f, 0.6f);
+            }
+            else if (texture.IsNormalMap)
+            {
+                typeIndicator = "N";
+                typeTooltip = "Normal Map (BC5 - 1.0 byte/pixel)";
+                typeColor = new Color(0.5f, 0.7f, 1f);
+            }
+
+            if (!string.IsNullOrEmpty(typeIndicator))
+            {
+                GUI.contentColor = typeColor;
+                EditorGUILayout.LabelField(
+                    new GUIContent(typeIndicator, typeTooltip),
+                    EditorStyles.miniBoldLabel, GUILayout.Width(20));
+                GUI.contentColor = Color.white;
+            }
+            else
+            {
+                EditorGUILayout.LabelField("", GUILayout.Width(20));
+            }
+
             // Nombre (clickeable)
             bool isHeavy = VRChatTextureWeightCalculator.IsHighWeight(texture.EstimatedVRAMBytes);
-            GUI.contentColor = isHeavy ? WarningColor : Color.white;
+            GUI.contentColor = texture.IsFromAlternativeMaterial
+                ? new Color(0.6f, 0.6f, 0.6f)
+                : (isHeavy ? WarningColor : Color.white);
 
             if (texture.Texture != null)
             {
@@ -571,10 +631,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             var processedPaths = new HashSet<string>();
 
+            // Obtener los GUIDs de materiales referenciados en las animaciones
+            // Solo las texturas de estos materiales se incluiran en el build de VRChat
+            HashSet<string> referencedMaterialGuids = null;
+            if (_target.IncludeAlternativeMaterials)
+            {
+                referencedMaterialGuids = AnimationMaterialAnalyzer.GetReferencedMaterialGuids(_target.AvatarRoot);
+            }
+
             // Escanear avatar base
             if (_target.IncludeAvatarBase)
             {
-                var avatarGroup = ScanAvatarBase(processedPaths);
+                var avatarGroup = ScanAvatarBase(processedPaths, referencedMaterialGuids);
                 if (avatarGroup != null && avatarGroup.TextureCount > 0)
                 {
                     _target.AddTextureGroup(avatarGroup);
@@ -584,7 +652,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Escanear ropas (incluye materiales alternativos si esta habilitado)
             if (_target.IncludeClothing)
             {
-                ScanClothings(processedPaths);
+                ScanClothings(processedPaths, referencedMaterialGuids);
             }
 
             _target.MarkAsScanned();
@@ -593,7 +661,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             Debug.Log($"[MRPesoTexturas] Escaneo completado: {_target.TotalTextureCount} texturas, {_target.TotalSizeLabel}");
         }
 
-        private TextureGroupEntry ScanAvatarBase(HashSet<string> processedPaths)
+        private TextureGroupEntry ScanAvatarBase(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids)
         {
             var group = new TextureGroupEntry(
                 _target.AvatarRoot.name,
@@ -653,19 +721,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Escanear materiales alternativos del avatar base
             if (_target.IncludeAlternativeMaterials)
             {
-                ScanAlternativeMaterialsForAvatarBase(group, clothingObjects, processedPaths);
+                ScanAlternativeMaterialsForAvatarBase(group, clothingObjects, processedPaths, referencedMaterialGuids);
             }
 
             return group;
         }
 
         /// <summary>
-        /// Escanea materiales alternativos que pertenecen al avatar base (no a ropas)
+        /// Escanea materiales alternativos que pertenecen al avatar base (no a ropas).
+        /// Solo incluye texturas de materiales que estan referenciados en animaciones.
         /// </summary>
         private void ScanAlternativeMaterialsForAvatarBase(
             TextureGroupEntry group,
             HashSet<GameObject> clothingObjects,
-            HashSet<string> processedPaths)
+            HashSet<string> processedPaths,
+            HashSet<string> referencedMaterialGuids)
         {
             var allAgruparMateriales = GetAllAgruparMateriales();
 
@@ -690,7 +760,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                         continue;
 
                     var validMaterials = materialGroup.GetValidMaterials();
-                    var textures = TextureScanner.ScanMaterials(validMaterials, processedPaths);
+
+                    // Filtrar solo materiales referenciados en animaciones
+                    IEnumerable<Material> materialsToScan;
+                    if (referencedMaterialGuids != null && referencedMaterialGuids.Count > 0)
+                    {
+                        materialsToScan = AnimationMaterialAnalyzer.FilterReferencedMaterials(validMaterials, referencedMaterialGuids);
+                    }
+                    else
+                    {
+                        materialsToScan = validMaterials;
+                    }
+
+                    var textures = TextureScanner.ScanMaterials(materialsToScan, processedPaths, isFromAlternativeMaterial: true);
 
                     foreach (var texture in textures)
                     {
@@ -718,7 +800,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             return false;
         }
 
-        private void ScanClothings(HashSet<string> processedPaths)
+        private void ScanClothings(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids)
         {
             var coserRopa = _target.AvatarRoot.GetComponentInChildren<MRCoserRopa>();
             if (coserRopa == null)
@@ -747,7 +829,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 // 2. Escanear texturas de materiales alternativos de esta ropa
                 if (_target.IncludeAlternativeMaterials)
                 {
-                    ScanAlternativeMaterialsForClothing(clothing.GameObject, group, allAgruparMateriales, processedPaths);
+                    ScanAlternativeMaterialsForClothing(clothing.GameObject, group, allAgruparMateriales, processedPaths, referencedMaterialGuids);
                 }
 
                 if (group.TextureCount > 0)
@@ -787,13 +869,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         /// <summary>
         /// Escanea materiales alternativos que pertenecen a una ropa especifica
-        /// y los agrega al grupo de esa ropa
+        /// y los agrega al grupo de esa ropa.
+        /// Solo incluye texturas de materiales que estan referenciados en animaciones.
         /// </summary>
         private void ScanAlternativeMaterialsForClothing(
             GameObject clothingObject,
             TextureGroupEntry group,
             List<MRAgruparMateriales> allAgruparMateriales,
-            HashSet<string> processedPaths)
+            HashSet<string> processedPaths,
+            HashSet<string> referencedMaterialGuids)
         {
             foreach (var agrupar in allAgruparMateriales)
             {
@@ -811,7 +895,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                         continue;
 
                     var validMaterials = materialGroup.GetValidMaterials();
-                    var textures = TextureScanner.ScanMaterials(validMaterials, processedPaths);
+
+                    // Filtrar solo materiales referenciados en animaciones
+                    IEnumerable<Material> materialsToScan;
+                    if (referencedMaterialGuids != null && referencedMaterialGuids.Count > 0)
+                    {
+                        materialsToScan = AnimationMaterialAnalyzer.FilterReferencedMaterials(validMaterials, referencedMaterialGuids);
+                    }
+                    else
+                    {
+                        materialsToScan = validMaterials;
+                    }
+
+                    var textures = TextureScanner.ScanMaterials(materialsToScan, processedPaths, isFromAlternativeMaterial: true);
 
                     foreach (var texture in textures)
                     {
@@ -844,7 +940,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     continue;
 
                 string assetPath = AssetDatabase.GetAssetPath(texture);
-                if (string.IsNullOrEmpty(assetPath) || !assetPath.StartsWith("Assets/"))
+                // Ignorar texturas que VRChat no cuenta:
+                // - Resources/unity_builtin: texturas built-in de Unity
+                // - Packages/: texturas de paquetes instalados localmente
+                // - Library/: texturas de paquetes en cache (lilToon, VRChat SDK, etc.)
+                if (string.IsNullOrEmpty(assetPath) ||
+                    assetPath.StartsWith("Resources/") ||
+                    assetPath.StartsWith("Packages/") ||
+                    assetPath.StartsWith("Library/") ||
+                    assetPath.Contains("unity_builtin"))
                     continue;
 
                 if (processedPaths.Contains(assetPath))
@@ -852,7 +956,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
                 processedPaths.Add(assetPath);
 
-                var entry = TextureScanner.CreateTextureEntry(texture, assetPath);
+                // Pasar el nombre de la propiedad para mejor deteccion de normal maps
+                var entry = TextureScanner.CreateTextureEntry(texture, assetPath, false, propertyName);
                 if (entry != null)
                 {
                     group.AddTexture(entry);

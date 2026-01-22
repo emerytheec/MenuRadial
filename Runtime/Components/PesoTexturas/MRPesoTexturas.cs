@@ -111,14 +111,72 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         public bool IsScanned => _isScanned;
 
         /// <summary>
-        /// Peso total estimado en VRAM (bytes)
+        /// Peso total estimado en VRAM (bytes) - incluye materiales alternativos
         /// </summary>
         public long TotalEstimatedVRAM => _totalEstimatedVRAM;
+
+        /// <summary>
+        /// Peso estimado solo de texturas actuales (sin materiales alternativos).
+        /// Este valor deberia coincidir con lo que VRChat reporta.
+        /// </summary>
+        public long CurrentEstimatedVRAM
+        {
+            get
+            {
+                if (_textureGroups == null || _textureGroups.Count == 0)
+                    return 0;
+                return _textureGroups.Sum(g => g.CurrentEstimatedVRAM);
+            }
+        }
+
+        /// <summary>
+        /// Peso estimado solo de texturas de materiales alternativos
+        /// </summary>
+        public long AlternativeEstimatedVRAM
+        {
+            get
+            {
+                if (_textureGroups == null || _textureGroups.Count == 0)
+                    return 0;
+                return _textureGroups.Sum(g => g.AlternativeEstimatedVRAM);
+            }
+        }
+
+        /// <summary>
+        /// Etiqueta formateada del peso actual (sin alternativos)
+        /// </summary>
+        public string CurrentSizeLabel => VRChatTextureWeightCalculator.FormatBytes(CurrentEstimatedVRAM);
 
         /// <summary>
         /// Cantidad total de texturas escaneadas
         /// </summary>
         public int TotalTextureCount => _totalTextureCount;
+
+        /// <summary>
+        /// Cantidad de texturas actuales (sin materiales alternativos)
+        /// </summary>
+        public int CurrentTextureCount
+        {
+            get
+            {
+                if (_textureGroups == null || _textureGroups.Count == 0)
+                    return 0;
+                return _textureGroups.Sum(g => g.CurrentTextureCount);
+            }
+        }
+
+        /// <summary>
+        /// Cantidad de texturas de materiales alternativos
+        /// </summary>
+        public int AlternativeTextureCount
+        {
+            get
+            {
+                if (_textureGroups == null || _textureGroups.Count == 0)
+                    return 0;
+                return _textureGroups.Sum(g => g.AlternativeTextureCount);
+            }
+        }
 
         /// <summary>
         /// Etiqueta formateada del peso total

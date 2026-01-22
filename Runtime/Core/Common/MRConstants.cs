@@ -429,9 +429,20 @@ namespace Bender_Dios.MenuRadial.Core.Common
         public const long HIGH_WEIGHT_THRESHOLD = 10 * 1024 * 1024;
 
         /// <summary>
-        /// Umbral para peso total alto (200 MB)
+        /// Limite de VRChat para Download Size (200 MB comprimido)
         /// </summary>
-        public const long HIGH_TOTAL_THRESHOLD = 200 * 1024 * 1024;
+        public const long VRCHAT_DOWNLOAD_SIZE_LIMIT = 200 * 1024 * 1024;
+
+        /// <summary>
+        /// Limite de VRChat para Uncompressed Size (500 MB descomprimido)
+        /// </summary>
+        public const long VRCHAT_UNCOMPRESSED_SIZE_LIMIT = 500 * 1024 * 1024;
+
+        /// <summary>
+        /// Umbral para peso total alto de texturas.
+        /// Basado en el limite de Uncompressed Size de VRChat (500 MB).
+        /// </summary>
+        public const long HIGH_TOTAL_THRESHOLD = 500 * 1024 * 1024;
 
         /// <summary>
         /// Pasos de resolución disponibles

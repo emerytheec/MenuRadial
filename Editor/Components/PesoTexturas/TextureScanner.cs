@@ -60,19 +60,30 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         /// </summary>
         /// <param name="texture">Textura a procesar</param>
         /// <param name="assetPath">Ruta del asset</param>
+        /// <param name="isFromAlternativeMaterial">Si la textura proviene de un material alternativo</param>
+        /// <param name="shaderPropertyName">Nombre de la propiedad del shader donde se usa la textura</param>
         /// <returns>TextureEntry con informacion calculada</returns>
-        public static TextureEntry CreateTextureEntry(Texture2D texture, string assetPath)
+        public static TextureEntry CreateTextureEntry(Texture2D texture, string assetPath, bool isFromAlternativeMaterial = false, string shaderPropertyName = null)
         {
             if (texture == null || string.IsNullOrEmpty(assetPath))
                 return null;
 
+            // Para texturas embebidas en FBX, extraer la ruta base
+            string importerPath = assetPath;
+            if (assetPath.Contains("#"))
+            {
+                // Textura embebida: Assets/Models/avatar.fbx#texture_name
+                importerPath = assetPath.Substring(0, assetPath.IndexOf('#'));
+            }
+
             // Obtener el TextureImporter para esta textura
-            var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            var importer = AssetImporter.GetAtPath(importerPath) as TextureImporter;
 
             int maxSize = 2048; // Default
             bool hasAlpha = false;
             bool hasMipmaps = true;
             bool hasMipStreaming = true;
+            TextureCompressionType compressionType = TextureCompressionType.Default;
 
             if (importer != null)
             {
@@ -80,9 +91,31 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 hasMipmaps = importer.mipmapEnabled;
                 hasAlpha = DetectAlphaChannel(texture, importer);
                 hasMipStreaming = importer.streamingMipmaps;
+                compressionType = DetectCompressionType(importer);
+
+                // Si el importer no dice que es NormalMap, verificar por propiedad del shader
+                if (compressionType == TextureCompressionType.Default)
+                {
+                    compressionType = DetectCompressionTypeFromShaderProperty(shaderPropertyName);
+                }
+
+                // Fallback final: verificar por nombre de textura
+                if (compressionType == TextureCompressionType.Default)
+                {
+                    compressionType = DetectCompressionTypeFromName(texture.name);
+                }
             }
             else
             {
+                // Fallback: detectar por propiedad del shader primero
+                compressionType = DetectCompressionTypeFromShaderProperty(shaderPropertyName);
+
+                // Luego por nombre
+                if (compressionType == TextureCompressionType.Default)
+                {
+                    compressionType = DetectCompressionTypeFromName(texture.name);
+                }
+
                 // Fallback: detectar alpha del formato de textura
                 hasAlpha = HasAlphaFromFormat(texture.format);
             }
@@ -95,7 +128,87 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 maxSize,
                 hasAlpha,
                 hasMipmaps,
-                hasMipStreaming);
+                hasMipStreaming,
+                isFromAlternativeMaterial,
+                compressionType);
+        }
+
+        /// <summary>
+        /// Detecta el tipo de compresion basado en el TextureImporter.
+        /// </summary>
+        /// <param name="importer">TextureImporter de la textura</param>
+        /// <returns>Tipo de compresion detectado</returns>
+        public static TextureCompressionType DetectCompressionType(TextureImporter importer)
+        {
+            if (importer == null)
+                return TextureCompressionType.Default;
+
+            // Normal maps
+            if (importer.textureType == TextureImporterType.NormalMap)
+                return TextureCompressionType.NormalMap;
+
+            // Single channel (R channel only)
+            if (importer.textureType == TextureImporterType.SingleChannel)
+                return TextureCompressionType.SingleChannel;
+
+            return TextureCompressionType.Default;
+        }
+
+        /// <summary>
+        /// Detecta el tipo de compresion basado en el nombre de la propiedad del shader.
+        /// Solo detecta Normal Maps de forma confiable. SingleChannel NO se detecta por nombre
+        /// de propiedad porque muchas texturas "mask" en lilToon/Poiyomi son RGBA empaquetadas.
+        /// </summary>
+        /// <param name="propertyName">Nombre de la propiedad del shader</param>
+        /// <returns>Tipo de compresion detectado</returns>
+        public static TextureCompressionType DetectCompressionTypeFromShaderProperty(string propertyName)
+        {
+            if (string.IsNullOrEmpty(propertyName))
+                return TextureCompressionType.Default;
+
+            string lowerName = propertyName.ToLowerInvariant();
+
+            // Propiedades de Normal Map comunes en shaders de Unity
+            // Standard: _BumpMap, _DetailNormalMap
+            // lilToon: _BumpMap, _Bump2ndMap, _BumpMap2nd
+            // Poiyomi: _BumpMap, _DetailNormalMap
+            if (lowerName.Contains("bump") || lowerName.Contains("normal"))
+                return TextureCompressionType.NormalMap;
+
+            // NO detectamos SingleChannel por nombre de propiedad porque:
+            // - En lilToon/Poiyomi, texturas "mask" suelen ser RGBA empaquetadas
+            // - Solo el TextureImporter sabe si realmente es SingleChannel
+
+            return TextureCompressionType.Default;
+        }
+
+        /// <summary>
+        /// Detecta el tipo de compresion basado en el nombre de la textura (fallback).
+        /// Solo detecta Normal Maps. SingleChannel NO se detecta por nombre porque
+        /// muchas texturas con nombres como "mask" son RGBA empaquetadas.
+        /// </summary>
+        /// <param name="textureName">Nombre de la textura</param>
+        /// <returns>Tipo de compresion detectado</returns>
+        public static TextureCompressionType DetectCompressionTypeFromName(string textureName)
+        {
+            if (string.IsNullOrEmpty(textureName))
+                return TextureCompressionType.Default;
+
+            string lowerName = textureName.ToLowerInvariant();
+
+            // Detectar normal maps por nombre
+            if (lowerName.Contains("normal") || lowerName.Contains("_nrm") || lowerName.Contains("bump"))
+                return TextureCompressionType.NormalMap;
+
+            // Detectar por sufijo _n (comun en normal maps)
+            // Pero evitar falsos positivos como "skin", "button", etc.
+            if (lowerName.EndsWith("_n") || lowerName.Contains("_n_") || lowerName.Contains("_n."))
+                return TextureCompressionType.NormalMap;
+
+            // NO detectamos SingleChannel por nombre - demasiados falsos positivos
+            // Solo el TextureImporter puede determinar esto con precision
+
+            return TextureCompressionType.Default;
         }
 
         /// <summary>
@@ -298,8 +411,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         /// </summary>
         /// <param name="materials">Lista de materiales a escanear</param>
         /// <param name="processedPaths">HashSet de rutas ya procesadas para evitar duplicados</param>
+        /// <param name="isFromAlternativeMaterial">Si los materiales son alternativos (no asignados a renderers)</param>
         /// <returns>Lista de TextureEntry encontradas</returns>
-        public static List<TextureEntry> ScanMaterials(IEnumerable<Material> materials, HashSet<string> processedPaths)
+        public static List<TextureEntry> ScanMaterials(IEnumerable<Material> materials, HashSet<string> processedPaths, bool isFromAlternativeMaterial = false)
         {
             var result = new List<TextureEntry>();
 
@@ -313,7 +427,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 if (material == null)
                     continue;
 
-                ScanMaterialTextures(material, processedPaths, result);
+                ScanMaterialTextures(material, processedPaths, result, isFromAlternativeMaterial);
             }
 
             return result;
@@ -348,7 +462,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         private static void ScanMaterialTextures(
             Material material,
             HashSet<string> processedPaths,
-            List<TextureEntry> result)
+            List<TextureEntry> result,
+            bool isFromAlternativeMaterial = false)
         {
             if (material == null)
                 return;
@@ -375,8 +490,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 if (string.IsNullOrEmpty(assetPath))
                     continue;
 
-                // Ignorar texturas embebidas o de paquetes
-                if (!assetPath.StartsWith("Assets/"))
+                // Ignorar texturas que VRChat no cuenta en el peso del avatar:
+                // - Resources/unity_builtin_extra: texturas built-in de Unity
+                // - Packages/: texturas de paquetes instalados localmente
+                // - Library/PackageCache/: texturas de paquetes en cache (lilToon, VRChat SDK, NDMF, etc.)
+                //   Estas vienen con los shaders/SDK y no se cuentan en el bundle del avatar
+                if (assetPath.StartsWith("Resources/") ||
+                    assetPath.StartsWith("Packages/") ||
+                    assetPath.StartsWith("Library/") ||
+                    assetPath.Contains("unity_builtin"))
                     continue;
 
                 // Evitar duplicados
@@ -385,7 +507,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
                 processedPaths.Add(assetPath);
 
-                var entry = CreateTextureEntry(texture, assetPath);
+                var entry = CreateTextureEntry(texture, assetPath, isFromAlternativeMaterial, propertyName);
                 if (entry != null)
                 {
                     result.Add(entry);

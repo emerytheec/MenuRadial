@@ -4,6 +4,27 @@ using UnityEngine;
 namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
 {
     /// <summary>
+    /// Tipo de textura para calculo de compresion VRAM.
+    /// </summary>
+    public enum TextureCompressionType
+    {
+        /// <summary>
+        /// Textura estandar (diffuse, etc.) - BC1 sin alpha, BC3/BC7 con alpha
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// Normal map - siempre usa BC5 (1.0 byte/pixel)
+        /// </summary>
+        NormalMap,
+
+        /// <summary>
+        /// Textura de un solo canal (mask, height) - BC4 (0.5 byte/pixel)
+        /// </summary>
+        SingleChannel
+    }
+
+    /// <summary>
     /// Almacena informacion de una textura individual para el calculo de peso VRAM.
     /// </summary>
     [Serializable]
@@ -40,6 +61,12 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
 
         [SerializeField]
         private string _textureName;
+
+        [SerializeField]
+        private bool _isFromAlternativeMaterial;
+
+        [SerializeField]
+        private TextureCompressionType _compressionType;
 
         #endregion
 
@@ -108,6 +135,32 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         public string TextureName => _textureName;
 
         /// <summary>
+        /// Indica si esta textura proviene de un material alternativo.
+        /// Las texturas de materiales alternativos no se incluyen en el bundle de VRChat
+        /// a menos que esten asignadas a un renderer.
+        /// </summary>
+        public bool IsFromAlternativeMaterial
+        {
+            get => _isFromAlternativeMaterial;
+            set => _isFromAlternativeMaterial = value;
+        }
+
+        /// <summary>
+        /// Tipo de compresion de la textura (afecta el calculo de VRAM).
+        /// Normal maps usan BC5 (1.0 byte/pixel), single channel usa BC4 (0.5 byte/pixel).
+        /// </summary>
+        public TextureCompressionType CompressionType
+        {
+            get => _compressionType;
+            set => _compressionType = value;
+        }
+
+        /// <summary>
+        /// Indica si es un normal map
+        /// </summary>
+        public bool IsNormalMap => _compressionType == TextureCompressionType.NormalMap;
+
+        /// <summary>
         /// Resolucion efectiva (limitada por CurrentMaxSize)
         /// </summary>
         public int EffectiveWidth => Mathf.Min(_originalWidth, _currentMaxSize);
@@ -149,7 +202,9 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
             int currentMaxSize,
             bool hasAlpha,
             bool hasMipmaps,
-            bool hasMipStreaming = true)
+            bool hasMipStreaming = true,
+            bool isFromAlternativeMaterial = false,
+            TextureCompressionType compressionType = TextureCompressionType.Default)
         {
             _texture = texture;
             _assetPath = assetPath;
@@ -159,6 +214,8 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
             _hasAlpha = hasAlpha;
             _hasMipmaps = hasMipmaps;
             _hasMipStreaming = hasMipStreaming;
+            _isFromAlternativeMaterial = isFromAlternativeMaterial;
+            _compressionType = compressionType;
             _textureName = texture != null ? texture.name : System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
             RecalculateEstimate();
@@ -177,7 +234,8 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
                 EffectiveWidth,
                 EffectiveHeight,
                 _hasAlpha,
-                _hasMipmaps);
+                _hasMipmaps,
+                _compressionType);
         }
 
         /// <summary>
@@ -203,7 +261,8 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
                 effectiveW,
                 effectiveH,
                 _hasAlpha,
-                _hasMipmaps);
+                _hasMipmaps,
+                _compressionType);
         }
 
         /// <summary>

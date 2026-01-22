@@ -14,7 +14,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
   - Agrupa texturas por fuente (avatar/ropa) para vista organizada
   - Función step-down para reducir resoluciones de texturas
   - Detección y corrección automática de Mip Streaming (requerido por VRChat)
-  - Advertencias visuales para texturas pesadas (>10MB) y peso total (>200MB)
+  - Advertencias visuales para texturas pesadas (>10MB) y peso total (>500MB limite VRChat)
   - Integración con MRCoserRopa para detección de ropas
   - Integración con MRAgruparMateriales para texturas de materiales alternativos
 - Nuevas constantes de peso de texturas en MRConstants.cs

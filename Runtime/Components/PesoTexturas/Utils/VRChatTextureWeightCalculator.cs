@@ -1,4 +1,5 @@
 using UnityEngine;
+using Bender_Dios.MenuRadial.Components.PesoTexturas.Models;
 
 namespace Bender_Dios.MenuRadial.Components.PesoTexturas
 {
@@ -14,17 +15,33 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         /// <summary>
         /// Bytes por pixel para texturas BC1 (sin alpha) = 0.5 bytes/pixel
         /// </summary>
-        public const double BYTES_PER_PIXEL_NO_ALPHA = 0.5;
+        public const double BYTES_PER_PIXEL_BC1 = 0.5;
 
         /// <summary>
         /// Bytes por pixel para texturas BC3/BC7 (con alpha) = 1.0 byte/pixel
         /// </summary>
-        public const double BYTES_PER_PIXEL_WITH_ALPHA = 1.0;
+        public const double BYTES_PER_PIXEL_BC3_BC7 = 1.0;
 
         /// <summary>
-        /// Factor multiplicador para mipmaps (suma de la serie geometrica 1 + 1/4 + 1/16 + ... ≈ 1.33)
+        /// Bytes por pixel para texturas BC5 (normal maps, 2 canales) = 1.0 byte/pixel
         /// </summary>
-        public const double MIPMAP_FACTOR = 1.33;
+        public const double BYTES_PER_PIXEL_BC5 = 1.0;
+
+        /// <summary>
+        /// Bytes por pixel para texturas BC4 (1 canal, masks) = 0.5 bytes/pixel
+        /// </summary>
+        public const double BYTES_PER_PIXEL_BC4 = 0.5;
+
+        // Aliases para compatibilidad
+        public const double BYTES_PER_PIXEL_NO_ALPHA = BYTES_PER_PIXEL_BC1;
+        public const double BYTES_PER_PIXEL_WITH_ALPHA = BYTES_PER_PIXEL_BC3_BC7;
+
+        /// <summary>
+        /// Factor multiplicador para mipmaps.
+        /// Valor 1.0 = sin considerar mipmaps adicionales (coincide mejor con VRChat que usa Mip Streaming).
+        /// Valor teorico completo seria 1.33 (suma de la serie geometrica 1 + 1/4 + 1/16 + ...).
+        /// </summary>
+        public const double MIPMAP_FACTOR = 1.0;
 
         /// <summary>
         /// Umbral para considerar una textura como "pesada" (10 MB)
@@ -32,9 +49,23 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         public const long HIGH_WEIGHT_THRESHOLD = 10 * 1024 * 1024;
 
         /// <summary>
-        /// Umbral para considerar el peso total como "alto" (200 MB)
+        /// Limite de VRChat para Download Size (archivo comprimido): 200 MB
+        /// Si el avatar supera este limite, no se puede subir.
         /// </summary>
-        public const long HIGH_TOTAL_THRESHOLD = 200 * 1024 * 1024;
+        public const long VRCHAT_DOWNLOAD_SIZE_LIMIT = 200 * 1024 * 1024;
+
+        /// <summary>
+        /// Limite de VRChat para Uncompressed Size (bundle descomprimido): 500 MB
+        /// Si el avatar supera este limite, no se puede subir.
+        /// </summary>
+        public const long VRCHAT_UNCOMPRESSED_SIZE_LIMIT = 500 * 1024 * 1024;
+
+        /// <summary>
+        /// Umbral para considerar el peso de texturas como "alto".
+        /// Basado en el limite de Uncompressed Size de VRChat (500 MB),
+        /// ya que las texturas suelen ser la mayor parte del bundle.
+        /// </summary>
+        public const long HIGH_TOTAL_THRESHOLD = 500 * 1024 * 1024;
 
         /// <summary>
         /// Pasos de resolucion disponibles para step-down
@@ -62,14 +93,20 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         /// <param name="height">Alto de la textura en pixeles</param>
         /// <param name="hasAlpha">Si la textura tiene canal alpha</param>
         /// <param name="hasMipmaps">Si la textura tiene mipmaps generados</param>
+        /// <param name="compressionType">Tipo de compresion de la textura</param>
         /// <returns>Peso estimado en bytes</returns>
-        public static long CalculateVRAMBytes(int width, int height, bool hasAlpha, bool hasMipmaps)
+        public static long CalculateVRAMBytes(
+            int width,
+            int height,
+            bool hasAlpha,
+            bool hasMipmaps,
+            TextureCompressionType compressionType = TextureCompressionType.Default)
         {
             // Calcular pixeles totales
             long pixels = (long)width * height;
 
-            // Seleccionar bytes por pixel segun alpha
-            double bytesPerPixel = hasAlpha ? BYTES_PER_PIXEL_WITH_ALPHA : BYTES_PER_PIXEL_NO_ALPHA;
+            // Seleccionar bytes por pixel segun tipo de compresion
+            double bytesPerPixel = GetBytesPerPixel(hasAlpha, compressionType);
 
             // Calcular tamanio base
             double baseSize = pixels * bytesPerPixel;
@@ -81,6 +118,31 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
             }
 
             return (long)baseSize;
+        }
+
+        /// <summary>
+        /// Obtiene los bytes por pixel segun el tipo de compresion.
+        /// </summary>
+        /// <param name="hasAlpha">Si la textura tiene canal alpha</param>
+        /// <param name="compressionType">Tipo de compresion</param>
+        /// <returns>Bytes por pixel</returns>
+        public static double GetBytesPerPixel(bool hasAlpha, TextureCompressionType compressionType)
+        {
+            switch (compressionType)
+            {
+                case TextureCompressionType.NormalMap:
+                    // Normal maps siempre usan BC5 (1.0 byte/pixel)
+                    return BYTES_PER_PIXEL_BC5;
+
+                case TextureCompressionType.SingleChannel:
+                    // Single channel usa BC4 (0.5 byte/pixel)
+                    return BYTES_PER_PIXEL_BC4;
+
+                case TextureCompressionType.Default:
+                default:
+                    // Texturas estandar: BC1 sin alpha, BC3/BC7 con alpha
+                    return hasAlpha ? BYTES_PER_PIXEL_BC3_BC7 : BYTES_PER_PIXEL_BC1;
+            }
         }
 
         /// <summary>
