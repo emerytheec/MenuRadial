@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.13] - 2026-01-22
+
+### Mejorado
+- **MRPesoTexturas**: Mejora significativa en precisión del cálculo de peso VRAM
+  - Nuevo `AnimationMaterialAnalyzer` para detectar materiales referenciados en animaciones
+  - Filtro de texturas de `Packages/` y `Library/` (no contadas por VRChat)
+  - Detección de `TextureCompressionType` para normal maps (BC5) y single channel (BC4)
+  - Factor de mipmaps ajustado a 1.0 para coincidir con Mip Streaming de VRChat
+  - Resultado: cálculo ahora dentro de ~25 MB del valor reportado por VRChat
+
 ## [0.8.12] - 2026-01-21
 
 ### Agregado
