@@ -5,6 +5,30 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.15] - 2026-01-24
+
+### Agregado
+- **FolderStructureAnalyzer**: Nuevo analizador de estructura de carpetas para detección de materiales
+- **Reordenamiento de materiales**: Botones ▲/▼ para mover materiales dentro de grupos
+- **Detección de carpeta dominante**: Caso 2 ahora detecta carpeta principal con referencias puntuales
+
+### Mejorado
+- **Nombres de casos más amigables**:
+  - Caso 1 → "Grupos en carpeta"
+  - Caso 2 → "Estilo en carpeta"
+  - Caso 3 → "Todo en carpeta"
+- **UI reorganizada**: Nuevo orden de secciones (Slots → Vinculación → Drop Area → Grupos → Sugerencias)
+- **Botón "Detectar Alternativas"**: Ahora es de color verde para mejor visibilidad
+- **Filtrado de carpetas**: Respeta correctamente las carpetas seleccionadas manualmente
+
+### Corregido
+- **Filtrado de FolderInfos**: Ahora se filtra junto con las demás listas al seleccionar carpetas
+- **Grupos de 1 material**: Ya no se muestran como sugerencias (se requieren 2+ materiales)
+- **Paso de parámetros**: El modo forzado y carpetas seleccionadas ahora se pasan correctamente al detector
+
+### Eliminado
+- Sección "Estado" removida del UI del componente
+
 ## [0.8.14] - 2026-01-22
 
 ### Corregido
