@@ -2,1024 +2,785 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using UnityEditor;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Components.AlternativeMaterial;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 {
     /// <summary>
-    /// Detects alternative materials for slots using folder analysis and name pattern matching.
-    /// Implements Proposals 1 (folder analysis) and 2 (name pattern analysis).
+    /// Detector de materiales alternativos.
+    /// Analiza la estructura de carpetas y sugiere grupos de materiales basándose en:
+    /// - La relación MeshRenderer → carpeta (eje primario)
+    /// - Diferenciadores extraídos de nombres de materiales
+    /// - Emparejamiento con Levenshtein para tolerancia en concordancia
+    ///
+    /// Casos soportados:
+    /// - Caso 1: MeshRenderers apuntan a carpetas hermanas diferentes → alternativas son materiales en la misma carpeta
+    /// - Caso 2: MeshRenderers apuntan a misma carpeta con hermanas → emparejar diferenciadores entre carpetas
+    /// - Caso 3: Sin carpetas hermanas → agrupar por similitud de nombres
     /// </summary>
     public class MaterialAlternativeDetector
     {
-        #region Token Dictionaries
+        private readonly FolderStructureAnalyzer _structureAnalyzer;
+        private FolderStructureAnalysis _cachedAnalysis;
 
-        /// <summary>
-        /// Known color tokens in multiple languages.
-        /// </summary>
-        private static readonly HashSet<string> ColorTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        public MaterialAlternativeDetector()
         {
-            // English
-            "red", "blue", "green", "black", "white", "pink", "purple", "yellow", "orange",
-            "brown", "gray", "grey", "cyan", "magenta", "gold", "silver", "beige", "navy",
-            "teal", "violet", "indigo", "cream", "tan", "maroon", "olive", "coral", "salmon",
-            "turquoise", "lavender", "mint", "peach", "rose", "ruby", "emerald", "sapphire",
-            "burgundy", "khaki", "charcoal", "ivory", "bronze", "copper", "crimson", "scarlet",
-
-            // Japanese (romaji)
-            "aka", "ao", "midori", "kuro", "shiro", "pinku", "murasaki", "kiiro", "orenji",
-            "chairo", "haiiro", "gin", "kin", "momoiro", "sora", "sakura",
-
-            // Spanish
-            "rojo", "azul", "verde", "negro", "blanco", "rosa", "morado", "amarillo", "naranja",
-            "marron", "gris", "dorado", "plateado", "celeste",
-
-            // Single letter abbreviations (very common in Japanese avatar assets)
-            "r", "g", "b", "w", "p", "y", "o", "k", "c",
-
-            // Two letter abbreviations (common in Japanese/Asian assets)
-            "bl", "bk", "br", "pk", "pp", "yl", "or", "gr", "gy", "wh", "rd", "gn",
-            "be", "pi", "pu", "ye", "og", "bw", "lg", "dg", "lb", "db",
-
-            // Common English abbreviations
-            "blk", "wht", "pnk", "prp", "ylw", "org", "brn", "gry", "grn", "blu",
-
-            // Color variations/modifiers (used as prefix or standalone)
-            "light", "dark", "pale", "deep", "bright", "pastel", "neon", "soft", "vivid",
-
-            // Compound color modifiers (commonly used with other colors)
-            "wine", "sky", "sea", "forest", "royal", "hot", "ice", "baby", "dusty", "dirty"
-        };
-
-        /// <summary>
-        /// Known compound color patterns (multi-token colors).
-        /// These are checked as consecutive token pairs.
-        /// </summary>
-        private static readonly HashSet<string> CompoundColorTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Wine variants
-            "wine_red", "winered", "wine red",
-            // Sky variants
-            "sky_blue", "skyblue", "sky blue",
-            // Sea variants
-            "sea_green", "seagreen", "sea green",
-            // Forest variants
-            "forest_green", "forestgreen", "forest green",
-            // Royal variants
-            "royal_blue", "royalblue", "royal blue",
-            // Hot variants
-            "hot_pink", "hotpink", "hot pink",
-            // Ice variants
-            "ice_blue", "iceblue", "ice blue",
-            // Baby variants
-            "baby_blue", "babyblue", "baby blue", "baby_pink", "babypink", "baby pink",
-            // Light/Dark variants
-            "light_blue", "lightblue", "light blue", "light_green", "lightgreen", "light green",
-            "light_pink", "lightpink", "light pink", "light_gray", "lightgray", "light gray",
-            "dark_blue", "darkblue", "dark blue", "dark_green", "darkgreen", "dark green",
-            "dark_red", "darkred", "dark red", "dark_gray", "darkgray", "dark gray",
-            // Other compound colors
-            "dusty_rose", "dustyrose", "dusty rose",
-            "olive_green", "olivegreen", "olive green",
-            "navy_blue", "navyblue", "navy blue",
-            "burnt_orange", "burntorange", "burnt orange",
-            "pale_pink", "palepink", "pale pink",
-            "deep_purple", "deeppurple", "deep purple"
-        };
-
-        /// <summary>
-        /// Patterns for version/variant suffixes.
-        /// </summary>
-        private static readonly Regex[] VersionPatterns = new Regex[]
-        {
-            new Regex(@"^v(\d+)$", RegexOptions.IgnoreCase),           // v1, v2, V01
-            new Regex(@"^ver(\d+)$", RegexOptions.IgnoreCase),         // ver1, Ver2
-            new Regex(@"^(\d+)$"),                                      // 1, 2, 01, 02
-            new Regex(@"^[a-f]$", RegexOptions.IgnoreCase),            // a, b, c, d, e, f (extended for variant letters)
-            new Regex(@"^alt(\d*)$", RegexOptions.IgnoreCase),         // alt, alt1, alt2
-            new Regex(@"^var(\d*)$", RegexOptions.IgnoreCase),         // var, var1, var2
-            new Regex(@"^type(\d*)$", RegexOptions.IgnoreCase),        // type, type1
-            new Regex(@"^style(\d*)$", RegexOptions.IgnoreCase),       // style, style1
-        };
-
-        /// <summary>
-        /// Pattern to detect color+number combinations like "black1", "brown2", "red01".
-        /// </summary>
-        private static readonly Regex ColorNumberPattern = new Regex(
-            @"^(red|blue|green|black|white|pink|purple|yellow|orange|brown|gray|grey|cyan|magenta|gold|silver|beige|navy|teal|violet|indigo|cream|tan|maroon|olive|coral|salmon|turquoise|lavender|mint|peach|rose|ruby|emerald|sapphire|aka|ao|midori|kuro|shiro|pinku|murasaki|kiiro|orenji|chairo|haiiro|gin|kin|momoiro|sora|sakura|rojo|azul|verde|negro|blanco|rosa|morado|amarillo|naranja|marron|gris|dorado|plateado|celeste)(\d+)$",
-            RegexOptions.IgnoreCase
-        );
-
-        /// <summary>
-        /// Known style tokens.
-        /// </summary>
-        private static readonly HashSet<string> StyleTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "casual", "formal", "sport", "gothic", "cute", "dark", "light",
-            "summer", "winter", "spring", "autumn", "fall",
-            "school", "swimsuit", "pajama", "uniform", "dress",
-            "normal", "special", "rare", "basic", "premium", "deluxe",
-            "day", "night", "evening", "morning",
-            "clean", "dirty", "worn", "new", "old",
-            "wet", "dry", "glossy", "matte", "shiny",
-            "on", "off", "open", "closed", "half"
-        };
-
-        /// <summary>
-        /// Sub-part identifiers that should be treated as variant suffixes.
-        /// These represent different parts of the same clothing item (e.g., metal hardware, buttons).
-        /// IMPORTANT: Only include tokens that are CLEARLY sub-parts and would NOT be used as main item names.
-        /// Avoid: "belt", "outer", "top", "bottom" - these can be main items!
-        /// </summary>
-        private static readonly HashSet<string> SubPartTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Japanese common sub-parts
-            "kanagu",       // 金具 = metal hardware/fittings (very common in JP assets)
-            "botan",        // ボタン = button
-
-            // Metal/hardware parts (clearly sub-parts, not main items)
-            "buckle",
-            "clasp",
-            "hook",
-            "zipper",
-            "snap",
-            "rivet",
-            "grommet",
-            "eyelet",
-
-            // Decorative elements
-            "charm",
-            "pendant",
-            "jewel",
-            "gem",
-            "crystal",
-            "rhinestone",
-            "stud",
-            "spike",
-            "emblem",
-            "badge",
-            "pin",
-
-            // Fabric details
-            "lace",
-            "ribbon",
-            "bow",
-            "ruffle",
-            "frill",
-            "trim",
-            "piping",
-            "binding",
-            "applique",
-
-            // Structural sub-parts
-            "liner",
-            "lining",
-            "padding",
-            "insert",
-            "panel",
-
-            // Fasteners
-            "button",
-            "buttons",
-            "velcro",
-            "drawstring",
-            "toggle"
-        };
-
-        /// <summary>
-        /// Common separators in material names.
-        /// </summary>
-        private static readonly char[] Separators = new char[] { '_', '-', '.', ' ' };
-
-        #endregion
-
-        #region Configuration
-
-        /// <summary>
-        /// Configuration for the detector.
-        /// </summary>
-        public class DetectorConfig
-        {
-            /// <summary>
-            /// Weight for same folder match (0-1).
-            /// </summary>
-            public float SameFolderWeight { get; set; } = 0.35f;
-
-            /// <summary>
-            /// Weight for same name prefix (0-1).
-            /// </summary>
-            public float SamePrefixWeight { get; set; } = 0.30f;
-
-            /// <summary>
-            /// Weight for known variant suffix (color/version/style).
-            /// </summary>
-            public float KnownSuffixWeight { get; set; } = 0.20f;
-
-            /// <summary>
-            /// Weight for same shader.
-            /// </summary>
-            public float SameShaderWeight { get; set; } = 0.10f;
-
-            /// <summary>
-            /// Bonus for being in immediate parent folder vs deeper.
-            /// </summary>
-            public float ImmediateFolderBonus { get; set; } = 0.05f;
-
-            /// <summary>
-            /// Minimum confidence to include in suggestions.
-            /// </summary>
-            public float MinimumConfidence { get; set; } = 0.3f;
-
-            /// <summary>
-            /// Maximum number of suggestions per slot.
-            /// </summary>
-            public int MaxSuggestionsPerSlot { get; set; } = 20;
-
-            /// <summary>
-            /// Whether to search parent folders.
-            /// </summary>
-            public bool SearchParentFolders { get; set; } = true;
-
-            /// <summary>
-            /// Maximum depth to search in parent folders.
-            /// </summary>
-            public int MaxParentFolderDepth { get; set; } = 2;
+            _structureAnalyzer = new FolderStructureAnalyzer();
         }
-
-        private readonly DetectorConfig _config;
-
-        #endregion
-
-        #region Constructor
-
-        public MaterialAlternativeDetector() : this(new DetectorConfig()) { }
-
-        public MaterialAlternativeDetector(DetectorConfig config)
-        {
-            _config = config ?? new DetectorConfig();
-        }
-
-        #endregion
 
         #region Public API
 
         /// <summary>
-        /// Detects alternative materials for all slots in a component.
+        /// Detecta materiales alternativos para todos los slots de un componente.
+        /// Respeta el modo forzado y las carpetas seleccionadas configuradas en el componente.
         /// </summary>
         public MaterialSuggestionResult DetectAlternatives(MRAgruparMateriales component)
         {
             if (component == null)
+            {
                 return new MaterialSuggestionResult(new List<SlotSuggestionResult>());
+            }
 
+            // IMPORTANTE: Pasar el modo forzado y las carpetas seleccionadas del componente
+            return DetectAlternatives(component.Slots, component.FolderStructureMode, component.SelectedSiblingFolders);
+        }
+
+        /// <summary>
+        /// Detecta materiales alternativos para una lista de slots.
+        /// </summary>
+        public MaterialSuggestionResult DetectAlternatives(IEnumerable<MRMaterialSlot> slots)
+        {
+            return DetectAlternatives(slots, FolderStructureMode.Auto, null);
+        }
+
+        /// <summary>
+        /// Detecta materiales alternativos para una lista de slots con parámetros de configuración.
+        /// </summary>
+        /// <param name="slots">Lista de slots a analizar</param>
+        /// <param name="forcedMode">Modo forzado (Auto = detectar automáticamente)</param>
+        /// <param name="selectedFolders">Lista de carpetas seleccionadas manualmente</param>
+        public MaterialSuggestionResult DetectAlternatives(
+            IEnumerable<MRMaterialSlot> slots,
+            FolderStructureMode forcedMode,
+            List<string> selectedFolders)
+        {
             var slotResults = new List<SlotSuggestionResult>();
 
-            foreach (var slot in component.Slots)
+            if (slots == null)
             {
-                var result = DetectAlternativesForSlot(slot);
-                slotResults.Add(result);
+                return new MaterialSuggestionResult(slotResults);
             }
+
+            var slotList = slots.Where(s => s != null && s.IsValid).ToList();
+            if (slotList.Count == 0)
+            {
+                return new MaterialSuggestionResult(slotResults);
+            }
+
+#if UNITY_EDITOR
+            // Analizar estructura de carpetas con los parámetros de configuración
+            _cachedAnalysis = _structureAnalyzer.Analyze(slotList, forcedMode, selectedFolders);
+
+            if (!_cachedAnalysis.IsValid)
+            {
+                // Sin estructura válida, retornar sin sugerencias
+                foreach (var slot in slotList)
+                {
+                    slotResults.Add(new SlotSuggestionResult(slot, slot.CurrentMaterial, new List<MaterialSuggestion>()));
+                }
+                return new MaterialSuggestionResult(slotResults);
+            }
+
+            // Generar sugerencias según el tipo de estructura
+            switch (_cachedAnalysis.StructureType)
+            {
+                case FolderStructureType.MaterialsGroupedByFolder:
+                    slotResults = DetectCase1_GroupedByFolder(slotList, _cachedAnalysis);
+                    break;
+
+                case FolderStructureType.MaterialsDistributedInSiblingFolders:
+                    slotResults = DetectCase2_DistributedInSiblings(slotList, _cachedAnalysis);
+                    break;
+
+                case FolderStructureType.MaterialsMixedInSingleFolder:
+                    slotResults = DetectCase3_MixedInSingleFolder(slotList, _cachedAnalysis);
+                    break;
+
+                default:
+                    foreach (var slot in slotList)
+                    {
+                        slotResults.Add(new SlotSuggestionResult(slot, slot.CurrentMaterial, new List<MaterialSuggestion>()));
+                    }
+                    break;
+            }
+#endif
 
             return new MaterialSuggestionResult(slotResults);
         }
 
         /// <summary>
-        /// Detects alternative materials for a single slot.
+        /// Obtiene el análisis de estructura actual (para debugging o UI).
         /// </summary>
-        public SlotSuggestionResult DetectAlternativesForSlot(MRMaterialSlot slot)
+        public FolderStructureAnalysis GetFolderStructureAnalysis(MRAgruparMateriales component)
         {
-            if (slot == null || !slot.IsValid)
-                return SlotSuggestionResult.Error(slot, "Invalid slot");
-
-            var currentMaterial = slot.CurrentMaterial;
-            if (currentMaterial == null)
-                return SlotSuggestionResult.Error(slot, "Slot has no current material");
-
-            var currentPath = AssetDatabase.GetAssetPath(currentMaterial);
-            if (string.IsNullOrEmpty(currentPath))
-                return SlotSuggestionResult.Error(slot, "Material is not a project asset");
-
-            var suggestions = new List<MaterialSuggestion>();
-
-            // Get candidate materials from folder analysis (Proposal 1)
-            var candidates = GetCandidateMaterials(currentPath);
-
-            // Analyze each candidate
-            foreach (var candidatePath in candidates)
+            if (component == null)
             {
-                // Skip the current material itself
-                if (candidatePath == currentPath)
-                    continue;
-
-                var candidate = AssetDatabase.LoadAssetAtPath<Material>(candidatePath);
-                if (candidate == null)
-                    continue;
-
-                // Calculate confidence score (Proposal 2 + combined scoring)
-                var (confidence, reasons) = CalculateConfidence(currentMaterial, currentPath, candidate, candidatePath);
-
-                if (confidence >= _config.MinimumConfidence)
-                {
-                    suggestions.Add(new MaterialSuggestion(candidate, confidence, reasons, candidatePath));
-                }
+                return new FolderStructureAnalysis { Description = "Componente nulo" };
             }
 
-            // Limit suggestions
-            if (suggestions.Count > _config.MaxSuggestionsPerSlot)
-            {
-                suggestions.Sort((a, b) => b.Confidence.CompareTo(a.Confidence));
-                suggestions = suggestions.Take(_config.MaxSuggestionsPerSlot).ToList();
-            }
-
-            return new SlotSuggestionResult(slot, currentMaterial, suggestions);
-        }
-
-        #endregion
-
-        #region Folder Analysis (Proposal 1)
-
-        /// <summary>
-        /// Gets candidate materials from the same folder and optionally parent folders.
-        /// Also implements color folder pattern detection (Proposal 5).
-        /// </summary>
-        private List<string> GetCandidateMaterials(string currentMaterialPath)
-        {
-            var candidates = new HashSet<string>();
-            var currentFolder = Path.GetDirectoryName(currentMaterialPath);
-
-            if (string.IsNullOrEmpty(currentFolder))
-                return candidates.ToList();
-
-            // Normalize path separators
-            currentFolder = currentFolder.Replace("\\", "/");
-
-            // Search in current folder
-            AddMaterialsFromFolder(currentFolder, candidates);
-
-            // Search in parent and sibling folders if enabled
-            if (_config.SearchParentFolders)
-            {
-                var parentFolder = Path.GetDirectoryName(currentFolder)?.Replace("\\", "/");
-
-                if (!string.IsNullOrEmpty(parentFolder) && parentFolder != "Assets")
-                {
-                    // FIRST: Search all sibling folders (most likely to contain variants)
-                    var siblingFolders = AssetDatabase.GetSubFolders(parentFolder);
-                    foreach (var sibling in siblingFolders)
-                    {
-                        if (sibling != currentFolder)
-                        {
-                            AddMaterialsFromFolder(sibling, candidates);
-                        }
-                    }
-
-                    // THEN: Standard parent folder search for additional depth
-                    for (int depth = 0; depth < _config.MaxParentFolderDepth; depth++)
-                    {
-                        if (string.IsNullOrEmpty(parentFolder) || parentFolder == "Assets")
-                            break;
-
-                        // Search in parent folder itself
-                        AddMaterialsFromFolder(parentFolder, candidates);
-
-                        // Move up one level
-                        parentFolder = Path.GetDirectoryName(parentFolder)?.Replace("\\", "/");
-
-                        if (!string.IsNullOrEmpty(parentFolder) && parentFolder != "Assets")
-                        {
-                            // Search in uncle folders (siblings of parent)
-                            var uncleFolders = AssetDatabase.GetSubFolders(parentFolder);
-                            foreach (var uncle in uncleFolders)
-                            {
-                                AddMaterialsFromFolder(uncle, candidates);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return candidates.ToList();
+            return _structureAnalyzer.Analyze(component);
         }
 
         /// <summary>
-        /// Checks if a folder name suggests it's a variant folder (color, number, style, etc.).
+        /// Limpia la caché de análisis.
         /// </summary>
-        private bool IsColorOrStyleFolderName(string folderName)
+        public void ClearCache()
         {
-            if (string.IsNullOrEmpty(folderName))
-                return false;
-
-            string lowerName = folderName.ToLowerInvariant();
-
-            // Check against color tokens
-            if (ColorTokens.Contains(lowerName))
-                return true;
-
-            // Check against style tokens
-            if (StyleTokens.Contains(lowerName))
-                return true;
-
-            // Check if it's a number or version pattern
-            foreach (var pattern in VersionPatterns)
-            {
-                if (pattern.IsMatch(folderName))
-                    return true;
-            }
-
-            // Check if it's a pure number (01, 02, 1, 2, etc.)
-            if (System.Text.RegularExpressions.Regex.IsMatch(folderName, @"^\d+$"))
-                return true;
-
-            // Check common variant prefixes/patterns
-            string[] variantPatterns = {
-                "ver", "version", "v", "type", "style", "color", "colour",
-                "variant", "var", "opt", "option", "alt", "set"
-            };
-
-            foreach (var prefix in variantPatterns)
-            {
-                if (lowerName.StartsWith(prefix))
-                    return true;
-            }
-
-            return false;
+            _cachedAnalysis = null;
         }
 
         /// <summary>
-        /// Adds all materials from a folder to the candidates set.
-        /// </summary>
-        private void AddMaterialsFromFolder(string folderPath, HashSet<string> candidates)
-        {
-            var guids = AssetDatabase.FindAssets("t:Material", new[] { folderPath });
-            foreach (var guid in guids)
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                // Only add if in this exact folder (not subfolders)
-                var materialFolder = Path.GetDirectoryName(path)?.Replace("\\", "/");
-                if (materialFolder == folderPath)
-                {
-                    candidates.Add(path);
-                }
-            }
-        }
-
-        #endregion
-
-        #region Name Pattern Analysis (Proposal 2)
-
-        /// <summary>
-        /// Calculates confidence score and reasons for a candidate material.
-        /// </summary>
-        private (float confidence, List<string> reasons) CalculateConfidence(
-            Material currentMaterial, string currentPath,
-            Material candidateMaterial, string candidatePath)
-        {
-            float score = 0f;
-            var reasons = new List<string>();
-
-            var currentFolder = Path.GetDirectoryName(currentPath)?.Replace("\\", "/");
-            var candidateFolder = Path.GetDirectoryName(candidatePath)?.Replace("\\", "/");
-            var currentName = Path.GetFileNameWithoutExtension(currentPath);
-            var candidateName = Path.GetFileNameWithoutExtension(candidatePath);
-
-            // 1. Same folder check (Proposal 1)
-            bool isSameFolder = currentFolder == candidateFolder;
-            if (isSameFolder)
-            {
-                score += _config.SameFolderWeight;
-                reasons.Add("Misma carpeta");
-            }
-            else if (IsImmediateParentOrSibling(currentFolder, candidateFolder))
-            {
-                score += _config.SameFolderWeight * 0.7f;
-                reasons.Add("Carpeta cercana");
-            }
-
-            // 1.1 Sibling folder pattern detection (Proposal 5 - generalized)
-            // Check if materials are in sibling folders (same parent) with same base name
-            string currentFolderName = Path.GetFileName(currentFolder);
-            string candidateFolderName = Path.GetFileName(candidateFolder);
-
-            // Check if they are siblings (same parent folder)
-            string currentParent = Path.GetDirectoryName(currentFolder)?.Replace("\\", "/");
-            string candidateParent = Path.GetDirectoryName(candidateFolder)?.Replace("\\", "/");
-            bool areSiblingFolders = !string.IsNullOrEmpty(currentParent) &&
-                                     !string.IsNullOrEmpty(candidateParent) &&
-                                     currentParent == candidateParent &&
-                                     currentFolder != candidateFolder;
-
-            // Check if folder names suggest variants (colors, numbers, styles, etc.)
-            bool currentIsVariantFolder = IsColorOrStyleFolderName(currentFolderName);
-            bool candidateIsVariantFolder = IsColorOrStyleFolderName(candidateFolderName);
-
-            if (areSiblingFolders)
-            {
-                // Sibling folders with same parent - this is a variant pattern
-                score += 0.25f;
-                reasons.Add($"Carpetas hermanas ({currentFolderName}/{candidateFolderName})");
-
-                // Extra bonus if folder names are recognized variant names (colors, numbers, etc.)
-                if (currentIsVariantFolder && candidateIsVariantFolder)
-                {
-                    score += 0.10f;
-                    reasons.Add("Nombres de variante reconocidos");
-                }
-            }
-
-            // 2. Name prefix analysis (Proposal 2)
-            var currentTokens = TokenizeName(currentName);
-            var candidateTokens = TokenizeName(candidateName);
-
-            // 2.1 Check if they share the same base name (without color/version suffix)
-            string currentBaseName = ExtractBaseName(currentName);
-            string candidateBaseName = ExtractBaseName(candidateName);
-
-            bool sameBaseName = !string.IsNullOrEmpty(currentBaseName) &&
-                               !string.IsNullOrEmpty(candidateBaseName) &&
-                               currentBaseName.Equals(candidateBaseName, StringComparison.OrdinalIgnoreCase);
-
-            if (sameBaseName)
-            {
-                // Same base name = very likely variants
-                score += 0.40f;  // Strong bonus
-                reasons.Add("Mismo nombre base");
-
-                // Extra bonus if in same folder or sibling folders
-                if (isSameFolder)
-                {
-                    score += 0.15f;
-                }
-                else if (areSiblingFolders)
-                {
-                    // Sibling folders with same base name = very strong pattern
-                    score += 0.20f;
-                    reasons.Add("Patron de variantes en carpetas");
-                }
-            }
-            else
-            {
-                // Different base names - this is likely NOT a variant
-                // Materials with different base names are almost certainly different mesh materials
-                if (isSameFolder)
-                {
-                    // Same folder with different base names = very unlikely to be variants
-                    // These are typically different parts of the same outfit (body, cup, etc)
-                    score -= 0.60f;  // Very strong penalty
-                }
-                else if (areSiblingFolders)
-                {
-                    score -= 0.50f;  // Strong penalty for sibling folders with different base names
-                }
-                else
-                {
-                    score -= 0.40f;  // Moderate penalty otherwise
-                }
-                // Don't add a reason for penalty, it will just result in low confidence
-            }
-
-            var (prefixMatch, prefixLength) = CalculatePrefixMatch(currentTokens, candidateTokens);
-
-            if (prefixMatch > 0)
-            {
-                score += _config.SamePrefixWeight * prefixMatch;
-                if (prefixLength > 0)
-                {
-                    reasons.Add($"Prefijo compartido ({prefixLength} tokens)");
-                }
-            }
-
-            // 3. Variant suffix analysis (Proposal 2)
-            var currentSuffixType = ClassifyLastToken(currentTokens);
-            var candidateSuffixType = ClassifyLastToken(candidateTokens);
-
-            if (candidateSuffixType != TokenType.Unknown)
-            {
-                score += _config.KnownSuffixWeight;
-                string suffixReason = candidateSuffixType switch
-                {
-                    TokenType.Color => "Variante de color",
-                    TokenType.Version => "Variante de version",
-                    TokenType.Style => "Variante de estilo",
-                    TokenType.SubPart => "Variante de sub-parte",
-                    _ => "Variante conocida"
-                };
-                reasons.Add(suffixReason);
-            }
-
-            // Bonus if both have same type of suffix (e.g., both are colors)
-            if (currentSuffixType != TokenType.Unknown &&
-                currentSuffixType == candidateSuffixType)
-            {
-                score += 0.05f;
-                reasons.Add("Mismo tipo de variante");
-            }
-
-            // 4. Same shader check
-            if (currentMaterial.shader == candidateMaterial.shader)
-            {
-                score += _config.SameShaderWeight;
-                reasons.Add("Mismo shader");
-            }
-
-            // 5. Immediate folder bonus
-            if (currentFolder == candidateFolder)
-            {
-                score += _config.ImmediateFolderBonus;
-            }
-
-            return (Mathf.Clamp01(score), reasons);
-        }
-
-        /// <summary>
-        /// Checks if candidateFolder is immediate parent or sibling of currentFolder.
-        /// </summary>
-        private bool IsImmediateParentOrSibling(string currentFolder, string candidateFolder)
-        {
-            if (string.IsNullOrEmpty(currentFolder) || string.IsNullOrEmpty(candidateFolder))
-                return false;
-
-            var currentParent = Path.GetDirectoryName(currentFolder)?.Replace("\\", "/");
-            var candidateParent = Path.GetDirectoryName(candidateFolder)?.Replace("\\", "/");
-
-            // Same parent = siblings
-            if (currentParent == candidateParent)
-                return true;
-
-            // Candidate is parent of current
-            if (candidateFolder == currentParent)
-                return true;
-
-            // Current is parent of candidate
-            if (currentFolder == candidateParent)
-                return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Tokenizes a material name into parts.
-        /// </summary>
-        private List<string> TokenizeName(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-                return new List<string>();
-
-            // Split by common separators
-            var tokens = name.Split(Separators, StringSplitOptions.RemoveEmptyEntries).ToList();
-
-            // If no separators found, try to split by case changes (camelCase/PascalCase)
-            if (tokens.Count <= 1 && !string.IsNullOrEmpty(name))
-            {
-                tokens = SplitByCaseChange(name);
-            }
-
-            return tokens;
-        }
-
-        /// <summary>
-        /// Splits a string by case changes (camelCase, PascalCase).
-        /// Also handles digit-to-uppercase transitions (e.g., "mt1A" -> ["mt1", "A"]).
-        /// </summary>
-        private List<string> SplitByCaseChange(string input)
-        {
-            var result = new List<string>();
-            if (string.IsNullOrEmpty(input))
-                return result;
-
-            var currentToken = new System.Text.StringBuilder();
-
-            for (int i = 0; i < input.Length; i++)
-            {
-                char c = input[i];
-
-                // Start of uppercase sequence or single uppercase letter
-                if (char.IsUpper(c) && currentToken.Length > 0)
-                {
-                    // Check if this is start of new word or part of acronym
-                    bool isAcronymContinuation = i + 1 < input.Length && char.IsUpper(input[i + 1]);
-                    bool previousWasLower = i > 0 && char.IsLower(input[i - 1]);
-                    bool previousWasDigit = i > 0 && char.IsDigit(input[i - 1]);
-
-                    if (previousWasLower || previousWasDigit || (!isAcronymContinuation && currentToken.Length > 0))
-                    {
-                        result.Add(currentToken.ToString());
-                        currentToken.Clear();
-                    }
-                }
-
-                currentToken.Append(c);
-            }
-
-            if (currentToken.Length > 0)
-            {
-                result.Add(currentToken.ToString());
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Calculates how well the prefixes match between two token lists.
-        /// Returns (matchScore 0-1, matchingTokenCount).
-        /// </summary>
-        private (float matchScore, int matchingTokens) CalculatePrefixMatch(List<string> tokens1, List<string> tokens2)
-        {
-            if (tokens1.Count == 0 || tokens2.Count == 0)
-                return (0f, 0);
-
-            int matchingTokens = 0;
-            int minLength = Math.Min(tokens1.Count, tokens2.Count);
-
-            for (int i = 0; i < minLength; i++)
-            {
-                if (string.Equals(tokens1[i], tokens2[i], StringComparison.OrdinalIgnoreCase))
-                {
-                    matchingTokens++;
-                }
-                else
-                {
-                    break; // Stop at first non-matching token
-                }
-            }
-
-            if (matchingTokens == 0)
-            {
-                // No prefix match, but check for partial match with different structure
-                // e.g., "ShirtRed" vs "Shirt_Red"
-                var joined1 = string.Join("", tokens1).ToLowerInvariant();
-                var joined2 = string.Join("", tokens2).ToLowerInvariant();
-
-                if (joined1.StartsWith(joined2) || joined2.StartsWith(joined1))
-                {
-                    return (0.5f, 1);
-                }
-
-                return (0f, 0);
-            }
-
-            // Calculate score based on proportion of matching tokens
-            float maxTokens = Math.Max(tokens1.Count, tokens2.Count);
-            float score = matchingTokens / maxTokens;
-
-            // Bonus if all non-variant tokens match
-            if (matchingTokens >= minLength - 1)
-            {
-                score = Math.Min(1f, score + 0.2f);
-            }
-
-            return (score, matchingTokens);
-        }
-
-        /// <summary>
-        /// Classifies the last token(s) of a name.
-        /// </summary>
-        private TokenType ClassifyLastToken(List<string> tokens)
-        {
-            if (tokens.Count == 0)
-                return TokenType.Unknown;
-
-            var lastToken = tokens[tokens.Count - 1];
-
-            // Skip common material suffixes that look like color codes
-            // "M" commonly means "Material" or "Mat", not "Magenta"
-            if (IsCommonMaterialSuffix(lastToken))
-                return TokenType.Unknown;
-
-            // Check for compound color (two consecutive tokens like "Wine_Red")
-            if (tokens.Count >= 2)
-            {
-                var secondLastToken = tokens[tokens.Count - 2];
-                var compoundCandidate = $"{secondLastToken}_{lastToken}";
-
-                if (CompoundColorTokens.Contains(compoundCandidate) ||
-                    CompoundColorTokens.Contains(compoundCandidate.Replace("_", "")))
-                {
-                    return TokenType.Color;
-                }
-            }
-
-            // Check if it's a color
-            if (ColorTokens.Contains(lastToken))
-                return TokenType.Color;
-
-            // Check if it's a color+number pattern (e.g., "black1", "brown2")
-            if (ColorNumberPattern.IsMatch(lastToken))
-                return TokenType.Color;
-
-            // Check if it's a version pattern
-            foreach (var pattern in VersionPatterns)
-            {
-                if (pattern.IsMatch(lastToken))
-                    return TokenType.Version;
-            }
-
-            // Check if it's a style
-            if (StyleTokens.Contains(lastToken))
-                return TokenType.Style;
-
-            // Check if it's a sub-part identifier
-            if (SubPartTokens.Contains(lastToken))
-                return TokenType.SubPart;
-
-            return TokenType.Unknown;
-        }
-
-
-        private enum TokenType
-        {
-            Unknown,
-            Color,
-            Version,
-            Style,
-            SubPart
-        }
-
-        #endregion
-
-        #region Static Utilities
-
-        /// <summary>
-        /// Quick check if a material name contains known variant tokens.
-        /// </summary>
-        public static bool ContainsKnownVariantToken(string materialName)
-        {
-            if (string.IsNullOrEmpty(materialName))
-                return false;
-
-            var tokens = materialName.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
-
-            // Check for compound colors (consecutive token pairs)
-            for (int i = 0; i < tokens.Length - 1; i++)
-            {
-                var compoundCandidate = $"{tokens[i]}_{tokens[i + 1]}";
-                if (CompoundColorTokens.Contains(compoundCandidate) ||
-                    CompoundColorTokens.Contains(compoundCandidate.Replace("_", "")))
-                {
-                    return true;
-                }
-            }
-
-            foreach (var token in tokens)
-            {
-                // Skip common material suffixes
-                if (IsCommonMaterialSuffix(token))
-                    continue;
-
-                if (ColorTokens.Contains(token))
-                    return true;
-
-                if (StyleTokens.Contains(token))
-                    return true;
-
-                if (SubPartTokens.Contains(token))
-                    return true;
-
-                // Check color+number patterns (e.g., "black1", "brown2")
-                if (ColorNumberPattern.IsMatch(token))
-                    return true;
-
-                foreach (var pattern in VersionPatterns)
-                {
-                    if (pattern.IsMatch(token))
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Extracts the likely "base name" of a material (without variant suffix).
+        /// Extrae el nombre base de un material.
+        /// Remueve sufijos numéricos y de variante (_01, _A, etc.)
         /// </summary>
         public static string ExtractBaseName(string materialName)
         {
-            if (string.IsNullOrEmpty(materialName))
-                return materialName;
+            if (string.IsNullOrEmpty(materialName)) return "";
 
-            var tokens = materialName.Split(Separators, StringSplitOptions.RemoveEmptyEntries).ToList();
+            var name = materialName;
 
-            // If no separators found, try to split by case changes (e.g., "mt1A" -> ["mt1", "A"])
-            if (tokens.Count <= 1 && !string.IsNullOrEmpty(materialName))
-            {
-                tokens = SplitByCaseChangeStatic(materialName);
-            }
+            // Remover extensión si existe
+            if (name.EndsWith(".mat", StringComparison.OrdinalIgnoreCase))
+                name = name.Substring(0, name.Length - 4);
 
-            if (tokens.Count <= 1)
-                return materialName;
+            // Remover sufijos numéricos comunes: _00, _01, _1, _2, etc.
+            name = System.Text.RegularExpressions.Regex.Replace(name, @"[_\-\s]?\d+$", "");
 
-            // Remove trailing variant tokens
-            while (tokens.Count > 1)
-            {
-                var lastToken = tokens[tokens.Count - 1];
+            // Remover sufijos de letra: _A, _B, _a, _b, etc.
+            name = System.Text.RegularExpressions.Regex.Replace(name, @"[_\-\s]?[A-Za-z]$", "");
 
-                // Skip common material suffixes - they're not variants
-                if (IsCommonMaterialSuffix(lastToken))
-                {
-                    break;
-                }
-
-                // Check for compound color (two consecutive tokens like "Wine_Red")
-                if (tokens.Count >= 2)
-                {
-                    var secondLastToken = tokens[tokens.Count - 2];
-                    var compoundCandidate = $"{secondLastToken}_{lastToken}";
-
-                    if (CompoundColorTokens.Contains(compoundCandidate) ||
-                        CompoundColorTokens.Contains(compoundCandidate.Replace("_", "")))
-                    {
-                        // Remove both tokens of the compound color
-                        tokens.RemoveAt(tokens.Count - 1);
-                        tokens.RemoveAt(tokens.Count - 1);
-                        continue;
-                    }
-                }
-
-                bool isVariant = ColorTokens.Contains(lastToken) ||
-                                StyleTokens.Contains(lastToken) ||
-                                SubPartTokens.Contains(lastToken) ||  // Handle sub-parts like "kanagu", "metal", etc.
-                                VersionPatterns.Any(p => p.IsMatch(lastToken)) ||
-                                ColorNumberPattern.IsMatch(lastToken);  // Handle "black1", "brown2", etc.
-
-                if (isVariant)
-                {
-                    tokens.RemoveAt(tokens.Count - 1);
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            return string.Join("_", tokens);
-        }
-
-        /// <summary>
-        /// Common suffixes for material files that should not be treated as variants.
-        /// </summary>
-        private static readonly HashSet<string> CommonMaterialSuffixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "M", "Mat", "Material", "Mtl", "Tex", "Texture"
-        };
-
-        /// <summary>
-        /// Checks if a token is a common material suffix (not a color/variant).
-        /// Static version for ExtractBaseName.
-        /// </summary>
-        private static bool IsCommonMaterialSuffix(string token)
-        {
-            if (string.IsNullOrEmpty(token))
-                return false;
-
-            return CommonMaterialSuffixes.Contains(token);
-        }
-
-        /// <summary>
-        /// Splits a string by case changes (camelCase, PascalCase).
-        /// Static version for ExtractBaseName.
-        /// Handles cases like "mt1A" -> ["mt1", "A"], "BodydsE" -> ["Bodyds", "E"]
-        /// </summary>
-        private static List<string> SplitByCaseChangeStatic(string input)
-        {
-            var result = new List<string>();
-            if (string.IsNullOrEmpty(input))
-                return result;
-
-            var currentToken = new System.Text.StringBuilder();
-
-            for (int i = 0; i < input.Length; i++)
-            {
-                char c = input[i];
-
-                // Start of uppercase sequence or single uppercase letter
-                if (char.IsUpper(c) && currentToken.Length > 0)
-                {
-                    // Check if this is start of new word or part of acronym
-                    bool isAcronymContinuation = i + 1 < input.Length && char.IsUpper(input[i + 1]);
-                    bool previousWasLower = i > 0 && char.IsLower(input[i - 1]);
-
-                    // Also split when previous was a digit (e.g., "mt1A" -> ["mt1", "A"])
-                    bool previousWasDigit = i > 0 && char.IsDigit(input[i - 1]);
-
-                    if (previousWasLower || previousWasDigit || (!isAcronymContinuation && currentToken.Length > 0))
-                    {
-                        result.Add(currentToken.ToString());
-                        currentToken.Clear();
-                    }
-                }
-
-                currentToken.Append(c);
-            }
-
-            if (currentToken.Length > 0)
-            {
-                result.Add(currentToken.ToString());
-            }
-
-            return result;
+            return name.Trim();
         }
 
         #endregion
+
+#if UNITY_EDITOR
+        #region Case 1: Materials Grouped By Folder
+
+        /// <summary>
+        /// CASO 1: Cada carpeta hermana con slots contiene un grupo de materiales.
+        /// TODOS los materiales de la carpeta forman el grupo (incluyendo el actual).
+        /// No importa el nombre ni la cantidad de materiales.
+        /// </summary>
+        private List<SlotSuggestionResult> DetectCase1_GroupedByFolder(
+            List<MRMaterialSlot> slots,
+            FolderStructureAnalysis analysis)
+        {
+            var results = new List<SlotSuggestionResult>();
+
+            foreach (var slot in slots)
+            {
+                var suggestions = new List<MaterialSuggestion>();
+                var currentMaterial = slot.CurrentMaterial;
+
+                if (currentMaterial == null)
+                {
+                    results.Add(new SlotSuggestionResult(slot, null, suggestions));
+                    continue;
+                }
+
+                string currentPath = AssetDatabase.GetAssetPath(currentMaterial);
+                string currentFolder = Path.GetDirectoryName(currentPath)?.Replace("\\", "/");
+
+                // Encontrar la carpeta de este slot
+                var folderInfo = analysis.FolderInfos.FirstOrDefault(f => f.FolderPath == currentFolder);
+
+                if (folderInfo != null && folderInfo.MaterialCount >= 2)
+                {
+                    // TODOS los materiales de la carpeta forman el grupo (incluyendo el actual)
+                    // Solo si hay 2+ materiales (un grupo de 1 no tiene alternativas)
+                    foreach (var matPath in folderInfo.MaterialPaths)
+                    {
+                        var material = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                        if (material == null) continue;
+
+                        bool isCurrentMaterial = (matPath == currentPath);
+
+                        var reasons = new List<string>
+                        {
+                            $"Misma carpeta: {folderInfo.FolderName}",
+                            "Grupos en carpeta"
+                        };
+
+                        if (isCurrentMaterial)
+                        {
+                            reasons.Add("(Material actual)");
+                        }
+
+                        // Alta confianza porque están en la misma carpeta
+                        suggestions.Add(new MaterialSuggestion(material, 0.95f, reasons, matPath));
+                    }
+                }
+
+                results.Add(new SlotSuggestionResult(slot, currentMaterial, suggestions));
+            }
+
+            return results;
+        }
+
+        #endregion
+
+        #region Case 2: Materials Distributed In Sibling Folders
+
+        /// <summary>
+        /// CASO 2: Emparejar materiales entre carpetas hermanas.
+        /// Las carpetas hermanas suelen tener el mismo número de materiales.
+        /// Estrategia:
+        /// 1. Primero emparejar por diferenciador exacto (incluyendo vacíos)
+        /// 2. Luego emparejar por Levenshtein con buena confianza
+        /// 3. Finalmente emparejar por eliminación (los que quedan, mismo índice)
+        /// Todos los grupos resultantes tienen el mismo tamaño (una entrada por carpeta).
+        /// </summary>
+        private List<SlotSuggestionResult> DetectCase2_DistributedInSiblings(
+            List<MRMaterialSlot> slots,
+            FolderStructureAnalysis analysis)
+        {
+            var results = new List<SlotSuggestionResult>();
+
+            // Construir mapa global de emparejamiento entre todas las carpetas hermanas
+            var globalMatching = BuildGlobalFolderMatching(analysis);
+
+            foreach (var slot in slots)
+            {
+                var suggestions = new List<MaterialSuggestion>();
+                var currentMaterial = slot.CurrentMaterial;
+
+                if (currentMaterial == null)
+                {
+                    results.Add(new SlotSuggestionResult(slot, null, suggestions));
+                    continue;
+                }
+
+                string currentPath = AssetDatabase.GetAssetPath(currentMaterial);
+
+                // Buscar el grupo de este material en el matching global
+                var materialGroup = globalMatching.FirstOrDefault(g =>
+                    g.Materials.Any(m => m.Path == currentPath));
+
+                if (materialGroup != null)
+                {
+                    // Agregar todos los materiales del grupo como sugerencias
+                    foreach (var matchedMat in materialGroup.Materials)
+                    {
+                        var material = AssetDatabase.LoadAssetAtPath<Material>(matchedMat.Path);
+                        if (material == null) continue;
+
+                        bool isCurrentMaterial = (matchedMat.Path == currentPath);
+
+                        var reasons = new List<string>
+                        {
+                            $"Carpeta: {matchedMat.FolderName}"
+                        };
+
+                        if (!string.IsNullOrEmpty(materialGroup.MatchReason))
+                        {
+                            reasons.Add(materialGroup.MatchReason);
+                        }
+
+                        if (isCurrentMaterial)
+                        {
+                            reasons.Add("(Material actual)");
+                        }
+
+                        suggestions.Add(new MaterialSuggestion(material, materialGroup.Confidence, reasons, matchedMat.Path));
+                    }
+                }
+
+                results.Add(new SlotSuggestionResult(slot, currentMaterial, suggestions));
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Información de un material para el matching global.
+        /// </summary>
+        private class MaterialMatchInfo
+        {
+            public string Path;
+            public string Name;
+            public string FolderPath;
+            public string FolderName;
+            public string Differentiator;
+            public int IndexInFolder;
+        }
+
+        /// <summary>
+        /// Grupo de materiales emparejados entre carpetas.
+        /// </summary>
+        private class MaterialMatchGroup
+        {
+            public List<MaterialMatchInfo> Materials = new List<MaterialMatchInfo>();
+            public float Confidence;
+            public string MatchReason;
+        }
+
+        /// <summary>
+        /// Construye el emparejamiento global entre todas las carpetas hermanas.
+        /// Usa estrategia de 3 pasos: exacto → Levenshtein → eliminación.
+        /// </summary>
+        private List<MaterialMatchGroup> BuildGlobalFolderMatching(FolderStructureAnalysis analysis)
+        {
+            var groups = new List<MaterialMatchGroup>();
+
+            if (analysis.DifferentiatorInfos.Count == 0)
+                return groups;
+
+            // Crear lista de todos los materiales con su info
+            var allMaterials = new List<MaterialMatchInfo>();
+            foreach (var diffInfo in analysis.DifferentiatorInfos)
+            {
+                for (int i = 0; i < diffInfo.Folder.MaterialNames.Count && i < diffInfo.Folder.MaterialPaths.Count; i++)
+                {
+                    string name = diffInfo.Folder.MaterialNames[i];
+                    string diff = diffInfo.MaterialToDifferentiator.ContainsKey(name)
+                        ? diffInfo.MaterialToDifferentiator[name]
+                        : name;
+
+                    allMaterials.Add(new MaterialMatchInfo
+                    {
+                        Path = diffInfo.Folder.MaterialPaths[i],
+                        Name = name,
+                        FolderPath = diffInfo.Folder.FolderPath,
+                        FolderName = diffInfo.Folder.FolderName,
+                        Differentiator = diff,
+                        IndexInFolder = i
+                    });
+                }
+            }
+
+            // Set de materiales ya emparejados
+            var matchedPaths = new HashSet<string>();
+
+            // PASO 1: Emparejar por diferenciador exacto (incluyendo vacíos)
+            var byDifferentiator = allMaterials
+                .GroupBy(m => NormalizeDifferentiator(m.Differentiator))
+                .Where(g => g.Select(m => m.FolderPath).Distinct().Count() > 1)
+                .ToList();
+
+            foreach (var diffGroup in byDifferentiator)
+            {
+                var foldersInGroup = diffGroup.Select(m => m.FolderPath).Distinct().ToList();
+                if (foldersInGroup.Count <= 1) continue;
+
+                var group = new MaterialMatchGroup
+                {
+                    Confidence = 0.95f,
+                    MatchReason = string.IsNullOrEmpty(diffGroup.Key)
+                        ? "Diferenciador vacío (match exacto)"
+                        : $"Diferenciador exacto: '{diffGroup.First().Differentiator}'"
+                };
+
+                foreach (var mat in diffGroup)
+                {
+                    if (!matchedPaths.Contains(mat.Path))
+                    {
+                        group.Materials.Add(mat);
+                        matchedPaths.Add(mat.Path);
+                    }
+                }
+
+                if (group.Materials.Count > 1)
+                {
+                    groups.Add(group);
+                }
+            }
+
+            // PASO 2: Emparejar por Levenshtein con buena confianza
+            var unmatchedByFolder = allMaterials
+                .Where(m => !matchedPaths.Contains(m.Path))
+                .GroupBy(m => m.FolderPath)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            if (unmatchedByFolder.Count > 1)
+            {
+                var folders = unmatchedByFolder.Keys.ToList();
+                var referenceFolder = folders[0];
+                var referenceMaterials = unmatchedByFolder[referenceFolder].ToList();
+
+                foreach (var refMat in referenceMaterials.ToList())
+                {
+                    if (matchedPaths.Contains(refMat.Path)) continue;
+
+                    var group = new MaterialMatchGroup
+                    {
+                        Confidence = 0.85f
+                    };
+                    group.Materials.Add(refMat);
+
+                    string refDiffNorm = NormalizeDifferentiator(refMat.Differentiator);
+
+                    foreach (var otherFolder in folders.Skip(1))
+                    {
+                        if (!unmatchedByFolder.ContainsKey(otherFolder)) continue;
+
+                        var candidates = unmatchedByFolder[otherFolder]
+                            .Where(m => !matchedPaths.Contains(m.Path))
+                            .ToList();
+
+                        if (candidates.Count == 0) continue;
+
+                        var bestMatch = FindBestLevenshteinMatch(refDiffNorm, candidates);
+                        if (bestMatch != null && bestMatch.Distance <= GetMaxAllowedDistance(refDiffNorm))
+                        {
+                            group.Materials.Add(bestMatch.Material);
+                            group.MatchReason = $"Diferenciador similar: '{refMat.Differentiator}' ≈ '{bestMatch.Material.Differentiator}'";
+                            group.Confidence = CalculateLevenshteinConfidence(bestMatch.Distance, refDiffNorm.Length);
+                        }
+                    }
+
+                    if (group.Materials.Count > 1)
+                    {
+                        foreach (var mat in group.Materials)
+                        {
+                            matchedPaths.Add(mat.Path);
+                        }
+                        groups.Add(group);
+                    }
+                }
+            }
+
+            // PASO 3: Emparejar por eliminación (mismo índice en carpeta)
+            // Las carpetas hermanas suelen tener el mismo número de materiales
+            var stillUnmatchedByFolder = allMaterials
+                .Where(m => !matchedPaths.Contains(m.Path))
+                .GroupBy(m => m.FolderPath)
+                .ToDictionary(g => g.Key, g => g.OrderBy(m => m.IndexInFolder).ToList());
+
+            if (stillUnmatchedByFolder.Count > 1)
+            {
+                var foldersList = stillUnmatchedByFolder.Keys.ToList();
+                int maxMaterials = stillUnmatchedByFolder.Values.Max(v => v.Count);
+
+                for (int i = 0; i < maxMaterials; i++)
+                {
+                    var group = new MaterialMatchGroup
+                    {
+                        Confidence = 0.7f,
+                        MatchReason = "Emparejado por eliminación (mismo índice)"
+                    };
+
+                    foreach (var folder in foldersList)
+                    {
+                        var materialsInFolder = stillUnmatchedByFolder[folder];
+                        if (i < materialsInFolder.Count)
+                        {
+                            var mat = materialsInFolder[i];
+                            if (!matchedPaths.Contains(mat.Path))
+                            {
+                                group.Materials.Add(mat);
+                                matchedPaths.Add(mat.Path);
+                            }
+                        }
+                    }
+
+                    if (group.Materials.Count > 1)
+                    {
+                        groups.Add(group);
+                    }
+                }
+            }
+
+            return groups;
+        }
+
+        /// <summary>
+        /// Resultado de búsqueda Levenshtein.
+        /// </summary>
+        private class LevenshteinMatchResult
+        {
+            public MaterialMatchInfo Material;
+            public int Distance;
+        }
+
+        /// <summary>
+        /// Encuentra el mejor match por Levenshtein en una lista de candidatos.
+        /// </summary>
+        private LevenshteinMatchResult FindBestLevenshteinMatch(string sourceDiffNorm, List<MaterialMatchInfo> candidates)
+        {
+            LevenshteinMatchResult best = null;
+            int bestDistance = int.MaxValue;
+
+            foreach (var candidate in candidates)
+            {
+                string candDiffNorm = NormalizeDifferentiator(candidate.Differentiator);
+                int distance = LevenshteinDistance(sourceDiffNorm, candDiffNorm);
+
+                // Bonus si uno contiene al otro
+                if (!string.IsNullOrEmpty(sourceDiffNorm) && !string.IsNullOrEmpty(candDiffNorm))
+                {
+                    if (sourceDiffNorm.Contains(candDiffNorm) || candDiffNorm.Contains(sourceDiffNorm))
+                    {
+                        distance = Math.Min(distance, Math.Abs(sourceDiffNorm.Length - candDiffNorm.Length));
+                    }
+                }
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = new LevenshteinMatchResult
+                    {
+                        Material = candidate,
+                        Distance = distance
+                    };
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Calcula la distancia máxima permitida para considerar un match válido.
+        /// </summary>
+        private int GetMaxAllowedDistance(string normalizedDiff)
+        {
+            if (string.IsNullOrEmpty(normalizedDiff)) return 0; // Vacío solo matchea con vacío
+            return Math.Max(2, normalizedDiff.Length / 3);
+        }
+
+        /// <summary>
+        /// Calcula la confianza basada en la distancia de Levenshtein.
+        /// </summary>
+        private float CalculateLevenshteinConfidence(int distance, int sourceLength)
+        {
+            if (distance == 0) return 0.95f;
+            float distanceRatio = (float)distance / Math.Max(sourceLength, 1);
+            return Mathf.Clamp(0.9f - (distanceRatio * 0.4f), 0.5f, 0.9f);
+        }
+
+        /// <summary>
+        /// Normaliza un diferenciador para comparación.
+        /// Remueve caracteres no alfanuméricos y convierte a minúsculas.
+        /// </summary>
+        private string NormalizeDifferentiator(string diff)
+        {
+            if (string.IsNullOrEmpty(diff)) return "";
+
+            var normalized = new System.Text.StringBuilder();
+            foreach (char c in diff.ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    normalized.Append(c);
+                }
+            }
+            return normalized.ToString();
+        }
+
+        /// <summary>
+        /// Calcula la distancia de Levenshtein entre dos strings.
+        /// </summary>
+        private int LevenshteinDistance(string s1, string s2)
+        {
+            if (string.IsNullOrEmpty(s1)) return s2?.Length ?? 0;
+            if (string.IsNullOrEmpty(s2)) return s1.Length;
+
+            int[,] d = new int[s1.Length + 1, s2.Length + 1];
+
+            for (int i = 0; i <= s1.Length; i++)
+                d[i, 0] = i;
+
+            for (int j = 0; j <= s2.Length; j++)
+                d[0, j] = j;
+
+            for (int i = 1; i <= s1.Length; i++)
+            {
+                for (int j = 1; j <= s2.Length; j++)
+                {
+                    int cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+
+            return d[s1.Length, s2.Length];
+        }
+
+        #endregion
+
+        #region Case 3: Materials Mixed In Single Folder
+
+        /// <summary>
+        /// CASO 3: Sin carpetas hermanas, agrupar por similitud de nombres usando Levenshtein.
+        /// TODOS los materiales con nombre base similar forman el grupo (incluyendo el actual).
+        /// </summary>
+        private List<SlotSuggestionResult> DetectCase3_MixedInSingleFolder(
+            List<MRMaterialSlot> slots,
+            FolderStructureAnalysis analysis)
+        {
+            var results = new List<SlotSuggestionResult>();
+
+            if (analysis.FolderInfos.Count == 0)
+            {
+                foreach (var slot in slots)
+                {
+                    results.Add(new SlotSuggestionResult(slot, slot.CurrentMaterial, new List<MaterialSuggestion>()));
+                }
+                return results;
+            }
+
+            var folderInfo = analysis.FolderInfos[0];
+
+            // Agrupar materiales por nombre base
+            var baseNameGroups = GroupMaterialsByBaseName(folderInfo);
+
+            foreach (var slot in slots)
+            {
+                var suggestions = new List<MaterialSuggestion>();
+                var currentMaterial = slot.CurrentMaterial;
+
+                if (currentMaterial == null)
+                {
+                    results.Add(new SlotSuggestionResult(slot, null, suggestions));
+                    continue;
+                }
+
+                string currentPath = AssetDatabase.GetAssetPath(currentMaterial);
+                string currentName = Path.GetFileNameWithoutExtension(currentPath);
+                string currentBaseName = ExtractBaseName(currentName);
+
+                // Buscar grupo del material actual
+                // Solo si hay 2+ materiales (un grupo de 1 no tiene alternativas)
+                if (baseNameGroups.TryGetValue(currentBaseName, out var group) && group.Count >= 2)
+                {
+                    foreach (var matPath in group)
+                    {
+                        var material = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                        if (material == null) continue;
+
+                        bool isCurrentMaterial = (matPath == currentPath);
+                        string matName = Path.GetFileNameWithoutExtension(matPath);
+
+                        var reasons = new List<string>
+                        {
+                            $"Mismo nombre base: {currentBaseName}",
+                            "Todo en carpeta"
+                        };
+
+                        if (isCurrentMaterial)
+                        {
+                            reasons.Add("(Material actual)");
+                        }
+
+                        // Calcular confianza basada en similitud de nombre
+                        int distance = LevenshteinDistance(currentName.ToLower(), matName.ToLower());
+                        float maxLen = Math.Max(currentName.Length, matName.Length);
+                        float similarity = 1f - (distance / maxLen);
+                        float confidence = Mathf.Clamp(similarity, 0.6f, 0.9f);
+
+                        suggestions.Add(new MaterialSuggestion(material, confidence, reasons, matPath));
+                    }
+                }
+
+                // Si no encontró grupo exacto, buscar con Levenshtein en todos los materiales
+                if (suggestions.Count == 0)
+                {
+                    suggestions = FindSimilarMaterialsWithLevenshtein(currentPath, currentName, folderInfo);
+                }
+
+                results.Add(new SlotSuggestionResult(slot, currentMaterial, suggestions));
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Agrupa materiales por nombre base en una carpeta.
+        /// </summary>
+        private Dictionary<string, List<string>> GroupMaterialsByBaseName(FolderMaterialInfo folderInfo)
+        {
+            var groups = new Dictionary<string, List<string>>();
+
+            for (int i = 0; i < folderInfo.MaterialNames.Count && i < folderInfo.MaterialPaths.Count; i++)
+            {
+                string name = folderInfo.MaterialNames[i];
+                string path = folderInfo.MaterialPaths[i];
+                string baseName = ExtractBaseName(name);
+
+                if (!groups.ContainsKey(baseName))
+                {
+                    groups[baseName] = new List<string>();
+                }
+                groups[baseName].Add(path);
+            }
+
+            return groups;
+        }
+
+        /// <summary>
+        /// Busca materiales similares usando Levenshtein cuando no hay grupo exacto.
+        /// Incluye el material actual como parte del grupo.
+        /// </summary>
+        private List<MaterialSuggestion> FindSimilarMaterialsWithLevenshtein(
+            string currentPath,
+            string currentName,
+            FolderMaterialInfo folderInfo)
+        {
+            var suggestions = new List<MaterialSuggestion>();
+            string normalizedCurrent = NormalizeDifferentiator(currentName);
+
+            var candidates = new List<(string path, string name, int distance, bool isCurrent)>();
+
+            for (int i = 0; i < folderInfo.MaterialNames.Count && i < folderInfo.MaterialPaths.Count; i++)
+            {
+                string matPath = folderInfo.MaterialPaths[i];
+                string matName = folderInfo.MaterialNames[i];
+                string normalizedName = NormalizeDifferentiator(matName);
+                bool isCurrent = (matPath == currentPath);
+
+                int distance = LevenshteinDistance(normalizedCurrent, normalizedName);
+
+                // Umbral: nombres muy diferentes se ignoran (pero el actual siempre se incluye)
+                int maxDistance = Math.Max(3, normalizedCurrent.Length / 2);
+                if (distance <= maxDistance || isCurrent)
+                {
+                    candidates.Add((matPath, matName, distance, isCurrent));
+                }
+            }
+
+            // Ordenar por distancia y tomar los mejores
+            foreach (var candidate in candidates.OrderBy(c => c.distance).Take(6))
+            {
+                var material = AssetDatabase.LoadAssetAtPath<Material>(candidate.path);
+                if (material == null) continue;
+
+                var reasons = new List<string>
+                {
+                    $"Nombre similar a: {currentName}",
+                    $"Distancia Levenshtein: {candidate.distance}"
+                };
+
+                if (candidate.isCurrent)
+                {
+                    reasons.Add("(Material actual)");
+                }
+
+                float maxLen = Math.Max(normalizedCurrent.Length, 1);
+                float confidence = Mathf.Clamp(0.7f - (candidate.distance / maxLen * 0.3f), 0.4f, 0.7f);
+
+                suggestions.Add(new MaterialSuggestion(material, confidence, reasons, candidate.path));
+            }
+
+            return suggestions;
+        }
+
+        #endregion
+#endif
     }
 }

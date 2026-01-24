@@ -8,6 +8,35 @@ using Bender_Dios.MenuRadial.Validation.Models;
 namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
 {
     /// <summary>
+    /// Modo de detección de estructura de carpetas para sugerencias de materiales.
+    /// </summary>
+    public enum FolderStructureMode
+    {
+        /// <summary>
+        /// Detectar automáticamente el tipo de estructura.
+        /// </summary>
+        Auto = 0,
+
+        /// <summary>
+        /// Caso 1: Materiales agrupados por carpeta.
+        /// Cada carpeta hermana contiene un grupo completo.
+        /// </summary>
+        Case1_GroupedByFolder = 1,
+
+        /// <summary>
+        /// Caso 2: Materiales repartidos en carpetas hermanas.
+        /// Emparejar por diferenciadores entre carpetas.
+        /// </summary>
+        Case2_DistributedInSiblings = 2,
+
+        /// <summary>
+        /// Caso 3: Materiales mezclados en una carpeta.
+        /// Agrupar por similitud de nombres.
+        /// </summary>
+        Case3_MixedInSingleFolder = 3
+    }
+
+    /// <summary>
     /// Componente MR Agrupar Materiales (antes MRAlternativeMaterial)
     /// Gestiona materiales alternativos para prendas y genera animaciones de cambio
     /// </summary>
@@ -18,6 +47,8 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
         [SerializeField] private List<MRMaterialSlot> _slots = new List<MRMaterialSlot>();
         [SerializeField] private List<MRMaterialGroup> _groups = new List<MRMaterialGroup>();
         [SerializeField] private GameObject _sourceGameObject;
+        [SerializeField] private FolderStructureMode _folderStructureMode = FolderStructureMode.Auto;
+        [SerializeField] private List<string> _selectedSiblingFolders = new List<string>();
 
         #region Properties
 
@@ -48,6 +79,27 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
         {
             get => _sourceGameObject;
             set => _sourceGameObject = value;
+        }
+
+        /// <summary>
+        /// Modo de detección de estructura de carpetas.
+        /// Auto = detectar automáticamente.
+        /// Case1/2/3 = forzar un tipo específico.
+        /// </summary>
+        public FolderStructureMode FolderStructureMode
+        {
+            get => _folderStructureMode;
+            set => _folderStructureMode = value;
+        }
+
+        /// <summary>
+        /// Lista de rutas de carpetas hermanas seleccionadas manualmente.
+        /// Solo se usa cuando FolderStructureMode no es Auto.
+        /// </summary>
+        public List<string> SelectedSiblingFolders
+        {
+            get => _selectedSiblingFolders;
+            set => _selectedSiblingFolders = value ?? new List<string>();
         }
 
         /// <summary>
