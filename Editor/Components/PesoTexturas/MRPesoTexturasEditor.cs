@@ -213,58 +213,99 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Estado basado en el peso actual (lo que VRChat contara)
-            bool isCurrentHigh = _target.CurrentEstimatedVRAM >= VRChatTextureWeightCalculator.VRCHAT_UNCOMPRESSED_SIZE_LIMIT;
-            Color statusColor = isCurrentHigh ? ErrorColor : SuccessColor;
-            GUI.contentColor = statusColor;
-            EditorGUILayout.LabelField($"[{(isCurrentHigh ? "ALTO" : "OK")}]", EditorStyles.boldLabel);
-            GUI.contentColor = Color.white;
+            // Determinar si excede el limite de 500 MB
+            bool exceedsLimit = _target.ExceedsVRChatLimit;
 
-            EditorGUILayout.Space(3);
+            // === DESGLOSE ===
+            EditorGUILayout.LabelField("Desglose de VRAM:", EditorStyles.miniBoldLabel);
 
-            // Peso actual (lo que VRChat contara)
-            EditorGUILayout.LabelField("Peso actual (VRChat):", EditorStyles.miniBoldLabel);
-            GUI.contentColor = isCurrentHigh ? ErrorColor : SuccessColor;
-            EditorGUILayout.LabelField($"  {_target.CurrentSizeLabel} ({_target.CurrentTextureCount} texturas)", EditorStyles.miniBoldLabel);
-            GUI.contentColor = Color.white;
+            // Texturas
+            DrawAssetRow("Texturas", _target.TotalEstimatedVRAM, $"{_target.TotalTextureCount} texturas");
 
-            // Si hay materiales alternativos, mostrar el total
-            if (_target.AlternativeTextureCount > 0)
+            // Meshes
+            if (_target.MeshVRAM > 0)
             {
-                EditorGUILayout.Space(3);
-                EditorGUILayout.LabelField("Con materiales alternativos:", EditorStyles.miniBoldLabel);
-                GUI.contentColor = WarningColor;
-                EditorGUILayout.LabelField($"  {_target.TotalSizeLabel} (+{VRChatTextureWeightCalculator.FormatBytes(_target.AlternativeEstimatedVRAM)} en {_target.AlternativeTextureCount} texturas)", EditorStyles.miniLabel);
-                GUI.contentColor = Color.white;
+                DrawAssetRow("Meshes", _target.MeshVRAM, $"{_target.MeshCount} meshes");
             }
 
-            EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField($"Grupos: {_target.GroupCount}", EditorStyles.miniLabel);
-
-            if (_target.MaxResolutionFound > 0)
+            // Blend Shapes
+            if (_target.BlendShapeVRAM > 0)
             {
-                EditorGUILayout.LabelField($"Resolucion maxima: {_target.MaxResolutionFound}px", EditorStyles.miniLabel);
+                DrawAssetRow("Blend Shapes", _target.BlendShapeVRAM, $"{_target.BlendShapeCount} shapes");
+            }
+
+            // Animaciones
+            if (_target.AnimationSize > 0)
+            {
+                DrawAssetRow("Animaciones", _target.AnimationSize, $"{_target.AnimationClipCount} clips");
+            }
+
+            // Materiales
+            if (_target.MaterialSize > 0)
+            {
+                DrawAssetRow("Materiales", _target.MaterialSize, null);
+            }
+
+            // Audio
+            if (_target.AudioSize > 0)
+            {
+                DrawAssetRow("Audio", _target.AudioSize, null);
             }
 
             EditorGUILayout.Space(5);
 
-            // Mostrar limites de VRChat
-            EditorGUILayout.LabelField("Limites de VRChat (PC):", EditorStyles.miniBoldLabel);
-            EditorGUILayout.LabelField("  Download Size: 200 MB (archivo comprimido)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  Uncompressed Size: 500 MB (bundle descomprimido)", EditorStyles.miniLabel);
+            // Linea separadora
+            var rect = EditorGUILayout.GetControlRect(false, 1);
+            EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.5f));
 
-            // Advertencia si supera el limite
-            if (isCurrentHigh)
+            EditorGUILayout.Space(3);
+
+            // === TOTAL DEL BUNDLE ===
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Total Bundle:", EditorStyles.boldLabel, GUILayout.Width(100));
+            GUI.contentColor = exceedsLimit ? ErrorColor : Color.white;
+            EditorGUILayout.LabelField(_target.TotalBundleSizeLabel, EditorStyles.boldLabel);
+            GUI.contentColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            // Advertencia si excede el limite
+            if (exceedsLimit)
             {
-                EditorGUILayout.Space(3);
+                EditorGUILayout.Space(2);
                 GUI.contentColor = ErrorColor;
-                EditorGUILayout.LabelField(
-                    "El peso actual supera los 500 MB. El avatar podria no subirse.",
-                    EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("Excede el limite de 500 MB de VRChat", EditorStyles.miniLabel);
                 GUI.contentColor = Color.white;
             }
 
+            EditorGUILayout.Space(3);
+
+            // Info adicional compacta
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"Grupos: {_target.GroupCount}", EditorStyles.miniLabel, GUILayout.Width(80));
+            if (_target.MaxResolutionFound > 0)
+            {
+                EditorGUILayout.LabelField($"Max res: {_target.MaxResolutionFound}px", EditorStyles.miniLabel);
+            }
+            EditorGUILayout.EndHorizontal();
+
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Dibuja una fila de asset en el desglose.
+        /// </summary>
+        private void DrawAssetRow(string label, long bytes, string detail)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"  {label}:", EditorStyles.miniLabel, GUILayout.Width(100));
+            EditorGUILayout.LabelField(VRChatTextureWeightCalculator.FormatBytes(bytes), EditorStyles.miniLabel, GUILayout.Width(70));
+            if (!string.IsNullOrEmpty(detail))
+            {
+                GUI.contentColor = new Color(0.7f, 0.7f, 0.7f);
+                EditorGUILayout.LabelField($"({detail})", EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+            }
+            EditorGUILayout.EndHorizontal();
         }
 
         #endregion
@@ -351,53 +392,98 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         private void DrawSavingsPreview()
         {
-            if (!_target.CanStepDown())
+            // Verificar si hay algo que mostrar
+            bool canStepDown = _target.CanStepDown();
+            int historyCount = TextureHistoryManager.GetHistoryCount();
+
+            if (!canStepDown && historyCount == 0)
                 return;
 
-            EditorGUILayout.LabelField("Ahorro Potencial", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Optimizacion de Texturas", EditorStyles.boldLabel);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            long currentTotal = _target.TotalEstimatedVRAM;
-            long afterStepDown = _target.GetTotalAfterStepDown();
-            long savings = currentTotal - afterStepDown;
-            float savingsPercent = _target.GetOverallSavingsPercentage();
+            // Mostrar preview de ahorro si se puede reducir
+            if (canStepDown)
+            {
+                long currentTotal = _target.TotalEstimatedVRAM;
+                long afterStepDown = _target.GetTotalAfterStepDown();
+                long savings = currentTotal - afterStepDown;
+                float savingsPercent = _target.GetOverallSavingsPercentage();
 
-            // Preview visual
-            GUI.contentColor = SavingsColor;
-            EditorGUILayout.LabelField(
-                $"Si reduces un paso: {VRChatTextureWeightCalculator.FormatBytes(currentTotal)} -> {VRChatTextureWeightCalculator.FormatBytes(afterStepDown)}",
-                EditorStyles.boldLabel);
-            GUI.contentColor = Color.white;
+                // Preview visual
+                GUI.contentColor = SavingsColor;
+                EditorGUILayout.LabelField(
+                    $"Si reduces un paso: {VRChatTextureWeightCalculator.FormatBytes(currentTotal)} -> {VRChatTextureWeightCalculator.FormatBytes(afterStepDown)}",
+                    EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
 
-            EditorGUILayout.LabelField(
-                $"Ahorro: {VRChatTextureWeightCalculator.FormatBytes(savings)} (-{savingsPercent:F1}%)",
-                EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(
+                    $"Ahorro: {VRChatTextureWeightCalculator.FormatBytes(savings)} (-{savingsPercent:F1}%)",
+                    EditorStyles.miniLabel);
+            }
+
+            // Mostrar info de texturas modificadas si hay historial
+            if (historyCount > 0)
+            {
+                if (canStepDown)
+                    EditorGUILayout.Space(3);
+
+                GUI.contentColor = WarningColor;
+                EditorGUILayout.LabelField($"{historyCount} textura(s) modificadas (pueden restaurarse)", EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+            }
 
             EditorGUILayout.Space(5);
 
-            // Foldout para mostrar el boton de reducir
-            _showReduceOptions = EditorGUILayout.Foldout(_showReduceOptions, "Aplicar reduccion", true);
+            // Foldout para mostrar botones
+            _showReduceOptions = EditorGUILayout.Foldout(_showReduceOptions, "Opciones", true);
 
             if (_showReduceOptions)
             {
                 EditorGUILayout.Space(3);
-                GUI.backgroundColor = SavingsColor;
-                if (GUILayout.Button(
-                    new GUIContent("Reducir Todas (1 paso)", "Reduce la resolucion de todas las texturas habilitadas un paso"),
-                    GUILayout.Height(25)))
+
+                // Boton reducir (si se puede)
+                if (canStepDown)
                 {
-                    if (EditorUtility.DisplayDialog(
-                        "Confirmar Reduccion",
-                        $"Esto reducira la resolucion de todas las texturas habilitadas un paso.\n\n" +
-                        $"Ahorro estimado: {VRChatTextureWeightCalculator.FormatBytes(_target.GetPotentialSavings())}\n\n" +
-                        "Este cambio modifica los archivos de textura. Puedes deshacer con Ctrl+Z.",
-                        "Reducir", "Cancelar"))
+                    GUI.backgroundColor = SavingsColor;
+                    if (GUILayout.Button(
+                        new GUIContent("Reducir Todas (1 paso)", "Reduce la resolucion de las texturas mas grandes un paso"),
+                        GUILayout.Height(25)))
                     {
-                        StepDownAllTextures();
+                        if (EditorUtility.DisplayDialog(
+                            "Confirmar Reduccion",
+                            $"Esto reducira la resolucion de las texturas mas grandes un paso.\n\n" +
+                            $"Ahorro estimado: {VRChatTextureWeightCalculator.FormatBytes(_target.GetPotentialSavings())}\n\n" +
+                            "Este cambio modifica los archivos de textura.",
+                            "Reducir", "Cancelar"))
+                        {
+                            StepDownAllTextures();
+                        }
                     }
+                    GUI.backgroundColor = Color.white;
                 }
-                GUI.backgroundColor = Color.white;
+
+                // Boton restaurar (si hay historial)
+                if (historyCount > 0)
+                {
+                    EditorGUILayout.Space(3);
+                    GUI.backgroundColor = WarningColor;
+                    if (GUILayout.Button(
+                        new GUIContent($"Restaurar Todas ({historyCount})", "Restaura todas las texturas a su resolucion original"),
+                        GUILayout.Height(25)))
+                    {
+                        if (EditorUtility.DisplayDialog(
+                            "Confirmar Restauracion",
+                            $"Esto restaurara {historyCount} textura(s) a su resolucion original.\n\n" +
+                            "Los archivos de textura seran modificados.",
+                            "Restaurar", "Cancelar"))
+                        {
+                            RestoreAllTextures();
+                        }
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
             }
 
             EditorGUILayout.EndVertical();
@@ -459,6 +545,23 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Max res
             EditorGUILayout.LabelField($"{group.MaxResolution}px", EditorStyles.miniLabel, GUILayout.Width(50));
 
+            // Boton restaurar grupo (si hay texturas modificadas)
+            int restorableCount = TextureScanner.GetRestorableCountInGroup(group);
+            GUI.enabled = restorableCount > 0;
+            GUI.backgroundColor = WarningColor;
+            if (GUILayout.Button(new GUIContent("↺", $"Restaurar {restorableCount} textura(s) a su resolucion original"), GUILayout.Width(25)))
+            {
+                if (EditorUtility.DisplayDialog(
+                    "Confirmar Restauracion",
+                    $"Restaurar {restorableCount} textura(s) del grupo '{group.SourceName}' a su resolucion original?",
+                    "Restaurar", "Cancelar"))
+                {
+                    RestoreGroup(group);
+                }
+            }
+            GUI.backgroundColor = Color.white;
+            GUI.enabled = true;
+
             // Boton step-down individual
             GUI.enabled = group.IsEnabled && group.CanStepDown();
             GUI.backgroundColor = SavingsColor;
@@ -517,14 +620,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             // Calcular ancho disponible para la tabla
             float totalWidth = EditorGUIUtility.currentViewWidth - 70f;
-            float fixedColumnsWidth = 78f + 55f + 45f + 38f; // Resolucion + Peso + Alpha + Mips
+            float fixedColumnsWidth = 110f + 55f + 45f + 38f; // Resolucion + Peso + Alpha + Mips
             float nameWidth = Mathf.Max(80f, totalWidth - fixedColumnsWidth);
 
             // Header de tabla
             var headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 20f };
             EditorGUILayout.BeginHorizontal(headerStyle);
             EditorGUILayout.LabelField("Textura", EditorStyles.miniBoldLabel, GUILayout.Width(nameWidth));
-            EditorGUILayout.LabelField("Resolucion", EditorStyles.miniBoldLabel, GUILayout.Width(78));
+            EditorGUILayout.LabelField("Resolucion", EditorStyles.miniBoldLabel, GUILayout.Width(110));
             EditorGUILayout.LabelField("Peso", EditorStyles.miniBoldLabel, GUILayout.Width(55));
             EditorGUILayout.LabelField("Alpha", EditorStyles.miniBoldLabel, GUILayout.Width(45));
             EditorGUILayout.LabelField("Mips", EditorStyles.miniBoldLabel, GUILayout.Width(38));
@@ -589,8 +692,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             }
             GUI.contentColor = Color.white;
 
-            // Columna: Resolucion
-            EditorGUILayout.LabelField(texture.ResolutionLabel, EditorStyles.miniLabel, GUILayout.Width(78));
+            // Columna: Resolucion (con indicador de modificada)
+            string resLabel = texture.ResolutionLabel;
+            if (TextureScanner.GetTextureHistoryInfo(texture, out int origSize, out int stepCount))
+            {
+                // Mostrar resolucion original entre parentesis
+                resLabel = $"{texture.ResolutionLabel} ({origSize})";
+                GUI.contentColor = WarningColor;
+            }
+            EditorGUILayout.LabelField(resLabel, EditorStyles.miniLabel, GUILayout.Width(110));
+            GUI.contentColor = Color.white;
 
             // Columna: Peso
             GUI.contentColor = isHeavy ? WarningColor : Color.white;
@@ -657,10 +768,43 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 ScanClothings(processedPaths, referencedMaterialGuids);
             }
 
+            // Escanear otros assets (meshes, animaciones, materiales, audio)
+            ScanOtherAssets();
+
             _target.MarkAsScanned();
             EditorUtility.SetDirty(_target);
 
-            Debug.Log($"[MRPesoTexturas] Escaneo completado: {_target.TotalTextureCount} texturas, {_target.TotalSizeLabel}");
+            Debug.Log($"[MRPesoTexturas] Escaneo completado: {_target.TotalTextureCount} texturas ({_target.TotalSizeLabel}), " +
+                      $"Otros assets: {_target.TotalNonTextureSizeLabel}, " +
+                      $"Total Bundle: {_target.TotalBundleSizeLabel}");
+        }
+
+        /// <summary>
+        /// Escanea meshes, animaciones, materiales y audio del avatar.
+        /// </summary>
+        private void ScanOtherAssets()
+        {
+            if (_target.AvatarRoot == null)
+                return;
+
+            // Escanear todos los assets
+            var assetResult = AssetSizeCalculator.ScanAllAssets(_target.AvatarRoot);
+
+            // Actualizar datos de meshes
+            _target.MeshVRAM = assetResult.Meshes.TotalVertexVRAM + assetResult.Meshes.TotalIndexVRAM;
+            _target.BlendShapeVRAM = assetResult.Meshes.TotalBlendShapeVRAM;
+            _target.MeshCount = assetResult.Meshes.MeshCount;
+            _target.BlendShapeCount = assetResult.Meshes.TotalBlendShapeCount;
+
+            // Actualizar datos de animaciones
+            _target.AnimationSize = assetResult.Animations.TotalSize;
+            _target.AnimationClipCount = assetResult.Animations.ClipCount;
+
+            // Actualizar datos de materiales
+            _target.MaterialSize = assetResult.Materials.TotalSize;
+
+            // Actualizar datos de audio
+            _target.AudioSize = assetResult.Audio.TotalSize;
         }
 
         private TextureGroupEntry ScanAvatarBase(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids)
@@ -994,6 +1138,38 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             EditorUtility.SetDirty(_target);
 
             Debug.Log($"[MRPesoTexturas] Se redujeron {modified} texturas en '{group.SourceName}'. Nuevo peso del grupo: {group.TotalWeightLabel}");
+        }
+
+        #endregion
+
+        #region Restore Logic
+
+        private void RestoreAllTextures()
+        {
+            int restored = TextureScanner.RestoreAllFromHistory();
+
+            // Re-escanear para actualizar los valores
+            if (restored > 0)
+            {
+                ScanTextures();
+            }
+
+            Debug.Log($"[MRPesoTexturas] Se restauraron {restored} texturas a su resolucion original.");
+
+            EditorUtility.DisplayDialog(
+                "Restauracion Completada",
+                $"Se restauraron {restored} textura(s) a su resolucion original.",
+                "OK");
+        }
+
+        private void RestoreGroup(TextureGroupEntry group)
+        {
+            int restored = TextureScanner.RestoreGroup(group);
+
+            _target.RecalculateTotal();
+            EditorUtility.SetDirty(_target);
+
+            Debug.Log($"[MRPesoTexturas] Se restauraron {restored} texturas en '{group.SourceName}'.");
         }
 
         #endregion

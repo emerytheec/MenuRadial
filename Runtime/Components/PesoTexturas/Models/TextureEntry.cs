@@ -68,6 +68,15 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         [SerializeField]
         private TextureCompressionType _compressionType;
 
+        [SerializeField]
+        private TextureFormat _textureFormat;
+
+        [SerializeField]
+        private bool _hasRealFormat;
+
+        [SerializeField]
+        private int _mipmapCount;
+
         #endregion
 
         #region Properties
@@ -161,6 +170,33 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         public bool IsNormalMap => _compressionType == TextureCompressionType.NormalMap;
 
         /// <summary>
+        /// Formato real de la textura en runtime
+        /// </summary>
+        public TextureFormat TextureFormat
+        {
+            get => _textureFormat;
+            set
+            {
+                _textureFormat = value;
+                _hasRealFormat = true;
+            }
+        }
+
+        /// <summary>
+        /// Indica si se detecto el formato real de la textura
+        /// </summary>
+        public bool HasRealFormat => _hasRealFormat;
+
+        /// <summary>
+        /// Cantidad de niveles de mipmap (1 = sin mipmaps adicionales)
+        /// </summary>
+        public int MipmapCount
+        {
+            get => _mipmapCount;
+            set => _mipmapCount = value;
+        }
+
+        /// <summary>
         /// Resolucion efectiva (limitada por CurrentMaxSize)
         /// </summary>
         public int EffectiveWidth => Mathf.Min(_originalWidth, _currentMaxSize);
@@ -218,6 +254,54 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
             _compressionType = compressionType;
             _textureName = texture != null ? texture.name : System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
+            // Obtener formato real y mipmap count de la textura
+            if (texture != null)
+            {
+                _textureFormat = texture.format;
+                _hasRealFormat = true;
+                _mipmapCount = texture.mipmapCount;
+            }
+            else
+            {
+                _hasRealFormat = false;
+                _mipmapCount = hasMipmaps ? VRChatTextureWeightCalculator.CalculateMipmapCount(originalWidth, originalHeight) : 1;
+            }
+
+            RecalculateEstimate();
+        }
+
+        /// <summary>
+        /// Constructor completo con formato de textura
+        /// </summary>
+        public TextureEntry(
+            Texture2D texture,
+            string assetPath,
+            int originalWidth,
+            int originalHeight,
+            int currentMaxSize,
+            bool hasAlpha,
+            bool hasMipmaps,
+            bool hasMipStreaming,
+            bool isFromAlternativeMaterial,
+            TextureCompressionType compressionType,
+            TextureFormat textureFormat,
+            int mipmapCount)
+        {
+            _texture = texture;
+            _assetPath = assetPath;
+            _originalWidth = originalWidth;
+            _originalHeight = originalHeight;
+            _currentMaxSize = currentMaxSize;
+            _hasAlpha = hasAlpha;
+            _hasMipmaps = hasMipmaps;
+            _hasMipStreaming = hasMipStreaming;
+            _isFromAlternativeMaterial = isFromAlternativeMaterial;
+            _compressionType = compressionType;
+            _textureFormat = textureFormat;
+            _hasRealFormat = true;
+            _mipmapCount = mipmapCount;
+            _textureName = texture != null ? texture.name : System.IO.Path.GetFileNameWithoutExtension(assetPath);
+
             RecalculateEstimate();
         }
 
@@ -226,16 +310,31 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         #region Public Methods
 
         /// <summary>
-        /// Recalcula el peso estimado basado en la configuracion actual
+        /// Recalcula el peso estimado basado en la configuracion actual.
+        /// Usa el formato real de la textura si esta disponible.
         /// </summary>
         public void RecalculateEstimate()
         {
-            _estimatedVRAMBytes = VRChatTextureWeightCalculator.CalculateVRAMBytes(
-                EffectiveWidth,
-                EffectiveHeight,
-                _hasAlpha,
-                _hasMipmaps,
-                _compressionType);
+            if (_hasRealFormat)
+            {
+                // Usar calculo preciso con formato real
+                _estimatedVRAMBytes = VRChatTextureWeightCalculator.CalculateVRAMBytesWithMaxSizeAndFormat(
+                    _originalWidth,
+                    _originalHeight,
+                    _currentMaxSize,
+                    _textureFormat,
+                    _mipmapCount);
+            }
+            else
+            {
+                // Fallback al calculo por tipo de compresion
+                _estimatedVRAMBytes = VRChatTextureWeightCalculator.CalculateVRAMBytes(
+                    EffectiveWidth,
+                    EffectiveHeight,
+                    _hasAlpha,
+                    _hasMipmaps,
+                    _compressionType);
+            }
         }
 
         /// <summary>
@@ -254,15 +353,27 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         /// <returns>Peso estimado en bytes</returns>
         public long GetEstimateAtSize(int maxSize)
         {
-            int effectiveW = Mathf.Min(_originalWidth, maxSize);
-            int effectiveH = Mathf.Min(_originalHeight, maxSize);
+            if (_hasRealFormat)
+            {
+                return VRChatTextureWeightCalculator.CalculateVRAMBytesWithMaxSizeAndFormat(
+                    _originalWidth,
+                    _originalHeight,
+                    maxSize,
+                    _textureFormat,
+                    _mipmapCount);
+            }
+            else
+            {
+                int effectiveW = Mathf.Min(_originalWidth, maxSize);
+                int effectiveH = Mathf.Min(_originalHeight, maxSize);
 
-            return VRChatTextureWeightCalculator.CalculateVRAMBytes(
-                effectiveW,
-                effectiveH,
-                _hasAlpha,
-                _hasMipmaps,
-                _compressionType);
+                return VRChatTextureWeightCalculator.CalculateVRAMBytes(
+                    effectiveW,
+                    effectiveH,
+                    _hasAlpha,
+                    _hasMipmaps,
+                    _compressionType);
+            }
         }
 
         /// <summary>

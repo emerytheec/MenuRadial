@@ -1,14 +1,21 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.Animations;
 using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using Bender_Dios.MenuRadial.Components.PesoTexturas.Models;
+
+#if VRC_SDK_VRCSDK3
+using VRC.SDK3.Avatars.Components;
+#endif
 
 namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 {
     /// <summary>
     /// Utilidad de editor para escanear texturas de GameObjects.
     /// Usa AssetDatabase para obtener informacion del TextureImporter.
+    /// Incluye busqueda en AnimationClips para materiales alternativos.
     /// </summary>
     public static class TextureScanner
     {
@@ -16,11 +23,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         /// <summary>
         /// Escanea todas las texturas de un GameObject y sus hijos.
+        /// Incluye texturas de Renderers y opcionalmente de AnimationClips.
         /// </summary>
         /// <param name="root">GameObject raiz para escanear</param>
         /// <param name="processedPaths">HashSet de rutas ya procesadas para evitar duplicados</param>
+        /// <param name="includeAnimations">Si debe buscar texturas en AnimationClips</param>
         /// <returns>Lista de TextureEntry encontradas</returns>
-        public static List<TextureEntry> ScanTextures(GameObject root, HashSet<string> processedPaths)
+        public static List<TextureEntry> ScanTextures(GameObject root, HashSet<string> processedPaths, bool includeAnimations = false)
         {
             var result = new List<TextureEntry>();
 
@@ -50,13 +59,434 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     // Obtener todas las propiedades de textura del material
                     ScanMaterialTextures(material, processedPaths, result);
                 }
+
+                // Escanear trail materials de ParticleSystemRenderer
+                if (renderer is ParticleSystemRenderer psr && psr.trailMaterial != null)
+                {
+                    ScanMaterialTextures(psr.trailMaterial, processedPaths, result);
+                }
+            }
+
+            // Escanear texturas en AnimationClips si se solicita
+            if (includeAnimations)
+            {
+                ScanAnimatorTextures(root, processedPaths, result);
+            }
+
+            // Escanear Reflection Probes
+            ScanReflectionProbes(root, processedPaths, result);
+
+            // Escanear UI Sprites (Image components)
+            ScanUISprites(root, processedPaths, result);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Escanea texturas de UI Image components (sprites).
+        /// </summary>
+        public static void ScanUISprites(GameObject root, HashSet<string> processedPaths, List<TextureEntry> result)
+        {
+            if (root == null)
+                return;
+
+            var images = root.GetComponentsInChildren<UnityEngine.UI.Image>(true);
+
+            foreach (var image in images)
+            {
+                if (image == null || image.sprite == null)
+                    continue;
+
+                // Textura principal del sprite
+                if (image.sprite.texture != null)
+                {
+                    AddSpriteTexture(image.sprite.texture, processedPaths, result, "_UISprite");
+                }
+
+                // Alpha split texture (usado en algunas configuraciones de sprite)
+                if (image.sprite.associatedAlphaSplitTexture != null)
+                {
+                    AddSpriteTexture(image.sprite.associatedAlphaSplitTexture, processedPaths, result, "_UISprite_Alpha");
+                }
+            }
+
+            // También escanear RawImage components
+            var rawImages = root.GetComponentsInChildren<UnityEngine.UI.RawImage>(true);
+
+            foreach (var rawImage in rawImages)
+            {
+                if (rawImage == null || rawImage.texture == null)
+                    continue;
+
+                string assetPath = AssetDatabase.GetAssetPath(rawImage.texture);
+                if (string.IsNullOrEmpty(assetPath))
+                    continue;
+
+                if (assetPath.StartsWith("Resources/") ||
+                    assetPath.StartsWith("Packages/") ||
+                    assetPath.StartsWith("Library/") ||
+                    assetPath.Contains("unity_builtin"))
+                    continue;
+
+                if (processedPaths.Contains(assetPath))
+                    continue;
+
+                processedPaths.Add(assetPath);
+
+                if (rawImage.texture is Texture2D texture2D)
+                {
+                    var entry = CreateTextureEntry(texture2D, assetPath, false, "_UIRawImage");
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
+                }
+                else
+                {
+                    var entry = CreateGenericTextureEntry(rawImage.texture, assetPath, false, "_UIRawImage");
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
+                }
+            }
+        }
+
+        private static void AddSpriteTexture(Texture2D texture, HashSet<string> processedPaths, List<TextureEntry> result, string propertyName)
+        {
+            if (texture == null)
+                return;
+
+            string assetPath = AssetDatabase.GetAssetPath(texture);
+            if (string.IsNullOrEmpty(assetPath))
+                return;
+
+            if (assetPath.StartsWith("Resources/") ||
+                assetPath.StartsWith("Packages/") ||
+                assetPath.StartsWith("Library/") ||
+                assetPath.Contains("unity_builtin"))
+                return;
+
+            if (processedPaths.Contains(assetPath))
+                return;
+
+            processedPaths.Add(assetPath);
+
+            var entry = CreateTextureEntry(texture, assetPath, false, propertyName);
+            if (entry != null)
+            {
+                result.Add(entry);
+            }
+        }
+
+        /// <summary>
+        /// Escanea texturas de Reflection Probes (cubemaps).
+        /// </summary>
+        public static void ScanReflectionProbes(GameObject root, HashSet<string> processedPaths, List<TextureEntry> result)
+        {
+            if (root == null)
+                return;
+
+            var reflectionProbes = root.GetComponentsInChildren<ReflectionProbe>(true);
+
+            foreach (var probe in reflectionProbes)
+            {
+                if (probe == null || probe.texture == null)
+                    continue;
+
+                string assetPath = AssetDatabase.GetAssetPath(probe.texture);
+                if (string.IsNullOrEmpty(assetPath))
+                    continue;
+
+                // Ignorar texturas built-in
+                if (assetPath.StartsWith("Resources/") ||
+                    assetPath.StartsWith("Packages/") ||
+                    assetPath.StartsWith("Library/") ||
+                    assetPath.Contains("unity_builtin"))
+                    continue;
+
+                if (processedPaths.Contains(assetPath))
+                    continue;
+
+                processedPaths.Add(assetPath);
+
+                // Crear entrada para el cubemap
+                if (probe.texture is Cubemap cubemap)
+                {
+                    var entry = CreateCubemapEntry(cubemap, assetPath, false, "_ReflectionProbe");
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
+                }
+                else
+                {
+                    // Fallback para otros tipos de textura de reflection
+                    var entry = CreateGenericTextureEntry(probe.texture, assetPath, false, "_ReflectionProbe");
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Escanea Lightmaps de la escena (opcional, para escenas con baked lighting).
+        /// Nota: Los lightmaps generalmente NO se incluyen en el bundle del avatar,
+        /// pero pueden afectar si el avatar tiene lightmaps asignados directamente.
+        /// </summary>
+        public static List<TextureEntry> ScanLightmaps(HashSet<string> processedPaths)
+        {
+            var result = new List<TextureEntry>();
+            processedPaths ??= new HashSet<string>();
+
+            var lightmaps = LightmapSettings.lightmaps;
+            if (lightmaps == null || lightmaps.Length == 0)
+                return result;
+
+            foreach (var lightmapData in lightmaps)
+            {
+                if (lightmapData == null)
+                    continue;
+
+                // Lightmap Color
+                if (lightmapData.lightmapColor != null)
+                {
+                    AddLightmapTexture(lightmapData.lightmapColor, processedPaths, result, "LightmapColor");
+                }
+
+                // Lightmap Direction (para normal mapping)
+                if (lightmapData.lightmapDir != null)
+                {
+                    AddLightmapTexture(lightmapData.lightmapDir, processedPaths, result, "LightmapDir");
+                }
+
+                // Shadow Mask
+                if (lightmapData.shadowMask != null)
+                {
+                    AddLightmapTexture(lightmapData.shadowMask, processedPaths, result, "ShadowMask");
+                }
+            }
+
+            return result;
+        }
+
+        private static void AddLightmapTexture(Texture2D texture, HashSet<string> processedPaths, List<TextureEntry> result, string propertyName)
+        {
+            if (texture == null)
+                return;
+
+            string assetPath = AssetDatabase.GetAssetPath(texture);
+            if (string.IsNullOrEmpty(assetPath))
+                return;
+
+            if (processedPaths.Contains(assetPath))
+                return;
+
+            processedPaths.Add(assetPath);
+
+            var entry = CreateTextureEntry(texture, assetPath, false, propertyName);
+            if (entry != null)
+            {
+                result.Add(entry);
+            }
+        }
+
+        /// <summary>
+        /// Escanea texturas referenciadas en AnimationClips del avatar.
+        /// Busca en Animator y VRCAvatarDescriptor.
+        /// </summary>
+        public static void ScanAnimatorTextures(GameObject root, HashSet<string> processedPaths, List<TextureEntry> result)
+        {
+            if (root == null)
+                return;
+
+            processedPaths ??= new HashSet<string>();
+            var processedMaterials = new HashSet<Material>();
+
+            // Buscar en Animator
+            var animator = root.GetComponent<Animator>();
+            if (animator != null && animator.runtimeAnimatorController != null)
+            {
+                var controller = animator.runtimeAnimatorController as AnimatorController;
+                if (controller != null)
+                {
+                    var materials = GetMaterialsFromAnimatorController(controller, processedMaterials);
+                    foreach (var material in materials)
+                    {
+                        ScanMaterialTextures(material, processedPaths, result, isFromAlternativeMaterial: true);
+                    }
+                }
+            }
+
+#if VRC_SDK_VRCSDK3
+            // Buscar en VRCAvatarDescriptor
+            var avatarDescriptor = root.GetComponent<VRCAvatarDescriptor>();
+            if (avatarDescriptor != null)
+            {
+                // Buscar en baseAnimationLayers
+                foreach (var layer in avatarDescriptor.baseAnimationLayers)
+                {
+                    if (layer.animatorController != null)
+                    {
+                        var controller = layer.animatorController as AnimatorController;
+                        if (controller != null)
+                        {
+                            var materials = GetMaterialsFromAnimatorController(controller, processedMaterials);
+                            foreach (var material in materials)
+                            {
+                                ScanMaterialTextures(material, processedPaths, result, isFromAlternativeMaterial: true);
+                            }
+                        }
+                    }
+                }
+
+                // Buscar en specialAnimationLayers
+                foreach (var layer in avatarDescriptor.specialAnimationLayers)
+                {
+                    if (layer.animatorController != null)
+                    {
+                        var controller = layer.animatorController as AnimatorController;
+                        if (controller != null)
+                        {
+                            var materials = GetMaterialsFromAnimatorController(controller, processedMaterials);
+                            foreach (var material in materials)
+                            {
+                                ScanMaterialTextures(material, processedPaths, result, isFromAlternativeMaterial: true);
+                            }
+                        }
+                    }
+                }
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Obtiene todos los materiales referenciados en un AnimatorController.
+        /// </summary>
+        public static List<Material> GetMaterialsFromAnimatorController(AnimatorController controller, HashSet<Material> processedMaterials = null)
+        {
+            var result = new List<Material>();
+            processedMaterials ??= new HashSet<Material>();
+
+            if (controller == null)
+                return result;
+
+            // Obtener todos los clips del controller
+            var clips = GetAllAnimationClips(controller);
+
+            foreach (var clip in clips)
+            {
+                var materials = GetMaterialsFromAnimationClip(clip);
+                foreach (var material in materials)
+                {
+                    if (material != null && !processedMaterials.Contains(material))
+                    {
+                        processedMaterials.Add(material);
+                        result.Add(material);
+                    }
+                }
             }
 
             return result;
         }
 
         /// <summary>
+        /// Obtiene materiales referenciados en un AnimationClip via ObjectReferenceCurve.
+        /// </summary>
+        public static List<Material> GetMaterialsFromAnimationClip(AnimationClip clip)
+        {
+            var result = new List<Material>();
+
+            if (clip == null)
+                return result;
+
+            // Obtener bindings de referencia a objetos
+            var bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
+
+            foreach (var binding in bindings)
+            {
+                // Obtener keyframes
+                var keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
+
+                foreach (var keyframe in keyframes)
+                {
+                    if (keyframe.value is Material material)
+                    {
+                        result.Add(material);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Obtiene todos los AnimationClips de un AnimatorController.
+        /// </summary>
+        public static List<AnimationClip> GetAllAnimationClips(AnimatorController controller)
+        {
+            var result = new List<AnimationClip>();
+
+            if (controller == null)
+                return result;
+
+            foreach (var layer in controller.layers)
+            {
+                CollectClipsFromStateMachine(layer.stateMachine, result);
+            }
+
+            return result.Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Recolecta clips de una state machine recursivamente.
+        /// </summary>
+        private static void CollectClipsFromStateMachine(AnimatorStateMachine stateMachine, List<AnimationClip> result)
+        {
+            if (stateMachine == null)
+                return;
+
+            // Clips de estados
+            foreach (var state in stateMachine.states)
+            {
+                CollectClipsFromMotion(state.state.motion, result);
+            }
+
+            // Sub state machines
+            foreach (var subStateMachine in stateMachine.stateMachines)
+            {
+                CollectClipsFromStateMachine(subStateMachine.stateMachine, result);
+            }
+        }
+
+        /// <summary>
+        /// Recolecta clips de un Motion (AnimationClip o BlendTree).
+        /// </summary>
+        private static void CollectClipsFromMotion(Motion motion, List<AnimationClip> result)
+        {
+            if (motion == null)
+                return;
+
+            if (motion is AnimationClip clip)
+            {
+                if (!result.Contains(clip))
+                    result.Add(clip);
+            }
+            else if (motion is BlendTree blendTree)
+            {
+                foreach (var child in blendTree.children)
+                {
+                    CollectClipsFromMotion(child.motion, result);
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Crea una entrada de textura a partir de una Texture2D.
+        /// Extrae el formato real de la textura para calculo preciso de VRAM.
         /// </summary>
         /// <param name="texture">Textura a procesar</param>
         /// <param name="assetPath">Ruta del asset</param>
@@ -84,6 +514,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             bool hasMipmaps = true;
             bool hasMipStreaming = true;
             TextureCompressionType compressionType = TextureCompressionType.Default;
+
+            // Obtener formato real y mipmap count de la textura
+            TextureFormat textureFormat = texture.format;
+            int mipmapCount = texture.mipmapCount;
 
             if (importer != null)
             {
@@ -120,6 +554,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 hasAlpha = HasAlphaFromFormat(texture.format);
             }
 
+            // Usar constructor completo con formato de textura
             return new TextureEntry(
                 texture,
                 assetPath,
@@ -130,7 +565,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 hasMipmaps,
                 hasMipStreaming,
                 isFromAlternativeMaterial,
-                compressionType);
+                compressionType,
+                textureFormat,
+                mipmapCount);
         }
 
         /// <summary>
@@ -236,6 +673,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         /// <summary>
         /// Aplica un step-down (reduccion de resolucion) a una textura.
+        /// Registra el estado original en el historial si es la primera modificacion.
         /// </summary>
         /// <param name="entry">Entrada de textura a modificar</param>
         /// <returns>True si se aplico el cambio</returns>
@@ -248,7 +686,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             if (nextSize >= entry.CurrentMaxSize)
                 return false;
 
-            return ApplyMaxSize(entry, nextSize);
+            // Registrar estado original antes de modificar (solo la primera vez)
+            TextureHistoryManager.RegisterOriginal(entry.AssetPath, entry.CurrentMaxSize);
+
+            bool success = ApplyMaxSize(entry, nextSize);
+
+            if (success)
+            {
+                // Incrementar contador de step-downs
+                TextureHistoryManager.IncrementStepDown(entry.AssetPath);
+                TextureHistoryManager.SaveIfDirty();
+            }
+
+            return success;
         }
 
         /// <summary>
@@ -282,20 +732,31 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         }
 
         /// <summary>
-        /// Aplica step-down a todas las texturas de un grupo.
+        /// Aplica step-down solo a las texturas con la resolucion maxima del grupo.
+        /// Esto permite un enfoque gradual: primero se reducen las mas grandes,
+        /// y en sucesivas llamadas se van reduciendo las siguientes.
         /// </summary>
         /// <param name="group">Grupo de texturas</param>
         /// <returns>Cantidad de texturas modificadas</returns>
         public static int ApplyStepDownToGroup(TextureGroupEntry group)
         {
-            if (group == null)
+            if (group == null || group.TextureCount == 0)
+                return 0;
+
+            // Encontrar la resolucion maxima del grupo
+            int maxResolution = group.MaxResolution;
+            if (maxResolution <= VRChatTextureWeightCalculator.MIN_RESOLUTION)
                 return 0;
 
             int count = 0;
             foreach (var texture in group.Textures)
             {
-                if (ApplyStepDown(texture))
-                    count++;
+                // Solo aplicar step-down a texturas con la resolucion maxima
+                if (texture.CurrentMaxSize == maxResolution)
+                {
+                    if (ApplyStepDown(texture))
+                        count++;
+                }
             }
 
             group.RecalculateAll();
@@ -452,12 +913,180 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             return result;
         }
 
+        #region Restore Methods
+
+        /// <summary>
+        /// Restaura una textura a su resolucion original.
+        /// </summary>
+        /// <param name="entry">Entrada de textura a restaurar</param>
+        /// <returns>True si se restauro correctamente</returns>
+        public static bool RestoreTexture(TextureEntry entry)
+        {
+            if (entry == null || !entry.IsValid)
+                return false;
+
+            int originalSize = TextureHistoryManager.GetOriginalMaxSize(entry.AssetPath);
+            if (originalSize <= 0)
+                return false; // No hay historial
+
+            // Ya esta en su tamano original
+            if (entry.CurrentMaxSize == originalSize)
+            {
+                TextureHistoryManager.ClearHistory(entry.AssetPath);
+                TextureHistoryManager.SaveIfDirty();
+                return false;
+            }
+
+            bool success = ApplyMaxSizeWithoutHistory(entry, originalSize);
+
+            if (success)
+            {
+                // Limpiar historial de esta textura
+                TextureHistoryManager.ClearHistory(entry.AssetPath);
+                TextureHistoryManager.SaveIfDirty();
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Restaura todas las texturas de un grupo a su resolucion original.
+        /// </summary>
+        /// <param name="group">Grupo de texturas</param>
+        /// <returns>Cantidad de texturas restauradas</returns>
+        public static int RestoreGroup(TextureGroupEntry group)
+        {
+            if (group == null)
+                return 0;
+
+            int count = 0;
+            foreach (var texture in group.Textures)
+            {
+                if (RestoreTexture(texture))
+                    count++;
+            }
+
+            group.RecalculateAll();
+            return count;
+        }
+
+        /// <summary>
+        /// Restaura todas las texturas con historial a su resolucion original.
+        /// </summary>
+        /// <returns>Cantidad de texturas restauradas</returns>
+        public static int RestoreAllFromHistory()
+        {
+            var entries = TextureHistoryManager.GetAllEntries();
+            int count = 0;
+
+            foreach (var historyItem in entries)
+            {
+                var importer = AssetImporter.GetAtPath(historyItem.assetPath) as TextureImporter;
+                if (importer == null)
+                    continue;
+
+                int originalSize = historyItem.entry.originalMaxSize;
+                if (importer.maxTextureSize == originalSize)
+                {
+                    // Ya esta en su tamano original, solo limpiar historial
+                    TextureHistoryManager.ClearHistory(historyItem.assetPath);
+                    continue;
+                }
+
+                Undo.RecordObject(importer, "Restore Texture Size");
+                importer.maxTextureSize = originalSize;
+                EditorUtility.SetDirty(importer);
+                importer.SaveAndReimport();
+
+                TextureHistoryManager.ClearHistory(historyItem.assetPath);
+                count++;
+            }
+
+            TextureHistoryManager.SaveIfDirty();
+            return count;
+        }
+
+        /// <summary>
+        /// Obtiene la cantidad de texturas que se pueden restaurar en un grupo.
+        /// </summary>
+        public static int GetRestorableCountInGroup(TextureGroupEntry group)
+        {
+            if (group == null)
+                return 0;
+
+            int count = 0;
+            foreach (var texture in group.Textures)
+            {
+                if (TextureHistoryManager.HasHistory(texture.AssetPath))
+                    count++;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Verifica si una textura puede ser restaurada (tiene historial).
+        /// </summary>
+        public static bool CanRestore(TextureEntry entry)
+        {
+            if (entry == null || !entry.IsValid)
+                return false;
+
+            return TextureHistoryManager.HasHistory(entry.AssetPath);
+        }
+
+        /// <summary>
+        /// Obtiene informacion del historial de una textura.
+        /// </summary>
+        /// <param name="entry">Entrada de textura</param>
+        /// <param name="originalSize">Tamano original (output)</param>
+        /// <param name="stepDownCount">Cantidad de step-downs (output)</param>
+        /// <returns>True si tiene historial</returns>
+        public static bool GetTextureHistoryInfo(TextureEntry entry, out int originalSize, out int stepDownCount)
+        {
+            originalSize = 0;
+            stepDownCount = 0;
+
+            if (entry == null || !entry.IsValid)
+                return false;
+
+            originalSize = TextureHistoryManager.GetOriginalMaxSize(entry.AssetPath);
+            if (originalSize <= 0)
+                return false;
+
+            stepDownCount = TextureHistoryManager.GetStepDownCount(entry.AssetPath);
+            return true;
+        }
+
+        /// <summary>
+        /// Aplica un tamano maximo sin registrar en historial (usado para restaurar).
+        /// </summary>
+        private static bool ApplyMaxSizeWithoutHistory(TextureEntry entry, int newMaxSize)
+        {
+            if (entry == null || !entry.IsValid)
+                return false;
+
+            var importer = AssetImporter.GetAtPath(entry.AssetPath) as TextureImporter;
+            if (importer == null)
+                return false;
+
+            Undo.RecordObject(importer, "Restore Texture Max Size");
+            importer.maxTextureSize = newMaxSize;
+            EditorUtility.SetDirty(importer);
+            importer.SaveAndReimport();
+
+            entry.UpdateMaxSize(newMaxSize);
+            return true;
+        }
+
+        #endregion
+
         #endregion
 
         #region Private Methods
 
         /// <summary>
         /// Escanea todas las texturas de un material.
+        /// Soporta Texture2D, Cubemap y otros tipos de textura.
         /// </summary>
         private static void ScanMaterialTextures(
             Material material,
@@ -481,7 +1110,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     continue;
 
                 string propertyName = ShaderUtil.GetPropertyName(shader, i);
-                var texture = material.GetTexture(propertyName) as Texture2D;
+                var texture = material.GetTexture(propertyName);
 
                 if (texture == null)
                     continue;
@@ -507,12 +1136,115 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
                 processedPaths.Add(assetPath);
 
-                var entry = CreateTextureEntry(texture, assetPath, isFromAlternativeMaterial, propertyName);
-                if (entry != null)
+                // Manejar diferentes tipos de textura
+                if (texture is Texture2D texture2D)
                 {
-                    result.Add(entry);
+                    var entry = CreateTextureEntry(texture2D, assetPath, isFromAlternativeMaterial, propertyName);
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
+                }
+                else if (texture is Cubemap cubemap)
+                {
+                    // Crear entrada para Cubemap (6 caras)
+                    var entry = CreateCubemapEntry(cubemap, assetPath, isFromAlternativeMaterial, propertyName);
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
+                }
+                else
+                {
+                    // Para otros tipos de textura, usar Profiler API como fallback
+                    var entry = CreateGenericTextureEntry(texture, assetPath, isFromAlternativeMaterial, propertyName);
+                    if (entry != null)
+                    {
+                        result.Add(entry);
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// Crea una entrada para un Cubemap.
+        /// Los Cubemaps tienen 6 caras, por lo que el calculo es diferente.
+        /// </summary>
+        public static TextureEntry CreateCubemapEntry(Cubemap cubemap, string assetPath, bool isFromAlternativeMaterial = false, string shaderPropertyName = null)
+        {
+            if (cubemap == null || string.IsNullOrEmpty(assetPath))
+                return null;
+
+            // Obtener formato y mipmaps del cubemap
+            TextureFormat textureFormat = cubemap.format;
+            int mipmapCount = cubemap.mipmapCount;
+
+            // Para cubemaps, el tamaño efectivo es width * height * 6 caras
+            // Usamos el calculador con depth = 6
+            long estimatedVRAM = VRChatTextureWeightCalculator.CalculateVRAMBytesWithMipmapsAndDepth(
+                cubemap.width,
+                cubemap.height,
+                6, // 6 caras del cubemap
+                VRChatTextureWeightCalculator.GetBitsPerPixel(textureFormat) ?? 8,
+                mipmapCount);
+
+            // Crear entrada con los valores calculados
+            // Usamos el constructor basico y seteamos el VRAM manualmente
+            var entry = new TextureEntry(
+                null, // No tenemos Texture2D
+                assetPath,
+                cubemap.width,
+                cubemap.height,
+                cubemap.width, // maxSize = actual size
+                true, // Asumimos alpha para ser conservadores
+                mipmapCount > 1,
+                true, // hasMipStreaming
+                isFromAlternativeMaterial,
+                TextureCompressionType.Default,
+                textureFormat,
+                mipmapCount);
+
+            // Sobreescribir el VRAM calculado con el correcto para cubemap
+            entry.EstimatedVRAMBytes = estimatedVRAM;
+
+            return entry;
+        }
+
+        /// <summary>
+        /// Crea una entrada para texturas genericas usando Profiler API.
+        /// Usado como fallback para tipos de textura no soportados directamente.
+        /// </summary>
+        public static TextureEntry CreateGenericTextureEntry(Texture texture, string assetPath, bool isFromAlternativeMaterial = false, string shaderPropertyName = null)
+        {
+            if (texture == null || string.IsNullOrEmpty(assetPath))
+                return null;
+
+            // Usar Profiler API para obtener el tamaño
+            long estimatedVRAM = VRChatTextureWeightCalculator.GetRuntimeMemorySize(texture);
+
+            // Obtener formato si es posible
+            TextureFormat? format = VRChatTextureWeightCalculator.GetTextureFormat(texture);
+            TextureFormat textureFormat = format ?? TextureFormat.RGBA32;
+
+            // Crear entrada con valores aproximados
+            var entry = new TextureEntry(
+                null, // No tenemos Texture2D
+                assetPath,
+                texture.width,
+                texture.height,
+                texture.width, // maxSize = actual size
+                true, // Asumimos alpha
+                texture.mipmapCount > 1,
+                true, // hasMipStreaming
+                isFromAlternativeMaterial,
+                TextureCompressionType.Default,
+                textureFormat,
+                texture.mipmapCount);
+
+            // Sobreescribir el VRAM con el valor del Profiler
+            entry.EstimatedVRAMBytes = estimatedVRAM;
+
+            return entry;
         }
 
         /// <summary>

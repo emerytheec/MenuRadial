@@ -48,7 +48,7 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         private List<TextureEntry> _textures = new List<TextureEntry>();
 
         [SerializeField]
-        private bool _isExpanded = true;
+        private bool _isExpanded = false;
 
         [SerializeField]
         private bool _isEnabled = true;
@@ -184,7 +184,7 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
             _sourceObject = sourceObject;
             _groupType = groupType;
             _textures = new List<TextureEntry>();
-            _isExpanded = true;
+            _isExpanded = false;
             _isEnabled = true;
         }
 
@@ -231,16 +231,32 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         }
 
         /// <summary>
-        /// Calcula el peso estimado despues de un step-down global
+        /// Calcula el peso estimado despues de un step-down.
+        /// Solo considera las texturas con la resolucion maxima del grupo,
+        /// ya que son las unicas que se reduciran.
         /// </summary>
         /// <returns>Peso estimado en bytes despues del step-down</returns>
         public long GetEstimateAfterStepDown()
         {
+            if (_textures == null || _textures.Count == 0)
+                return 0;
+
+            int maxResolution = MaxResolution;
             long total = 0;
+
             foreach (var texture in _textures)
             {
-                int nextSize = texture.GetNextStepDownSize();
-                total += texture.GetEstimateAtSize(nextSize);
+                if (texture.CurrentMaxSize == maxResolution)
+                {
+                    // Solo las texturas con resolucion maxima bajaran
+                    int nextSize = texture.GetNextStepDownSize();
+                    total += texture.GetEstimateAtSize(nextSize);
+                }
+                else
+                {
+                    // Las demas mantienen su peso actual
+                    total += texture.EstimatedVRAMBytes;
+                }
             }
             return total;
         }

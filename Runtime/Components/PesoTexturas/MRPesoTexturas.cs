@@ -43,6 +43,31 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         [SerializeField]
         private List<TextureGroupEntry> _textureGroups = new List<TextureGroupEntry>();
 
+        [Header("Otros Assets")]
+        [SerializeField]
+        private long _meshVRAM;
+
+        [SerializeField]
+        private long _blendShapeVRAM;
+
+        [SerializeField]
+        private long _animationSize;
+
+        [SerializeField]
+        private long _materialSize;
+
+        [SerializeField]
+        private long _audioSize;
+
+        [SerializeField]
+        private int _meshCount;
+
+        [SerializeField]
+        private int _blendShapeCount;
+
+        [SerializeField]
+        private int _animationClipCount;
+
         [Header("Estado")]
         [SerializeField]
         private bool _isScanned;
@@ -223,6 +248,107 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         /// </summary>
         public bool HasTextures => _totalTextureCount > 0;
 
+        #region Other Assets Properties
+
+        /// <summary>
+        /// VRAM de meshes (vertices + indices)
+        /// </summary>
+        public long MeshVRAM
+        {
+            get => _meshVRAM;
+            set => _meshVRAM = value;
+        }
+
+        /// <summary>
+        /// VRAM de blend shapes
+        /// </summary>
+        public long BlendShapeVRAM
+        {
+            get => _blendShapeVRAM;
+            set => _blendShapeVRAM = value;
+        }
+
+        /// <summary>
+        /// Tamano de animaciones
+        /// </summary>
+        public long AnimationSize
+        {
+            get => _animationSize;
+            set => _animationSize = value;
+        }
+
+        /// <summary>
+        /// Tamano de materiales
+        /// </summary>
+        public long MaterialSize
+        {
+            get => _materialSize;
+            set => _materialSize = value;
+        }
+
+        /// <summary>
+        /// Tamano de audio
+        /// </summary>
+        public long AudioSize
+        {
+            get => _audioSize;
+            set => _audioSize = value;
+        }
+
+        /// <summary>
+        /// Cantidad de meshes
+        /// </summary>
+        public int MeshCount
+        {
+            get => _meshCount;
+            set => _meshCount = value;
+        }
+
+        /// <summary>
+        /// Cantidad total de blend shapes
+        /// </summary>
+        public int BlendShapeCount
+        {
+            get => _blendShapeCount;
+            set => _blendShapeCount = value;
+        }
+
+        /// <summary>
+        /// Cantidad de clips de animacion
+        /// </summary>
+        public int AnimationClipCount
+        {
+            get => _animationClipCount;
+            set => _animationClipCount = value;
+        }
+
+        /// <summary>
+        /// Tamano total de assets que no son texturas (meshes, animaciones, etc.)
+        /// </summary>
+        public long TotalNonTextureSize => _meshVRAM + _blendShapeVRAM + _animationSize + _materialSize + _audioSize;
+
+        /// <summary>
+        /// Etiqueta formateada del tamano de otros assets
+        /// </summary>
+        public string TotalNonTextureSizeLabel => VRChatTextureWeightCalculator.FormatBytes(TotalNonTextureSize);
+
+        /// <summary>
+        /// Tamano total estimado del bundle (texturas + otros assets)
+        /// </summary>
+        public long TotalBundleSize => _totalEstimatedVRAM + TotalNonTextureSize;
+
+        /// <summary>
+        /// Etiqueta formateada del tamano total del bundle
+        /// </summary>
+        public string TotalBundleSizeLabel => VRChatTextureWeightCalculator.FormatBytes(TotalBundleSize);
+
+        /// <summary>
+        /// Indica si el bundle excede el limite de VRChat (500 MB)
+        /// </summary>
+        public bool ExceedsVRChatLimit => TotalBundleSize >= VRChatTextureWeightCalculator.VRCHAT_UNCOMPRESSED_SIZE_LIMIT;
+
+        #endregion
+
         #endregion
 
         #region Lifecycle
@@ -247,6 +373,16 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
             _isScanned = false;
             _totalEstimatedVRAM = 0;
             _totalTextureCount = 0;
+
+            // Limpiar datos de otros assets
+            _meshVRAM = 0;
+            _blendShapeVRAM = 0;
+            _animationSize = 0;
+            _materialSize = 0;
+            _audioSize = 0;
+            _meshCount = 0;
+            _blendShapeCount = 0;
+            _animationClipCount = 0;
         }
 
         /// <summary>
