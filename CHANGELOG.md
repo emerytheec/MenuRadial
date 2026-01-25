@@ -5,6 +5,36 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.16] - 2026-01-25
+
+### Agregado
+- **MRMeshImportFixPlugin**: Nuevo plugin NDMF para corregir automáticamente problemas de importación de meshes
+  - Corrige Read/Write disabled automáticamente
+  - Corrige Blendshape Normals de "Calculate" a "Import/Legacy" (reduce tamaño del avatar)
+  - Se ejecuta al inicio del build, antes de que VRChat SDK muestre errores
+- **MeshVRAMCalculator**: Nuevo calculador de VRAM para meshes y blend shapes
+  - Calcula VRAM de vértices con atributos (position, normal, tangent, UV, bone weights)
+  - Calcula VRAM de index buffers (16/32 bits)
+  - Calcula VRAM de blend shapes (40 bytes por vértice afectado con delta no-cero)
+- **AssetSizeCalculator**: Nuevo calculador de tamaño para otros assets
+  - Escanea animaciones usando Profiler API
+  - Escanea materiales y audio
+  - Integración con VRCAvatarDescriptor layers
+
+### Mejorado
+- **MRPesoTexturas**: Cálculo de VRAM significativamente más preciso
+  - Nuevo algoritmo de mipmaps iterativo (reemplaza factor 1.33x)
+  - Tabla de 35+ formatos de textura con bits-per-pixel exactos (incluyendo ASTC)
+  - Escaneo de UI Sprites y Reflection Probes
+  - Desglose completo en resumen: Texturas, Meshes, Blend Shapes, Animaciones, Materiales, Audio
+  - Muestra "Total Bundle" (suma de todos los assets)
+  - Texto en rojo si excede 500 MB de VRChat
+- **TextureEntry**: Ahora almacena formato real de textura y mipmap count para cálculo preciso
+- **Grupos de texturas**: Ahora están colapsados por defecto
+
+### Eliminado
+- Estimación de bundle basada en factor (reemplazada por cálculo real de assets)
+
 ## [0.8.15] - 2026-01-24
 
 ### Agregado
