@@ -5,6 +5,7 @@ using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.PesoTexturas;
+using Bender_Dios.MenuRadial.Components.AnalisisColision;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
@@ -87,6 +88,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
         #region Child Component References (cached)
 
+        private MRAnalisisColision _analisisColision;
         private MRCoserRopa _coserRopa;
         private MROrganizaPB _organizaPB;
         private MRAjustarBounds _ajustarBounds;
@@ -275,6 +277,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
+        /// Referencia cacheada al componente MRAnalisisColision hijo.
+        /// </summary>
+        public MRAnalisisColision AnalisisColision => _analisisColision != null ? _analisisColision : (_analisisColision = GetComponentInChildren<MRAnalisisColision>());
+
+        /// <summary>
         /// Referencia cacheada al componente MRCoserRopa hijo.
         /// </summary>
         public MRCoserRopa CoserRopa => _coserRopa != null ? _coserRopa : (_coserRopa = GetComponentInChildren<MRCoserRopa>());
@@ -353,11 +360,22 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// </summary>
         public bool IsFullyConfigured =>
             _avatarRoot != null &&
+            AnalisisColision != null &&
             CoserRopa != null &&
             OrganizaPB != null &&
             MenuControl != null &&
             AjustarBounds != null &&
             PesoTexturas != null;
+
+        /// <summary>
+        /// Cantidad de colisiones detectadas con Modular Avatar.
+        /// </summary>
+        public int DetectedColisionCount => AnalisisColision?.TotalCount ?? 0;
+
+        /// <summary>
+        /// Si hay colisiones problematicas detectadas.
+        /// </summary>
+        public bool HasProblematicColisions => AnalisisColision?.HasProblematic ?? false;
 
         #endregion
 
@@ -377,6 +395,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             {
                 _outputPrefix = _avatarRoot.name;
             }
+
+            if (AnalisisColision != null)
+                AnalisisColision.AvatarRoot = _avatarRoot;
 
             if (CoserRopa != null)
                 CoserRopa.AvatarRoot = _avatarRoot;
@@ -583,6 +604,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// </summary>
         public void InvalidateCache()
         {
+            _analisisColision = null;
             _coserRopa = null;
             _organizaPB = null;
             _menuControl = null;
@@ -651,6 +673,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
 
             // Verificar que los hijos existen
+            if (AnalisisColision == null)
+                result.AddChild(ValidationResult.Warning("No se encontró componente MRAnalisisColision hijo."));
+
             if (CoserRopa == null)
                 result.AddChild(ValidationResult.Warning("No se encontró componente MRCoserRopa hijo."));
 

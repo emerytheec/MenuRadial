@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
+using Bender_Dios.MenuRadial.Components.AnalisisColision;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
@@ -57,6 +58,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             var menuRadial = menuRadialGO.AddComponent<MRMenuRadial>();
 
             // Crear los hijos con sus componentes (en el orden especificado)
+            CreateChildWithComponent<MRAnalisisColision>(menuRadialGO, "Analisis Colision");
             CreateChildWithComponent<MRCoserRopa>(menuRadialGO, "Coser Ropa");
             CreateChildWithComponent<MROrganizaPB>(menuRadialGO, "Organiza PB");
             CreateChildWithComponent<MRMenuControl>(menuRadialGO, "Menu Control");

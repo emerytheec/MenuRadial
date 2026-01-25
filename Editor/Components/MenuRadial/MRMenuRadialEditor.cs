@@ -3,10 +3,12 @@ using UnityEditor;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
 using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
 using Bender_Dios.MenuRadial.Components.Menu;
+using Bender_Dios.MenuRadial.Components.AnalisisColision;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
+using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
@@ -595,16 +597,34 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.BeginVertical(_boxStyle);
             EditorGUILayout.LabelField("Componentes Hijos", EditorStyles.boldLabel);
 
+            // Analisis Colision con indicador especial si hay conflictos
+            bool hasColisionComponent = _target.AnalisisColision != null;
+            DrawComponentStatus("MR Analisis Colision", hasColisionComponent);
+
+            // Mostrar indicador de conflictos si hay problematicos
+            if (hasColisionComponent && _target.HasProblematicColisions)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(25);
+                GUI.contentColor = new Color(1f, 0.6f, 0.2f);
+                EditorGUILayout.LabelField($"⚠ {_target.AnalisisColision.ProblematicCount} conflicto(s) detectado(s)", EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+                EditorGUILayout.EndHorizontal();
+            }
+
             DrawComponentStatus("MR Coser Ropa", _target.CoserRopa != null);
             DrawComponentStatus("MR Organiza PB", _target.OrganizaPB != null);
             DrawComponentStatus("MR Menu Control", _menuControlTyped != null);
             DrawComponentStatus("MR Ajustar Bounds", _target.AjustarBounds != null);
+            DrawComponentStatus("MR Peso Texturas", _target.PesoTexturas != null);
 
             // Verificar si faltan componentes
-            bool missingComponents = _target.CoserRopa == null ||
+            bool missingComponents = _target.AnalisisColision == null ||
+                                     _target.CoserRopa == null ||
                                      _target.OrganizaPB == null ||
                                      _menuControlTyped == null ||
-                                     _target.AjustarBounds == null;
+                                     _target.AjustarBounds == null ||
+                                     _target.PesoTexturas == null;
 
             if (missingComponents)
             {
@@ -634,6 +654,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void RecreateChildComponents()
         {
             Undo.RecordObject(_target.gameObject, "Recreate MR Child Components");
+
+            // Analisis Colision debe ser el primer hijo
+            if (_target.AnalisisColision == null)
+            {
+                var go = new GameObject("Analisis Colision");
+                go.transform.SetParent(_target.transform);
+                go.transform.SetAsFirstSibling();
+                go.AddComponent<MRAnalisisColision>();
+                Undo.RegisterCreatedObjectUndo(go, "Create Analisis Colision");
+            }
 
             if (_target.CoserRopa == null)
             {
@@ -665,6 +695,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 go.transform.SetParent(_target.transform);
                 go.AddComponent<MRAjustarBounds>();
                 Undo.RegisterCreatedObjectUndo(go, "Create Ajustar Bounds");
+            }
+
+            if (_target.PesoTexturas == null)
+            {
+                var go = new GameObject("Peso Texturas");
+                go.transform.SetParent(_target.transform);
+                go.AddComponent<MRPesoTexturas>();
+                Undo.RegisterCreatedObjectUndo(go, "Create Peso Texturas");
             }
 
             _target.InvalidateCache();

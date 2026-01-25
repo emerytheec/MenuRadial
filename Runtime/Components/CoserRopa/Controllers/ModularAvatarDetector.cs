@@ -50,6 +50,42 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         };
 
         /// <summary>
+        /// Componentes PROBLEMATICOS que causan conflictos directos con MR.
+        /// Deben desactivarse automaticamente si estan en raiz de ropa.
+        /// </summary>
+        public static readonly string[] MA_PROBLEMATIC_ON_ROOT = new[]
+        {
+            "ModularAvatarVertexColorRemover",  // Modifica vertices
+            "ModularAvatarMeshCutter",          // Corta meshes
+            "ModularAvatarShapeChanger",        // Cambia blendshapes reactivamente
+            "ModularAvatarMeshSettings"         // Conflicto con MRAjustarBounds
+        };
+
+        /// <summary>
+        /// Componentes que requieren DECISION DEL USUARIO.
+        /// Pueden causar conflictos pero el usuario debe decidir.
+        /// </summary>
+        public static readonly string[] MA_USER_DECISION = new[]
+        {
+            "Animator",                         // Puede tener animaciones conflictivas
+            "ModularAvatarMergeAnimator",       // Mezcla animadores
+            "ModularAvatarParameters",          // Parametros VRChat
+            "ModularAvatarMenuInstaller",       // Instalador de menus
+            "ModularAvatarMenuGroup",           // Grupo de menu
+            "ModularAvatarMenuItem",            // Item de menu
+            "ModularAvatarBoneProxy"            // Proxy de huesos
+        };
+
+        /// <summary>
+        /// Componentes COMPATIBLES con MR (solo informativos).
+        /// MR ya los respeta correctamente.
+        /// </summary>
+        public static readonly string[] MA_COMPATIBLE = new[]
+        {
+            "ModularAvatarMergeArmature"        // MRCoserRopa lo respeta
+        };
+
+        /// <summary>
         /// Todos los tipos de componentes de Modular Avatar conocidos
         /// </summary>
         private static readonly string[] ALL_MA_COMPONENTS = new[]
@@ -389,7 +425,218 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             return _maTypes.TryGetValue(componentName, out var type) ? type : null;
         }
 
+        /// <summary>
+        /// Clasifica un nombre de componente segun su categoria de colision.
+        /// </summary>
+        /// <param name="componentTypeName">Nombre del tipo de componente</param>
+        /// <returns>Categoria de colision (Problematic, UserDecision, Compatible, o null si no es de MA)</returns>
+        public ColisionClassification ClassifyComponent(string componentTypeName)
+        {
+            if (string.IsNullOrEmpty(componentTypeName))
+                return ColisionClassification.Unknown;
+
+            if (MA_PROBLEMATIC_ON_ROOT.Contains(componentTypeName))
+                return ColisionClassification.Problematic;
+
+            if (MA_USER_DECISION.Contains(componentTypeName))
+                return ColisionClassification.UserDecision;
+
+            if (MA_COMPATIBLE.Contains(componentTypeName))
+                return ColisionClassification.Compatible;
+
+            // Si es un componente de MA conocido pero no clasificado
+            if (ALL_MA_COMPONENTS.Contains(componentTypeName))
+                return ColisionClassification.UserDecision;
+
+            return ColisionClassification.Unknown;
+        }
+
+        /// <summary>
+        /// Obtiene todos los componentes de MA en un GameObject agrupados por categoria.
+        /// </summary>
+        public MAColisionScanResult ScanForColisions(GameObject gameObject)
+        {
+            var result = new MAColisionScanResult();
+
+            if (gameObject == null)
+                return result;
+
+            EnsureTypesResolved();
+
+            if (!_maAvailable)
+            {
+                result.MAAvailable = false;
+                return result;
+            }
+
+            result.MAAvailable = true;
+
+            // Escanear cada tipo de componente conocido
+            foreach (var kvp in _maTypes)
+            {
+                var components = gameObject.GetComponentsInChildren(kvp.Value, true);
+                foreach (var component in components)
+                {
+                    if (component == null) continue;
+
+                    var classification = ClassifyComponent(kvp.Key);
+                    var entry = new MAColisionEntry
+                    {
+                        Component = component,
+                        TypeName = kvp.Key,
+                        Classification = classification,
+                        HierarchyPath = GetHierarchyPath(component.transform, gameObject.transform)
+                    };
+
+                    result.AddEntry(entry);
+                }
+            }
+
+            // Buscar Animator standalone (no de MA)
+            var animators = gameObject.GetComponentsInChildren<Animator>(true);
+            foreach (var animator in animators)
+            {
+                // Ignorar el Animator raiz del avatar
+                if (animator.transform == gameObject.transform) continue;
+
+                var entry = new MAColisionEntry
+                {
+                    Component = animator,
+                    TypeName = "Animator",
+                    Classification = ColisionClassification.UserDecision,
+                    HierarchyPath = GetHierarchyPath(animator.transform, gameObject.transform)
+                };
+
+                result.AddEntry(entry);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Obtiene la ruta de jerarquia relativa.
+        /// </summary>
+        private string GetHierarchyPath(Transform target, Transform root)
+        {
+            if (target == null || root == null || target == root)
+                return "";
+
+            var path = new System.Collections.Generic.List<string>();
+            var current = target;
+
+            while (current != null && current != root)
+            {
+                path.Insert(0, current.name);
+                current = current.parent;
+            }
+
+            return string.Join("/", path);
+        }
+
+        /// <summary>
+        /// Desactiva componentes problematicos en un GameObject.
+        /// </summary>
+        /// <param name="gameObject">GameObject a procesar</param>
+        /// <param name="onlyOnClothingRoots">Si es true, solo desactiva componentes en raices de ropa</param>
+        /// <param name="clothingRoots">Lista de GameObjects que son raices de ropa</param>
+        /// <returns>Cantidad de componentes desactivados</returns>
+        public int DisableProblematicComponents(GameObject gameObject, bool onlyOnClothingRoots = false,
+            System.Collections.Generic.List<GameObject> clothingRoots = null)
+        {
+            EnsureTypesResolved();
+
+            if (!_maAvailable || gameObject == null)
+                return 0;
+
+            int count = 0;
+
+            foreach (var typeName in MA_PROBLEMATIC_ON_ROOT)
+            {
+                if (!_maTypes.TryGetValue(typeName, out var type))
+                    continue;
+
+                var components = gameObject.GetComponentsInChildren(type, true);
+                foreach (var component in components)
+                {
+                    if (component == null) continue;
+
+                    // Si solo queremos los que estan en raiz de ropa
+                    if (onlyOnClothingRoots && clothingRoots != null)
+                    {
+                        bool isOnClothingRoot = clothingRoots.Contains(component.gameObject);
+                        if (!isOnClothingRoot) continue;
+                    }
+
+                    if (component is MonoBehaviour mb && mb.enabled)
+                    {
+                        mb.enabled = false;
+                        count++;
+                        Debug.Log($"[ModularAvatarDetector] Desactivado {typeName} en '{component.gameObject.name}'");
+                    }
+                }
+            }
+
+            return count;
+        }
+
         #endregion
+    }
+
+    /// <summary>
+    /// Clasificacion de colision para componentes de MA.
+    /// </summary>
+    public enum ColisionClassification
+    {
+        Unknown = 0,
+        Problematic = 1,
+        UserDecision = 2,
+        Compatible = 3
+    }
+
+    /// <summary>
+    /// Entrada de colision detectada.
+    /// </summary>
+    public class MAColisionEntry
+    {
+        public Component Component { get; set; }
+        public string TypeName { get; set; }
+        public ColisionClassification Classification { get; set; }
+        public string HierarchyPath { get; set; }
+
+        public bool IsValid => Component != null;
+        public string GameObjectName => Component != null ? Component.gameObject.name : "(null)";
+    }
+
+    /// <summary>
+    /// Resultado del escaneo de colisiones de MA.
+    /// </summary>
+    public class MAColisionScanResult
+    {
+        public bool MAAvailable { get; set; } = false;
+        public System.Collections.Generic.List<MAColisionEntry> ProblematicEntries { get; } = new System.Collections.Generic.List<MAColisionEntry>();
+        public System.Collections.Generic.List<MAColisionEntry> UserDecisionEntries { get; } = new System.Collections.Generic.List<MAColisionEntry>();
+        public System.Collections.Generic.List<MAColisionEntry> CompatibleEntries { get; } = new System.Collections.Generic.List<MAColisionEntry>();
+
+        public int TotalCount => ProblematicEntries.Count + UserDecisionEntries.Count + CompatibleEntries.Count;
+        public bool HasAny => TotalCount > 0;
+
+        public void AddEntry(MAColisionEntry entry)
+        {
+            if (entry == null) return;
+
+            switch (entry.Classification)
+            {
+                case ColisionClassification.Problematic:
+                    ProblematicEntries.Add(entry);
+                    break;
+                case ColisionClassification.UserDecision:
+                    UserDecisionEntries.Add(entry);
+                    break;
+                case ColisionClassification.Compatible:
+                    CompatibleEntries.Add(entry);
+                    break;
+            }
+        }
     }
 
     /// <summary>
