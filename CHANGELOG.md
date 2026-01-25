@@ -5,6 +5,36 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.17] - 2026-01-25
+
+### Agregado
+- **MRAnalisisColision**: Nuevo componente para detectar y gestionar conflictos con Modular Avatar
+  - Categoriza componentes de MA en tres niveles: Problemático, Decisión Usuario, Compatible
+  - **Problemático** (rojo): MA Vertex Filter, MA Mesh Cutter, MA Shape Changer, MA Mesh Settings
+    - Se desactivan automáticamente si están en raíz de ropa
+  - **Decisión Usuario** (amarillo): Animator, MA Merge Animator, MA Parameters, MA Menu Installer, MA Menu Group, MA Menu Item, MA Bone Proxy
+    - Checkboxes para que el usuario decida qué desactivar
+  - **Compatible** (verde): MA Merge Armature (MR ya lo respeta)
+  - Inspector con secciones colapsables y código de colores
+  - Botones "Desactivar Todos", "Desactivar en Raíz", "Restaurar Todos"
+  - Indicador de conflictos en panel de componentes hijos de MRMenuRadial
+- **MRAnalisisColisionPlugin**: Plugin NDMF que se ejecuta en fase Resolving ANTES de Modular Avatar
+  - Desactiva componentes problemáticos en raíz de ropa automáticamente
+  - Desactiva componentes marcados por el usuario
+  - Se destruye después de procesar
+
+### Mejorado
+- **ModularAvatarDetector**: Nuevos arrays de clasificación y métodos
+  - `MA_PROBLEMATIC_ON_ROOT`: Componentes que causan conflictos directos
+  - `MA_USER_DECISION`: Componentes que requieren decisión del usuario
+  - `MA_COMPATIBLE`: Componentes compatibles con MR
+  - `ClassifyComponent()`: Clasifica componentes por categoría
+  - `ScanForColisions()`: Escanea avatar buscando componentes de MA
+- **MRMenuRadial**: Nueva referencia a MRAnalisisColision
+  - Propiedades `DetectedColisionCount` y `HasProblematicColisions`
+  - Propagación automática de avatar al componente
+- **MRMenuRadialEditor**: Indicador visual de conflictos (⚠) en panel de componentes hijos
+
 ## [0.8.16] - 2026-01-25
 
 ### Agregado
