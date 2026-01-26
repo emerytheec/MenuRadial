@@ -396,8 +396,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 _outputPrefix = _avatarRoot.name;
             }
 
-            if (AnalisisColision != null)
-                AnalisisColision.AvatarRoot = _avatarRoot;
+            // NOTA: AnalisisColision se configura en AutoDetectAll() DESPUÉS de detectar ropas
+            // para que tenga la lista de raíces de ropa correcta
 
             if (CoserRopa != null)
                 CoserRopa.AvatarRoot = _avatarRoot;
@@ -426,10 +426,30 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (_avatarRoot == null)
                 return;
 
-            // Detectar ropas
+            // Detectar ropas primero
             if (CoserRopa != null)
             {
                 CoserRopa.DetectClothingsInAvatar();
+            }
+
+            // Configurar y escanear MRAnalisisColision DESPUÉS de detectar ropas
+            // para que tenga la lista de raíces de ropa correcta
+            if (AnalisisColision != null)
+            {
+                AnalisisColision.AvatarRoot = _avatarRoot;
+
+                if (CoserRopa != null)
+                {
+                    var clothingRoots = new System.Collections.Generic.List<GameObject>();
+                    foreach (var clothing in CoserRopa.DetectedClothings)
+                    {
+                        if (clothing?.GameObject != null)
+                            clothingRoots.Add(clothing.GameObject);
+                    }
+                    AnalisisColision.UpdateClothingRoots(clothingRoots);
+                }
+
+                AnalisisColision.ScanAvatar();
             }
 
             // Escanear PhysBones

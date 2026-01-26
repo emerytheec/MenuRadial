@@ -206,6 +206,14 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         }
 
         /// <summary>
+        /// Obtiene entradas problematicas que el usuario quiere desactivar.
+        /// </summary>
+        public IEnumerable<ColisionEntry> GetProblematicToDisable()
+        {
+            return _problematicEntries.Where(e => e.UserWantsDisabled && e.IsValid);
+        }
+
+        /// <summary>
         /// Marca el escaneo como completado.
         /// </summary>
         public void MarkCompleted()

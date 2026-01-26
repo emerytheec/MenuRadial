@@ -184,7 +184,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Desactiva componentes marcados por el usuario.
+        /// Desactiva componentes marcados por el usuario (UserDecision y Problematic).
         /// </summary>
         private int DisableUserSelectedComponents(MRAnalisisColision analisis)
         {
@@ -192,6 +192,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             int count = 0;
 
+            // Desactivar UserDecision marcados
             foreach (var entry in analisis.ScanResult.GetUserDecisionToDisable())
             {
                 if (entry.IsValid && entry.IsEnabled)
@@ -200,7 +201,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                     {
                         mb.enabled = false;
                         count++;
-                        Debug.Log($"[MRAnalisisColision NDMF] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (marcado por usuario)");
+                        Debug.Log($"[MRAnalisisColision NDMF] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (UserDecision marcado)");
+                    }
+                }
+            }
+
+            // Desactivar Problematicos marcados por el usuario
+            foreach (var entry in analisis.ScanResult.GetProblematicToDisable())
+            {
+                if (entry.IsValid && entry.IsEnabled)
+                {
+                    if (entry.Component is MonoBehaviour mb)
+                    {
+                        mb.enabled = false;
+                        count++;
+                        Debug.Log($"[MRAnalisisColision NDMF] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (Problematic marcado)");
                     }
                 }
             }

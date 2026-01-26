@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.SceneManagement;
+#endif
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.AnalisisColision.Models;
@@ -19,6 +23,21 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
     [AddComponentMenu("Bender Dios/MR Analisis Colision")]
     public class MRAnalisisColision : MRComponentBase
     {
+        #region Constants
+
+        /// <summary>
+        /// Componentes criticos que SIEMPRE se desactivan automaticamente.
+        /// Estos modifican vertices/meshes y causan conflictos graves con MR.
+        /// </summary>
+        private static readonly string[] CRITICAL_COMPONENTS = new[]
+        {
+            "MeshCutter",
+            "VertexFilter",
+            "ShapeChanger"
+        };
+
+        #endregion
+
         #region Serialized Fields
 
         [Header("Avatar")]
@@ -38,6 +57,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         [SerializeField]
         [Tooltip("Lista de GameObjects raiz de ropa (poblada por MRCoserRopa)")]
         private List<GameObject> _clothingRoots = new List<GameObject>();
+
+        [SerializeField]
+        [Tooltip("Mostrar componentes compatibles en el inspector")]
+        private bool _showCompatibleComponents = true;
 
         #endregion
 
@@ -133,6 +156,15 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         /// </summary>
         public List<GameObject> ClothingRoots => _clothingRoots;
 
+        /// <summary>
+        /// Si se deben mostrar los componentes compatibles en el inspector.
+        /// </summary>
+        public bool ShowCompatibleComponents
+        {
+            get => _showCompatibleComponents;
+            set => _showCompatibleComponents = value;
+        }
+
         #endregion
 
         #region Lifecycle Methods
@@ -151,16 +183,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
         /// <summary>
         /// Llamado cuando cambia el avatar asignado.
+        /// Limpia resultados previos pero NO escanea automáticamente.
+        /// El escaneo se controla desde MRMenuRadial.AutoDetectAll() para
+        /// asegurar que se haga DESPUÉS de detectar las ropas.
         /// </summary>
         public void OnAvatarChanged()
         {
             ClearScanResults();
-
-            if (_avatarRoot == null)
-                return;
-
-            // Escanear automaticamente
-            ScanAvatar();
         }
 
         /// <summary>
@@ -196,6 +225,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             _scanResult.MarkCompleted();
 
             Debug.Log($"[MRAnalisisColision] Escaneo completado: {_scanResult.GetSummary()}");
+
+            // SIEMPRE desactivar componentes criticos (MeshCutter, VertexFilter, ShapeChanger)
+            int criticalDisabled = DisableCriticalComponents();
+            if (criticalDisabled > 0)
+            {
+                Debug.Log($"[MRAnalisisColision] Desactivados {criticalDisabled} componente(s) critico(s) automaticamente");
+            }
 
             // Desactivar automaticamente problematicos en raiz de ropa si esta habilitado
             if (_autoDisableProblematicOnRoot && _scanResult.HasProblematicOnClothingRoot)
@@ -242,6 +278,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 }
             }
 
+#if UNITY_EDITOR
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
             return count;
         }
 
@@ -267,6 +310,63 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
+        /// Desactiva componentes criticos (MeshCutter, VertexFilter, ShapeChanger) en raiz de ropa.
+        /// Solo se desactivan automaticamente si estan en la raiz de una prenda detectada.
+        /// </summary>
+        /// <returns>Cantidad de componentes desactivados.</returns>
+        public int DisableCriticalComponents()
+        {
+            if (_scanResult == null)
+                return 0;
+
+            int count = 0;
+
+            // Buscar en todas las categorias
+            foreach (var entry in _scanResult.AllEntries)
+            {
+                if (!entry.IsValid || !entry.IsEnabled)
+                    continue;
+
+                // Verificar si es un componente critico Y esta en raiz de ropa
+                if (IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnClothingRoot)
+                {
+                    if (entry.Disable())
+                    {
+                        count++;
+                        Debug.Log($"[MRAnalisisColision] Desactivado (critico) {entry.ShortTypeName} en '{entry.GameObjectName}'");
+                    }
+                }
+            }
+
+#if UNITY_EDITOR
+            // Marcar la escena como modificada para que Unity guarde los cambios
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return count;
+        }
+
+        /// <summary>
+        /// Verifica si un tipo de componente es critico.
+        /// </summary>
+        private bool IsCriticalComponent(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName))
+                return false;
+
+            foreach (var critical in CRITICAL_COMPONENTS)
+            {
+                if (typeName.Contains(critical))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Desactiva los componentes de decision de usuario que el usuario marco para desactivar.
         /// </summary>
         /// <returns>Cantidad de componentes desactivados.</returns>
@@ -277,6 +377,27 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
             int count = 0;
             foreach (var entry in _scanResult.GetUserDecisionToDisable())
+            {
+                if (entry.Disable())
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Desactiva los componentes problematicos que el usuario marco para desactivar.
+        /// </summary>
+        /// <returns>Cantidad de componentes desactivados.</returns>
+        public int DisableUserSelectedProblematic()
+        {
+            if (_scanResult == null || !_scanResult.HasProblematic)
+                return 0;
+
+            int count = 0;
+            foreach (var entry in _scanResult.GetProblematicToDisable())
             {
                 if (entry.Disable())
                 {
@@ -305,6 +426,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                     count++;
                 }
             }
+
+#if UNITY_EDITOR
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
 
             return count;
         }
@@ -349,6 +477,15 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
                 // Verificar si esta en raiz de ropa
                 UpdateEntryClothingInfo(entry);
+
+                // Re-clasificar: componentes problematicos que NO estan en raiz de ropa
+                // deben ser UserDecision (el usuario decide si desactivarlos)
+                if (category == ColisionCategory.Problematic && !entry.IsOnClothingRoot)
+                {
+                    entry.Category = ColisionCategory.UserDecision;
+                    // UserDecision: checkbox marcado (se mantiene activo)
+                    entry.UserWantsDisabled = false;
+                }
 
                 _scanResult.AddEntry(entry);
             }
@@ -459,12 +596,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         protected override void ValidateInEditor()
         {
             base.ValidateInEditor();
-
-            // Auto-escanear si el avatar cambio y no hay resultados
-            if (_avatarRoot != null && !IsScanned)
-            {
-                ScanAvatar();
-            }
+            // El escaneo se controla desde MRMenuRadial.AutoDetectAll()
+            // No escanear automáticamente aquí para evitar escaneos sin las ropas detectadas
         }
 #endif
 

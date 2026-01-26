@@ -1,5 +1,8 @@
 using System;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
 {
@@ -170,7 +173,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             _componentTypeName = typeName;
             _category = category;
             _hierarchyPath = hierarchyPath;
-            _userWantsDisabled = false;
+            // Problemáticos: UserWantsDisabled=true → checkbox desmarcado → se desactivarán
+            // Decisión Usuario: UserWantsDisabled=false → checkbox marcado → se mantienen activos
+            // Compatibles: no aplica (solo informativos)
+            _userWantsDisabled = category == ColisionCategory.Problematic;
             _wasOriginallyEnabled = component is MonoBehaviour mb ? mb.enabled : true;
             _isOnClothingRoot = false;
             _clothingName = "";
@@ -188,19 +194,29 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         {
             if (_component == null) return false;
 
+            bool disabled = false;
+
             if (_component is MonoBehaviour mb)
             {
                 mb.enabled = false;
-                return true;
+                disabled = true;
             }
-
-            if (_component is Behaviour b)
+            else if (_component is Behaviour b)
             {
                 b.enabled = false;
-                return true;
+                disabled = true;
             }
 
-            return false;
+#if UNITY_EDITOR
+            // Marcar como dirty para que Unity guarde los cambios en Edit Mode
+            if (disabled && !Application.isPlaying)
+            {
+                EditorUtility.SetDirty(_component);
+                EditorUtility.SetDirty(_component.gameObject);
+            }
+#endif
+
+            return disabled;
         }
 
         /// <summary>
@@ -211,19 +227,29 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         {
             if (_component == null) return false;
 
+            bool restored = false;
+
             if (_component is MonoBehaviour mb)
             {
                 mb.enabled = _wasOriginallyEnabled;
-                return true;
+                restored = true;
             }
-
-            if (_component is Behaviour b)
+            else if (_component is Behaviour b)
             {
                 b.enabled = _wasOriginallyEnabled;
-                return true;
+                restored = true;
             }
 
-            return false;
+#if UNITY_EDITOR
+            // Marcar como dirty para que Unity guarde los cambios en Edit Mode
+            if (restored && !Application.isPlaying)
+            {
+                EditorUtility.SetDirty(_component);
+                EditorUtility.SetDirty(_component.gameObject);
+            }
+#endif
+
+            return restored;
         }
 
         public override string ToString()

@@ -5,6 +5,28 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.18] - 2026-01-26
+
+### Mejorado
+- **MRAnalisisColision**: Mejoras en detección y desactivación de componentes críticos
+  - Detecta `VertexFilterByAxisComponent` (nombre real del filtro de vértices de MA)
+  - Componentes críticos (MeshCutter, VertexFilter, ShapeChanger) en raíz de ropa se muestran en **rojo y negrita**
+  - Auto-desactivación de componentes críticos persiste en Edit Mode (marca escena como dirty)
+  - Checkboxes funcionan correctamente con SerializedProperty
+  - Categorías con 0 componentes se muestran en gris en lugar de desaparecer
+  - Texto alineado correctamente a la derecha
+- **ModularAvatarDetector**: Detección dinámica mejorada
+  - Busca en namespaces adicionales (`nadena.dev.modular_avatar.core.vertex_filters`)
+  - Incluye tipos que no empiezan con "ModularAvatar" pero pertenecen a MA
+  - Método `DebugListAllComponents()` para diagnóstico
+- **ColisionEntry**: Los métodos `Disable()` y `Restore()` marcan objetos como dirty en Edit Mode
+- **MRMenuRadial**: Escaneo automático de colisiones después de detectar ropas
+
+### Corregido
+- Checkboxes de componentes ahora funcionan correctamente (usaban Toggle en lugar de EditorGUILayout.Toggle)
+- Lógica de checkbox invertida: marcado = mantener activo, desmarcado = desactivar
+- Problematic que NO están en raíz de ropa se reclasifican como UserDecision
+
 ## [0.8.17] - 2026-01-25
 
 ### Agregado

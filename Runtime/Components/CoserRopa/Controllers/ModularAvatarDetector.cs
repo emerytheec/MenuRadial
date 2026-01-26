@@ -52,13 +52,15 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// <summary>
         /// Componentes PROBLEMATICOS que causan conflictos directos con MR.
         /// Deben desactivarse automaticamente si estan en raiz de ropa.
+        /// Si estan en otros GameObjects, requieren decision del usuario.
         /// </summary>
         public static readonly string[] MA_PROBLEMATIC_ON_ROOT = new[]
         {
             "ModularAvatarVertexColorRemover",  // Modifica vertices
             "ModularAvatarMeshCutter",          // Corta meshes
             "ModularAvatarShapeChanger",        // Cambia blendshapes reactivamente
-            "ModularAvatarMeshSettings"         // Conflicto con MRAjustarBounds
+            "ModularAvatarVertexFilter",        // Filtra vertices por eje
+            "VertexFilterByAxisComponent"       // Filtro de vertices por eje (nombre real)
         };
 
         /// <summary>
@@ -78,11 +80,12 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
         /// <summary>
         /// Componentes COMPATIBLES con MR (solo informativos).
-        /// MR ya los respeta correctamente.
+        /// MR ya los respeta o desactiva correctamente.
         /// </summary>
         public static readonly string[] MA_COMPATIBLE = new[]
         {
-            "ModularAvatarMergeArmature"        // MRCoserRopa lo respeta
+            "ModularAvatarMergeArmature",       // MRCoserRopa lo respeta
+            "ModularAvatarMeshSettings"         // MRAjustarBounds lo desactiva por defecto
         };
 
         /// <summary>
@@ -100,7 +103,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             "ModularAvatarBlendshapeSync",
             "ModularAvatarShapeChanger",
             "ModularAvatarObjectToggle",
-            "ModularAvatarMeshSettings"
+            "ModularAvatarMeshSettings",
+            "ModularAvatarMeshCutter",
+            "ModularAvatarVertexColorRemover",
+            "ModularAvatarVertexFilter",
+            "VertexFilterByAxisComponent"   // Nombre real del componente de filtro de vertices
+        };
+
+        /// <summary>
+        /// Namespaces adicionales de Modular Avatar que contienen componentes
+        /// </summary>
+        private static readonly string[] MA_ADDITIONAL_NAMESPACES = new[]
+        {
+            "nadena.dev.modular_avatar.core.vertex_filters"
         };
 
         #endregion
@@ -117,6 +132,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
         private static ModularAvatarDetector _instance;
         public static ModularAvatarDetector Instance => _instance ??= new ModularAvatarDetector();
+
+        /// <summary>
+        /// Resetea el cache de tipos para forzar una nueva resolución.
+        /// Útil después de cambios en las listas de componentes.
+        /// </summary>
+        public static void ResetCache()
+        {
+            if (_instance != null)
+            {
+                _instance._typesResolved = false;
+                _instance._maTypes.Clear();
+            }
+        }
 
         #endregion
 
@@ -139,14 +167,58 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
                     !assembly.FullName.Contains("Modular"))
                     continue;
 
+                try
+                {
+                    // Buscar todos los tipos que heredan de MonoBehaviour
+                    foreach (var type in assembly.GetTypes())
+                    {
+                        if (type == null || type.IsAbstract) continue;
+                        if (!typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(type)) continue;
+
+                        string typeName = type.Name;
+                        string typeNamespace = type.Namespace ?? "";
+
+                        // Incluir si:
+                        // 1. Empieza con "ModularAvatar" o "MA"
+                        // 2. Está en el namespace principal de MA
+                        // 3. Está en alguno de los namespaces adicionales de MA
+                        bool isMAType = typeName.StartsWith("ModularAvatar") ||
+                                        typeName.StartsWith("MA") ||
+                                        typeNamespace == MA_NAMESPACE ||
+                                        MA_ADDITIONAL_NAMESPACES.Any(ns => typeNamespace.StartsWith(ns));
+
+                        if (isMAType && !_maTypes.ContainsKey(typeName))
+                        {
+                            _maTypes[typeName] = type;
+                            _maAvailable = true;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[ModularAvatarDetector] Error escaneando assembly {assembly.FullName}: {ex.Message}");
+                }
+
+                // También buscar por los nombres conocidos en todos los namespaces
                 foreach (var componentName in ALL_MA_COMPONENTS)
                 {
                     if (_maTypes.ContainsKey(componentName))
                         continue;
 
-                    // Intentar encontrar el tipo
+                    // Intentar en el namespace principal
                     var fullTypeName = $"{MA_NAMESPACE}.{componentName}";
                     var type = assembly.GetType(fullTypeName);
+
+                    // Intentar en namespaces adicionales
+                    if (type == null)
+                    {
+                        foreach (var ns in MA_ADDITIONAL_NAMESPACES)
+                        {
+                            fullTypeName = $"{ns}.{componentName}";
+                            type = assembly.GetType(fullTypeName);
+                            if (type != null) break;
+                        }
+                    }
 
                     if (type == null)
                     {
@@ -167,7 +239,12 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
             if (_maAvailable)
             {
-                Debug.Log($"[ModularAvatarDetector] Modular Avatar detectado. Componentes encontrados: {string.Join(", ", _maTypes.Keys)}");
+                Debug.Log($"[ModularAvatarDetector] Modular Avatar detectado. Total: {_maTypes.Count} componentes");
+                Debug.Log($"[ModularAvatarDetector] Componentes: {string.Join(", ", _maTypes.Keys)}");
+            }
+            else
+            {
+                Debug.LogWarning("[ModularAvatarDetector] Modular Avatar NO detectado");
             }
         }
 
@@ -426,6 +503,38 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         }
 
         /// <summary>
+        /// Debug: Lista todos los componentes en un GameObject y sus hijos.
+        /// </summary>
+        public void DebugListAllComponents(GameObject gameObject)
+        {
+            if (gameObject == null)
+            {
+                Debug.Log("[ModularAvatarDetector] GameObject es null");
+                return;
+            }
+
+            var allComponents = gameObject.GetComponentsInChildren<Component>(true);
+            var componentNames = new HashSet<string>();
+
+            foreach (var comp in allComponents)
+            {
+                if (comp == null) continue;
+                string typeName = comp.GetType().FullName;
+                if (typeName.Contains("modular") || typeName.Contains("Modular") ||
+                    typeName.Contains("nadena"))
+                {
+                    componentNames.Add($"{comp.GetType().Name} ({typeName})");
+                }
+            }
+
+            Debug.Log($"[ModularAvatarDetector] Componentes MA en '{gameObject.name}': {componentNames.Count}");
+            foreach (var name in componentNames)
+            {
+                Debug.Log($"  - {name}");
+            }
+        }
+
+        /// <summary>
         /// Clasifica un nombre de componente segun su categoria de colision.
         /// </summary>
         /// <param name="componentTypeName">Nombre del tipo de componente</param>
@@ -435,6 +544,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             if (string.IsNullOrEmpty(componentTypeName))
                 return ColisionClassification.Unknown;
 
+            // Verificar listas estáticas primero
             if (MA_PROBLEMATIC_ON_ROOT.Contains(componentTypeName))
                 return ColisionClassification.Problematic;
 
@@ -444,8 +554,25 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             if (MA_COMPATIBLE.Contains(componentTypeName))
                 return ColisionClassification.Compatible;
 
+            // Clasificar dinámicamente por patrones de nombre
+            // Componentes relacionados con Mesh/Vertex son problemáticos
+            if (componentTypeName.Contains("MeshCutter") ||
+                componentTypeName.Contains("VertexFilter") ||
+                componentTypeName.Contains("VertexColor") ||
+                componentTypeName.Contains("ShapeChanger"))
+                return ColisionClassification.Problematic;
+
             // Si es un componente de MA conocido pero no clasificado
             if (ALL_MA_COMPONENTS.Contains(componentTypeName))
+                return ColisionClassification.UserDecision;
+
+            // Si es cualquier componente de MA (detectado dinámicamente)
+            if (componentTypeName.StartsWith("ModularAvatar") || componentTypeName.StartsWith("MA"))
+                return ColisionClassification.UserDecision;
+
+            // Si está en el diccionario de tipos (fue descubierto dinámicamente)
+            EnsureTypesResolved();
+            if (_maTypes.ContainsKey(componentTypeName))
                 return ColisionClassification.UserDecision;
 
             return ColisionClassification.Unknown;
@@ -462,6 +589,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
                 return result;
 
             EnsureTypesResolved();
+
+            // Debug: listar todos los componentes MA encontrados en el GameObject
+            DebugListAllComponents(gameObject);
 
             if (!_maAvailable)
             {
