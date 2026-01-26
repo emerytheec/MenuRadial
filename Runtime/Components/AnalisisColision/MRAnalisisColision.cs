@@ -8,6 +8,7 @@ using UnityEditor.SceneManagement;
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.AnalisisColision.Models;
+using Bender_Dios.MenuRadial.Components.AnalisisColision.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 
 namespace Bender_Dios.MenuRadial.Components.AnalisisColision
@@ -35,6 +36,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             "VertexFilter",
             "ShapeChanger"
         };
+
+        /// <summary>
+        /// Nombre del componente BlendshapeSync que requiere tratamiento especial.
+        /// Este componente sincroniza blendshapes en Edit Mode y necesita
+        /// desregistrarse del loop de actualización para detenerse completamente.
+        /// </summary>
+        private const string BLENDSHAPE_SYNC_TYPE = "ModularAvatarBlendshapeSync";
 
         #endregion
 
@@ -164,6 +172,49 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             get => _showCompatibleComponents;
             set => _showCompatibleComponents = value;
         }
+
+        /// <summary>
+        /// Si el controlador de BlendshapeSync está disponible (reflexión funciona).
+        /// </summary>
+        public bool IsBlendshapeSyncControlAvailable => BlendshapeSyncController.IsAvailable;
+
+        /// <summary>
+        /// Cantidad de componentes BlendshapeSync detectados.
+        /// </summary>
+        public int BlendshapeSyncCount
+        {
+            get
+            {
+                if (_scanResult == null) return 0;
+                return _scanResult.AllEntries
+                    .Count(e => e.IsValid && IsBlendshapeSyncComponent(e.ComponentTypeName));
+            }
+        }
+
+        /// <summary>
+        /// Cantidad de BlendshapeSync actualmente detenidos (sincronización desactivada).
+        /// </summary>
+        public int BlendshapeSyncStoppedCount
+        {
+            get
+            {
+                if (_scanResult == null) return 0;
+                return _scanResult.AllEntries
+                    .Count(e => e.IsValid &&
+                                IsBlendshapeSyncComponent(e.ComponentTypeName) &&
+                                BlendshapeSyncController.IsStopped(e.Component));
+            }
+        }
+
+        /// <summary>
+        /// Si hay BlendshapeSync que pueden ser detenidos.
+        /// </summary>
+        public bool HasActiveBlendshapeSyncs => BlendshapeSyncCount > BlendshapeSyncStoppedCount;
+
+        /// <summary>
+        /// Si hay BlendshapeSync detenidos que pueden ser restaurados.
+        /// </summary>
+        public bool HasStoppedBlendshapeSyncs => BlendshapeSyncStoppedCount > 0;
 
         #endregion
 
@@ -454,6 +505,157 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             {
                 ScanAvatar();
             }
+        }
+
+        #endregion
+
+        #region BlendshapeSync Methods
+
+        /// <summary>
+        /// Detiene la sincronización de todos los BlendshapeSync detectados.
+        /// Usa reflexión para desregistrar del loop de actualización y limpiar bindings.
+        /// </summary>
+        /// <returns>Cantidad de componentes detenidos.</returns>
+        public int StopAllBlendshapeSyncs()
+        {
+            if (_scanResult == null || !BlendshapeSyncController.IsAvailable)
+                return 0;
+
+            int count = 0;
+
+            foreach (var entry in _scanResult.AllEntries)
+            {
+                if (!entry.IsValid || !IsBlendshapeSyncComponent(entry.ComponentTypeName))
+                    continue;
+
+                if (BlendshapeSyncController.IsStopped(entry.Component))
+                    continue;
+
+                if (BlendshapeSyncController.StopSync(entry.Component))
+                {
+                    count++;
+                    Debug.Log($"[MRAnalisisColision] BlendshapeSync detenido en '{entry.GameObjectName}'");
+                }
+            }
+
+#if UNITY_EDITOR
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return count;
+        }
+
+        /// <summary>
+        /// Restaura la sincronización de todos los BlendshapeSync detenidos.
+        /// </summary>
+        /// <returns>Cantidad de componentes restaurados.</returns>
+        public int RestoreAllBlendshapeSyncs()
+        {
+            if (_scanResult == null || !BlendshapeSyncController.IsAvailable)
+                return 0;
+
+            int count = 0;
+
+            foreach (var entry in _scanResult.AllEntries)
+            {
+                if (!entry.IsValid || !IsBlendshapeSyncComponent(entry.ComponentTypeName))
+                    continue;
+
+                if (!BlendshapeSyncController.IsStopped(entry.Component))
+                    continue;
+
+                if (BlendshapeSyncController.RestoreSync(entry.Component))
+                {
+                    count++;
+                    Debug.Log($"[MRAnalisisColision] BlendshapeSync restaurado en '{entry.GameObjectName}'");
+                }
+            }
+
+#if UNITY_EDITOR
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return count;
+        }
+
+        /// <summary>
+        /// Detiene la sincronización de un BlendshapeSync específico.
+        /// </summary>
+        public bool StopBlendshapeSync(ColisionEntry entry)
+        {
+            if (entry == null || !entry.IsValid || !IsBlendshapeSyncComponent(entry.ComponentTypeName))
+                return false;
+
+            if (!BlendshapeSyncController.IsAvailable)
+                return false;
+
+            bool result = BlendshapeSyncController.StopSync(entry.Component);
+
+#if UNITY_EDITOR
+            if (result && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return result;
+        }
+
+        /// <summary>
+        /// Restaura la sincronización de un BlendshapeSync específico.
+        /// </summary>
+        public bool RestoreBlendshapeSync(ColisionEntry entry)
+        {
+            if (entry == null || !entry.IsValid || !IsBlendshapeSyncComponent(entry.ComponentTypeName))
+                return false;
+
+            if (!BlendshapeSyncController.IsAvailable)
+                return false;
+
+            bool result = BlendshapeSyncController.RestoreSync(entry.Component);
+
+#if UNITY_EDITOR
+            if (result && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return result;
+        }
+
+        /// <summary>
+        /// Verifica si un BlendshapeSync específico está detenido.
+        /// </summary>
+        public bool IsBlendshapeSyncStopped(ColisionEntry entry)
+        {
+            if (entry == null || !entry.IsValid || !IsBlendshapeSyncComponent(entry.ComponentTypeName))
+                return false;
+
+            return BlendshapeSyncController.IsStopped(entry.Component);
+        }
+
+        /// <summary>
+        /// Verifica si un nombre de tipo corresponde a BlendshapeSync.
+        /// </summary>
+        private bool IsBlendshapeSyncComponent(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName)) return false;
+            return typeName.Contains("BlendshapeSync");
+        }
+
+        /// <summary>
+        /// Obtiene información de diagnóstico del controlador de BlendshapeSync.
+        /// </summary>
+        public string GetBlendshapeSyncControllerStatus()
+        {
+            return BlendshapeSyncController.GetStatusInfo();
         }
 
         #endregion

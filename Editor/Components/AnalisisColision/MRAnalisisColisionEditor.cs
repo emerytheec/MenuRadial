@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEditor;
 using Bender_Dios.MenuRadial.Components.AnalisisColision;
 using Bender_Dios.MenuRadial.Components.AnalisisColision.Models;
+using Bender_Dios.MenuRadial.Components.AnalisisColision.Controllers;
+using Bender_Dios.MenuRadial.Editor.Components.AnalisisColision.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
@@ -36,8 +38,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             "ModularAvatarMeshCutter",
             "ModularAvatarVertexFilter",
             "ModularAvatarShapeChanger",
-            "VertexFilterByAxisComponent"  // Nombre real del filtro de vertices
+            "VertexFilterByAxisComponent",  // Nombre real del filtro de vertices
+            "ModularAvatarBlendshapeSync"   // Sincroniza blendshapes en Edit Mode
         };
+
+        // Color para BlendshapeSync (naranja especial)
+        private static readonly Color BlendshapeSyncColor = new Color(1f, 0.6f, 0.2f);
 
         // SerializedProperties para las listas
         private SerializedProperty _scanResultProp;
@@ -162,6 +168,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 // Botones de accion
                 DrawActionButtons();
 
+                EditorGUILayout.Space(8);
+
+                // Seccion especial para BlendshapeSync (si hay alguno)
+                if (_target.BlendshapeSyncCount > 0)
+                {
+                    DrawBlendshapeSyncSection();
+                    EditorGUILayout.Space(8);
+                }
+
+                // Seccion de control de NDMF Preview
+                DrawNDMFPreviewControlSection();
                 EditorGUILayout.Space(8);
 
                 // Info NDMF
@@ -604,6 +621,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             int savedIndent = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;
 
+            // Verificar si es BlendshapeSync
+            bool isBlendshapeSync = IsBlendshapeSyncComponent(entry.ComponentTypeName);
+            bool isSyncStopped = isBlendshapeSync && _target.IsBlendshapeSyncStopped(entry);
+
             EditorGUILayout.BeginHorizontal();
 
             // Espacio para simular indentación visual
@@ -632,9 +653,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 GUILayout.Label(icon, GUILayout.Width(18), GUILayout.Height(18));
             }
 
-            // Nombre del tipo de componente (en rojo si es critico Y esta en raiz de ropa)
+            // Nombre del tipo de componente
             bool isCriticalOnRoot = IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnClothingRoot;
-            if (isCriticalOnRoot)
+
+            if (isBlendshapeSync)
+            {
+                // BlendshapeSync tiene color especial
+                GUI.contentColor = isSyncStopped ? Color.gray : BlendshapeSyncColor;
+                string syncStatus = isSyncStopped ? " [DETENIDO]" : "";
+                GUILayout.Label(entry.ShortTypeName + syncStatus, EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+            }
+            else if (isCriticalOnRoot)
             {
                 GUI.contentColor = CriticalRedColor;
                 GUILayout.Label(entry.ShortTypeName, EditorStyles.boldLabel);
@@ -647,6 +677,37 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             // Empujar categoría a la derecha
             GUILayout.FlexibleSpace();
+
+            // Botones individuales para BlendshapeSync
+            if (isBlendshapeSync && _target.IsBlendshapeSyncControlAvailable)
+            {
+                if (isSyncStopped)
+                {
+                    GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f);
+                    if (GUILayout.Button(
+                        new GUIContent("▶", "Restaurar sincronización"),
+                        GUILayout.Width(22), GUILayout.Height(18)))
+                    {
+                        Undo.RecordObject(_target, "Restaurar BlendshapeSync");
+                        _target.RestoreBlendshapeSync(entry);
+                        EditorUtility.SetDirty(_target);
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                else
+                {
+                    GUI.backgroundColor = new Color(0.9f, 0.5f, 0.3f);
+                    if (GUILayout.Button(
+                        new GUIContent("■", "Detener sincronización"),
+                        GUILayout.Width(22), GUILayout.Height(18)))
+                    {
+                        Undo.RecordObject(_target, "Detener BlendshapeSync");
+                        _target.StopBlendshapeSync(entry);
+                        EditorUtility.SetDirty(_target);
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+            }
 
             // Indicador de categoria con color (alineado a la derecha)
             var categoryColor = GetCategoryColor(entry.Category);
@@ -819,6 +880,327 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         #endregion
 
+        #region BlendshapeSync Section
+
+        /// <summary>
+        /// Dibuja la seccion especial para BlendshapeSync con informacion y controles.
+        /// </summary>
+        private void DrawBlendshapeSyncSection()
+        {
+            // Fondo con color especial
+            GUI.backgroundColor = new Color(BlendshapeSyncColor.r, BlendshapeSyncColor.g, BlendshapeSyncColor.b, 0.15f);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUI.backgroundColor = Color.white;
+
+            // Header
+            EditorGUILayout.BeginHorizontal();
+            GUI.contentColor = BlendshapeSyncColor;
+            EditorGUILayout.LabelField("BlendshapeSync", EditorStyles.boldLabel);
+            GUI.contentColor = Color.white;
+
+            // Badge de cantidad
+            GUILayout.FlexibleSpace();
+            int total = _target.BlendshapeSyncCount;
+            int stopped = _target.BlendshapeSyncStoppedCount;
+            string statusText = stopped > 0 ? $"{stopped}/{total} detenidos" : $"{total} activos";
+            EditorGUILayout.LabelField(statusText, EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(3);
+
+            // Informacion del problema
+            var infoStyle = new GUIStyle(EditorStyles.wordWrappedMiniLabel)
+            {
+                richText = true
+            };
+
+            EditorGUILayout.LabelField(
+                "<b>Problema:</b> BlendshapeSync sincroniza blendshapes del cuerpo del avatar " +
+                "en tiempo real, incluso fuera de Play Mode. Si está en la raíz de la ropa, " +
+                "afecta al body constantemente.",
+                infoStyle);
+
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.LabelField(
+                "<b>Solución correcta:</b> Mover el componente al mesh que realmente necesita " +
+                "sincronización (no la raíz de la prenda).",
+                infoStyle);
+
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.LabelField(
+                "<b>Solución temporal:</b> Usa los botones para detener/restaurar la " +
+                "sincronización en Edit Mode sin mover el componente.",
+                infoStyle);
+
+            EditorGUILayout.Space(5);
+
+            // Advertencia sobre reflexión
+            GUI.contentColor = new Color(1f, 0.8f, 0.4f);
+            EditorGUILayout.LabelField(
+                "⚠ Esta funcionalidad usa reflexión y podría dejar de funcionar con " +
+                "actualizaciones de Modular Avatar.",
+                EditorStyles.wordWrappedMiniLabel);
+            GUI.contentColor = Color.white;
+
+            EditorGUILayout.Space(5);
+
+            // Estado del controlador
+            if (!_target.IsBlendshapeSyncControlAvailable)
+            {
+                EditorGUILayout.HelpBox(
+                    "El controlador de BlendshapeSync no está disponible. " +
+                    "La reflexión a los tipos internos de MA falló.",
+                    MessageType.Warning);
+
+                // Botón de diagnóstico
+                if (GUILayout.Button("Mostrar diagnóstico", EditorStyles.miniButton))
+                {
+                    Debug.Log(_target.GetBlendshapeSyncControllerStatus());
+                }
+            }
+            else
+            {
+                // Botones
+                EditorGUILayout.BeginHorizontal();
+
+                // Boton Detener
+                GUI.enabled = _target.HasActiveBlendshapeSyncs;
+                GUI.backgroundColor = new Color(0.9f, 0.5f, 0.3f);
+                if (GUILayout.Button(
+                    new GUIContent("Detener Sincronización",
+                        "Desregistra del loop de actualización y limpia bindings. " +
+                        "El componente permanece pero no sincroniza."),
+                    GUILayout.Height(25)))
+                {
+                    Undo.RecordObject(_target, "Detener BlendshapeSyncs");
+                    int count = _target.StopAllBlendshapeSyncs();
+                    if (count > 0)
+                    {
+                        EditorUtility.DisplayDialog("BlendshapeSync",
+                            $"Se detuvo la sincronización de {count} componente(s).\n\n" +
+                            "Los blendshapes del body ya no se verán afectados en Edit Mode.\n\n" +
+                            "Nota: El componente sigue existiendo, solo se desactivó su efecto.",
+                            "Entendido");
+                    }
+                    EditorUtility.SetDirty(_target);
+                }
+                GUI.backgroundColor = Color.white;
+
+                // Boton Restaurar
+                GUI.enabled = _target.HasStoppedBlendshapeSyncs;
+                GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f);
+                if (GUILayout.Button(
+                    new GUIContent("Restaurar Sincronización",
+                        "Re-registra en el loop y fuerza rebind. " +
+                        "Los blendshapes volverán a sincronizarse."),
+                    GUILayout.Height(25)))
+                {
+                    Undo.RecordObject(_target, "Restaurar BlendshapeSyncs");
+                    int count = _target.RestoreAllBlendshapeSyncs();
+                    if (count > 0)
+                    {
+                        EditorUtility.DisplayDialog("BlendshapeSync",
+                            $"Se restauró la sincronización de {count} componente(s).\n\n" +
+                            "Los blendshapes volverán a sincronizarse en Edit Mode.",
+                            "Entendido");
+                    }
+                    EditorUtility.SetDirty(_target);
+                }
+                GUI.backgroundColor = Color.white;
+                GUI.enabled = true;
+
+                EditorGUILayout.EndHorizontal();
+
+                // Botón de diagnóstico (pequeño)
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Diagnóstico", EditorStyles.miniButton, GUILayout.Width(80)))
+                {
+                    string status = _target.GetBlendshapeSyncControllerStatus();
+                    Debug.Log(status);
+                    EditorUtility.DisplayDialog("Estado BlendshapeSyncController", status, "OK");
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Verifica si un nombre de tipo corresponde a BlendshapeSync.
+        /// </summary>
+        private bool IsBlendshapeSyncComponent(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName)) return false;
+            return typeName.Contains("BlendshapeSync");
+        }
+
+        #endregion
+
+        #region NDMF Preview Control Section
+
+        // Color para la sección de NDMF Preview
+        private static readonly Color NDMFPreviewColor = new Color(0.6f, 0.4f, 0.9f);
+
+        /// <summary>
+        /// Dibuja la sección de control de previsualizaciones NDMF.
+        /// Permite desactivar Shape Changer y Mesh Deleter que afectan al body.
+        /// </summary>
+        private void DrawNDMFPreviewControlSection()
+        {
+            // Verificar si hay componentes ShapeChanger o MeshCutter detectados
+            bool hasRelevantComponents = _target.ScanResult?.AllEntries?.Any(e =>
+                e.IsValid &&
+                (e.ComponentTypeName.Contains("ShapeChanger") ||
+                 e.ComponentTypeName.Contains("MeshCutter") ||
+                 e.ComponentTypeName.Contains("MeshDeleter"))) ?? false;
+
+            // Solo mostrar si hay componentes relevantes O si los previews están desactivados
+            // (para poder restaurarlos)
+            bool shapeChangerEnabled = NDMFPreviewController.IsAvailable && NDMFPreviewController.IsShapeChangerEnabled;
+            bool meshDeleterEnabled = NDMFPreviewController.IsAvailable && NDMFPreviewController.IsMeshDeleterEnabled;
+            bool anyDisabled = !shapeChangerEnabled || !meshDeleterEnabled;
+
+            if (!hasRelevantComponents && !anyDisabled)
+                return;
+
+            // Fondo con color especial
+            GUI.backgroundColor = new Color(NDMFPreviewColor.r, NDMFPreviewColor.g, NDMFPreviewColor.b, 0.15f);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUI.backgroundColor = Color.white;
+
+            // Header
+            EditorGUILayout.BeginHorizontal();
+            GUI.contentColor = NDMFPreviewColor;
+            EditorGUILayout.LabelField("Preview de MA en Edit Mode", EditorStyles.boldLabel);
+            GUI.contentColor = Color.white;
+
+            // Estado actual
+            GUILayout.FlexibleSpace();
+            if (NDMFPreviewController.IsAvailable)
+            {
+                string statusText;
+                if (!shapeChangerEnabled && !meshDeleterEnabled)
+                    statusText = "Desactivados";
+                else if (shapeChangerEnabled && meshDeleterEnabled)
+                    statusText = "Activos";
+                else
+                    statusText = "Parcial";
+
+                GUI.contentColor = (shapeChangerEnabled || meshDeleterEnabled) ? UserDecisionColor : CompatibleColor;
+                EditorGUILayout.LabelField(statusText, EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(3);
+
+            // Información del problema
+            var infoStyle = new GUIStyle(EditorStyles.wordWrappedMiniLabel)
+            {
+                richText = true
+            };
+
+            EditorGUILayout.LabelField(
+                "<b>Problema:</b> Los componentes ShapeChanger y MeshDeleter de Modular Avatar " +
+                "modifican el body del avatar en tiempo real, incluso fuera de Play Mode.",
+                infoStyle);
+
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.LabelField(
+                "<b>Solución:</b> Desactiva las previsualizaciones de NDMF para ver el body " +
+                "sin las modificaciones de MA mientras editas.",
+                infoStyle);
+
+            EditorGUILayout.Space(5);
+
+            // Estado de cada preview
+            if (NDMFPreviewController.IsAvailable)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(10);
+
+                // Shape Changer status
+                GUI.contentColor = shapeChangerEnabled ? UserDecisionColor : CompatibleColor;
+                string scIcon = shapeChangerEnabled ? "●" : "○";
+                EditorGUILayout.LabelField($"{scIcon} Shape Changer: {(shapeChangerEnabled ? "Activo" : "Desactivado")}",
+                    EditorStyles.miniLabel, GUILayout.Width(160));
+
+                // Mesh Deleter status
+                GUI.contentColor = meshDeleterEnabled ? UserDecisionColor : CompatibleColor;
+                string mdIcon = meshDeleterEnabled ? "●" : "○";
+                EditorGUILayout.LabelField($"{mdIcon} Mesh Deleter: {(meshDeleterEnabled ? "Activo" : "Desactivado")}",
+                    EditorStyles.miniLabel, GUILayout.Width(160));
+
+                GUI.contentColor = Color.white;
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(5);
+
+                // Botones
+                EditorGUILayout.BeginHorizontal();
+
+                // Botón Desactivar
+                GUI.enabled = shapeChangerEnabled || meshDeleterEnabled;
+                GUI.backgroundColor = new Color(0.9f, 0.5f, 0.3f);
+                if (GUILayout.Button(
+                    new GUIContent("Desactivar Previews",
+                        "Desactiva Shape Changer y Mesh Deleter para ver el body original"),
+                    GUILayout.Height(25)))
+                {
+                    NDMFPreviewController.DisableAllBodyAffectingPreviews();
+                    Debug.Log("[MRAnalisisColision] Previews de MA desactivados. El body ya no se verá afectado en Edit Mode.");
+                }
+                GUI.backgroundColor = Color.white;
+
+                // Botón Activar
+                GUI.enabled = !shapeChangerEnabled || !meshDeleterEnabled;
+                GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f);
+                if (GUILayout.Button(
+                    new GUIContent("Activar Previews",
+                        "Reactiva las previsualizaciones de MA"),
+                    GUILayout.Height(25)))
+                {
+                    NDMFPreviewController.EnableAllBodyAffectingPreviews();
+                    Debug.Log("[MRAnalisisColision] Previews de MA activados.");
+                }
+                GUI.backgroundColor = Color.white;
+                GUI.enabled = true;
+
+                EditorGUILayout.EndHorizontal();
+
+                // Nota informativa
+                EditorGUILayout.Space(3);
+                GUI.contentColor = Color.gray;
+                EditorGUILayout.LabelField(
+                    "Esta configuración se guarda globalmente y afecta a todos los avatares.",
+                    EditorStyles.wordWrappedMiniLabel);
+                GUI.contentColor = Color.white;
+            }
+            else
+            {
+                // Controlador no disponible
+                EditorGUILayout.HelpBox(
+                    "El controlador de NDMF Preview no está disponible. " +
+                    "Verifica que NDMF y Modular Avatar estén instalados correctamente.",
+                    MessageType.Warning);
+
+                // Botón de diagnóstico
+                if (GUILayout.Button("Mostrar diagnóstico", EditorStyles.miniButton))
+                {
+                    Debug.Log(NDMFPreviewController.GetStatusInfo());
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        #endregion
+
         #region NDMF Info
 
         private void DrawNDMFInfo()
@@ -838,6 +1220,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             EditorGUILayout.LabelField(infoText, EditorStyles.wordWrappedMiniLabel);
 
             EditorGUILayout.Space(3);
+
+            // Info especial sobre BlendshapeSync
+            if (_target.BlendshapeSyncCount > 0)
+            {
+                GUI.contentColor = BlendshapeSyncColor;
+                EditorGUILayout.LabelField(
+                    "• BlendshapeSync: Se desactiva en NDMF pero sigue activo en Edit Mode. " +
+                    "Usa 'Detener Sincronización' para evitar efectos en el body mientras editas.",
+                    EditorStyles.wordWrappedMiniLabel);
+                GUI.contentColor = Color.white;
+                EditorGUILayout.Space(3);
+            }
 
             GUI.contentColor = Color.gray;
             EditorGUILayout.LabelField(

@@ -60,7 +60,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             "ModularAvatarMeshCutter",          // Corta meshes
             "ModularAvatarShapeChanger",        // Cambia blendshapes reactivamente
             "ModularAvatarVertexFilter",        // Filtra vertices por eje
-            "VertexFilterByAxisComponent"       // Filtro de vertices por eje (nombre real)
+            "VertexFilterByAxisComponent",      // Filtro de vertices por eje (nombre real)
+            "ModularAvatarBlendshapeSync"       // Sincroniza blendshapes en Edit Mode (afecta al body)
         };
 
         /// <summary>
