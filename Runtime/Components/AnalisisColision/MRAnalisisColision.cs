@@ -68,7 +68,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
         [SerializeField]
         [Tooltip("Mostrar componentes compatibles en el inspector")]
-        private bool _showCompatibleComponents = true;
+        private bool _showCompatibleComponents = false;
 
         #endregion
 

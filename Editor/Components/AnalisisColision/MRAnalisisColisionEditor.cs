@@ -404,7 +404,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             var clothingRoot = clothing.GameObject;
             string foldoutKey = $"clothing_{clothingRoot.name}";
             if (!_gameObjectFoldouts.ContainsKey(foldoutKey))
-                _gameObjectFoldouts[foldoutKey] = true;
+                _gameObjectFoldouts[foldoutKey] = false;
 
             // Determinar color basado en categoria mas severa
             var mostSevere = GetMostSevereCategory(entries);
@@ -516,7 +516,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         {
             string foldoutKey = "others_no_clothing";
             if (!_gameObjectFoldouts.ContainsKey(foldoutKey))
-                _gameObjectFoldouts[foldoutKey] = true;
+                _gameObjectFoldouts[foldoutKey] = false;
 
             GUI.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 0.15f);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
