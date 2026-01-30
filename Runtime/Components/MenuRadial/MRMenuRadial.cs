@@ -449,7 +449,12 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     AnalisisColision.UpdateClothingRoots(clothingRoots);
                 }
 
-                AnalisisColision.ScanAvatar();
+                // Solo escanear si no tiene datos previos
+                // Esto preserva las decisiones del usuario sobre qué componentes desactivar
+                if (!AnalisisColision.IsScanned)
+                {
+                    AnalisisColision.ScanAvatar();
+                }
             }
 
             // Escanear PhysBones

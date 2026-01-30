@@ -46,6 +46,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         [Tooltip("Nombre de la prenda de ropa si aplica")]
         private string _clothingName;
 
+        [SerializeField]
+        [Tooltip("Nombre del GameObject donde está el componente (guardado para persistencia)")]
+        private string _gameObjectName;
+
         #endregion
 
         #region Properties
@@ -125,8 +129,17 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
 
         /// <summary>
         /// Si el componente es valido (no ha sido destruido).
+        /// NOTA: En NDMF, esta referencia puede estar rota. Usar HasSearchableData para verificar
+        /// si la entrada tiene suficiente información para buscar el componente.
         /// </summary>
         public bool IsValid => _component != null;
+
+        /// <summary>
+        /// Si la entrada tiene suficientes datos para buscar el componente en un clon.
+        /// Esto es útil en NDMF donde las referencias directas pueden estar rotas.
+        /// </summary>
+        public bool HasSearchableData => !string.IsNullOrEmpty(_componentTypeName) &&
+                                          (!string.IsNullOrEmpty(_hierarchyPath) || !string.IsNullOrEmpty(_gameObjectName));
 
         /// <summary>
         /// Si el componente esta actualmente habilitado.
@@ -144,8 +157,21 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
 
         /// <summary>
         /// Nombre del GameObject donde esta el componente.
+        /// Usa el nombre guardado si está disponible, de lo contrario lo calcula desde el componente.
         /// </summary>
-        public string GameObjectName => _component != null ? _component.gameObject.name : "(null)";
+        public string GameObjectName
+        {
+            get
+            {
+                // Prioridad: usar nombre guardado (persiste incluso si la referencia se rompe)
+                if (!string.IsNullOrEmpty(_gameObjectName))
+                    return _gameObjectName;
+
+                // Fallback: calcular desde el componente si está disponible
+                return _component != null ? _component.gameObject.name : "(null)";
+            }
+            set => _gameObjectName = value;
+        }
 
         /// <summary>
         /// Nombre corto del tipo de componente (sin prefijo "ModularAvatar").
@@ -180,6 +206,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             _wasOriginallyEnabled = component is MonoBehaviour mb ? mb.enabled : true;
             _isOnClothingRoot = false;
             _clothingName = "";
+            // Guardar el nombre del GameObject para que persista incluso si la referencia se rompe
+            _gameObjectName = component != null ? component.gameObject.name : "";
         }
 
         #endregion

@@ -732,7 +732,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             serializedObject.Update();
             CacheSerializedProperties();
 
-            if (_scanResultProp == null) return;
+            if (_scanResultProp == null)
+            {
+                Debug.LogWarning("[MRAnalisisColision] No se pudo encontrar ScanResult para modificar");
+                return;
+            }
 
             // Determinar en qué lista buscar
             SerializedProperty listProp = entry.Category switch
@@ -742,9 +746,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 _ => null
             };
 
-            if (listProp == null || !listProp.isArray) return;
+            if (listProp == null || !listProp.isArray)
+            {
+                Debug.LogWarning($"[MRAnalisisColision] Lista no encontrada para categoria {entry.Category}");
+                return;
+            }
 
-            // Buscar el índice de la entrada por su componente
+            bool found = false;
+
+            // Estrategia 1: Buscar por referencia al componente
             for (int i = 0; i < listProp.arraySize; i++)
             {
                 var elementProp = listProp.GetArrayElementAtIndex(i);
@@ -752,16 +762,56 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
                 if (componentProp != null && componentProp.objectReferenceValue == entry.Component)
                 {
-                    var userWantsDisabledProp = elementProp.FindPropertyRelative("_userWantsDisabled");
-                    if (userWantsDisabledProp != null)
+                    found = ApplyUserWantsDisabled(elementProp, value);
+                    if (found) break;
+                }
+            }
+
+            // Estrategia 2: Si no se encontró por referencia, buscar por tipo y nombre
+            if (!found && !string.IsNullOrEmpty(entry.ComponentTypeName))
+            {
+                for (int i = 0; i < listProp.arraySize; i++)
+                {
+                    var elementProp = listProp.GetArrayElementAtIndex(i);
+                    var typeNameProp = elementProp.FindPropertyRelative("_componentTypeName");
+                    var gameObjectNameProp = elementProp.FindPropertyRelative("_gameObjectName");
+                    var hierarchyPathProp = elementProp.FindPropertyRelative("_hierarchyPath");
+
+                    // Coincidir por tipo y algún identificador (nombre o path)
+                    if (typeNameProp != null && typeNameProp.stringValue == entry.ComponentTypeName)
                     {
-                        userWantsDisabledProp.boolValue = value;
-                        serializedObject.ApplyModifiedProperties();
-                        EditorUtility.SetDirty(_target);
-                        return;
+                        bool pathMatch = hierarchyPathProp != null && hierarchyPathProp.stringValue == entry.HierarchyPath;
+                        bool nameMatch = gameObjectNameProp != null && gameObjectNameProp.stringValue == entry.GameObjectName;
+
+                        if (pathMatch || nameMatch)
+                        {
+                            found = ApplyUserWantsDisabled(elementProp, value);
+                            if (found) break;
+                        }
                     }
                 }
             }
+
+            if (!found)
+            {
+                Debug.LogWarning($"[MRAnalisisColision] No se pudo encontrar la entrada para modificar: {entry.ShortTypeName} en {entry.GameObjectName}");
+            }
+        }
+
+        /// <summary>
+        /// Aplica el valor de UserWantsDisabled a una SerializedProperty.
+        /// </summary>
+        private bool ApplyUserWantsDisabled(SerializedProperty elementProp, bool value)
+        {
+            var userWantsDisabledProp = elementProp.FindPropertyRelative("_userWantsDisabled");
+            if (userWantsDisabledProp != null)
+            {
+                userWantsDisabledProp.boolValue = value;
+                serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(_target);
+                return true;
+            }
+            return false;
         }
 
         /// <summary>

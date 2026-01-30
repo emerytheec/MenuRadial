@@ -10,8 +10,32 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision.Controllers
     /// Permite desactivar las previsualizaciones de Shape Changer y Mesh Deleter
     /// que afectan al body del avatar en Edit Mode.
     /// </summary>
+    [InitializeOnLoad]
     public static class NDMFPreviewController
     {
+        /// <summary>
+        /// Constructor estático que se ejecuta cuando Unity carga.
+        /// Desactiva los previews por defecto para evitar conflictos con MR.
+        /// </summary>
+        static NDMFPreviewController()
+        {
+            // Esperar un frame para que Unity termine de cargar
+            EditorApplication.delayCall += OnEditorLoaded;
+        }
+
+        private static void OnEditorLoaded()
+        {
+            // Solo ejecutar si el controlador está disponible
+            if (!IsAvailable) return;
+
+            // Desactivar previews por defecto si están activos
+            if (IsShapeChangerEnabled || IsMeshDeleterEnabled)
+            {
+                DisableAllBodyAffectingPreviews();
+                Debug.Log("[NDMFPreviewController] Previews de MA desactivados automáticamente al cargar Unity");
+            }
+        }
+
         #region Constantes
 
         // Nombres calificados usados por NDMF para persistir el estado

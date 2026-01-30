@@ -5,6 +5,7 @@ using System.Linq;
 using nadena.dev.ndmf;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Components.AnalisisColision;
+using Bender_Dios.MenuRadial.Components.AnalisisColision.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 
@@ -55,15 +56,20 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         protected override void Execute(BuildContext context)
         {
+            Debug.Log($"[MRAnalisisColision NDMF] ========================================");
+            Debug.Log($"[MRAnalisisColision NDMF] PLUGIN EJECUTÁNDOSE - Avatar: {context.AvatarRootObject.name}");
+            Debug.Log($"[MRAnalisisColision NDMF] ========================================");
+
             // Buscar todos los componentes MRAnalisisColision en el avatar
             var analisisComponents = context.AvatarRootObject.GetComponentsInChildren<MRAnalisisColision>(true);
 
             if (analisisComponents.Length == 0)
             {
+                Debug.Log($"[MRAnalisisColision NDMF] No se encontró ningún componente MRAnalisisColision en el avatar");
                 return; // No hay nada que procesar
             }
 
-            Debug.Log($"[MRAnalisisColision NDMF] Procesando {analisisComponents.Length} componente(s) MRAnalisisColision...");
+            Debug.Log($"[MRAnalisisColision NDMF] Encontrados {analisisComponents.Length} componente(s) MRAnalisisColision");
 
             int totalDisabled = 0;
 
@@ -77,19 +83,23 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
                 try
                 {
-                    // Obtener la lista de raices de ropa desde MRCoserRopa si esta disponible
-                    UpdateClothingRootsFromCoserRopa(analisis, context.AvatarRootObject);
-
-                    // Re-escanear si es necesario
+                    // IMPORTANTE: NO re-escanear nunca en NDMF
+                    // El escaneo debe hacerse en Edit Mode y las decisiones del usuario
+                    // deben preservarse. Re-escanear aquí borraría todas las configuraciones.
                     if (!analisis.IsScanned)
                     {
-                        analisis.ScanAvatar();
+                        Debug.LogWarning($"[MRAnalisisColision NDMF] El componente no fue escaneado en Edit Mode. " +
+                            "Las decisiones del usuario no están disponibles. Saltando...");
+                        continue;
                     }
 
+                    // Log de debug: mostrar qué hay en el ScanResult
+                    LogScanResultStatus(analisis);
+
                     // Desactivar componentes problematicos en raiz de ropa
-                    if (analisis.AutoDisableProblematicOnRoot && analisis.HasProblematicOnRoot)
+                    if (analisis.AutoDisableProblematicOnRoot)
                     {
-                        int disabled = DisableProblematicOnRoot(analisis);
+                        int disabled = DisableProblematicOnRoot(analisis, context.AvatarRootObject);
                         totalDisabled += disabled;
 
                         if (disabled > 0)
@@ -99,7 +109,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                     }
 
                     // Desactivar componentes marcados por el usuario
-                    int userDisabled = DisableUserSelectedComponents(analisis);
+                    int userDisabled = DisableUserSelectedComponents(analisis, context.AvatarRootObject);
                     totalDisabled += userDisabled;
 
                     if (userDisabled > 0)
@@ -121,63 +131,233 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Actualiza la lista de raices de ropa desde MRCoserRopa.
+        /// Log de debug para ver el estado del ScanResult.
         /// </summary>
-        private void UpdateClothingRootsFromCoserRopa(MRAnalisisColision analisis, GameObject avatarRoot)
+        private void LogScanResultStatus(MRAnalisisColision analisis)
         {
-            try
+            var result = analisis.ScanResult;
+            if (result == null)
             {
-                var coserRopa = avatarRoot.GetComponentInChildren<MRCoserRopa>(true);
-                if (coserRopa != null && coserRopa.DetectedClothingCount > 0)
+                Debug.LogWarning("[MRAnalisisColision NDMF] ScanResult es null");
+                return;
+            }
+
+            Debug.Log($"[MRAnalisisColision NDMF] ====== ESTADO DEL SCANRESULT ======");
+            Debug.Log($"[MRAnalisisColision NDMF] Total entradas: Problematic={result.ProblematicCount}, " +
+                $"UserDecision={result.UserDecisionCount}, Compatible={result.CompatibleCount}");
+
+            // Log detallado de TODAS las entradas problemáticas
+            Debug.Log($"[MRAnalisisColision NDMF] --- Entradas Problematic ({result.ProblematicCount}) ---");
+            foreach (var entry in result.ProblematicEntries)
+            {
+                Debug.Log($"[MRAnalisisColision NDMF]   - {entry.ComponentTypeName}: " +
+                    $"UserWantsDisabled={entry.UserWantsDisabled}, " +
+                    $"IsOnClothingRoot={entry.IsOnClothingRoot}, " +
+                    $"IsValid={entry.IsValid}, " +
+                    $"HasSearchableData={entry.HasSearchableData}, " +
+                    $"GO='{entry.GameObjectName}', Path='{entry.HierarchyPath}'");
+            }
+
+            // Log detallado de TODAS las entradas UserDecision
+            Debug.Log($"[MRAnalisisColision NDMF] --- Entradas UserDecision ({result.UserDecisionCount}) ---");
+            foreach (var entry in result.UserDecisionEntries)
+            {
+                Debug.Log($"[MRAnalisisColision NDMF]   - {entry.ComponentTypeName}: " +
+                    $"UserWantsDisabled={entry.UserWantsDisabled}, " +
+                    $"IsValid={entry.IsValid}, " +
+                    $"HasSearchableData={entry.HasSearchableData}, " +
+                    $"GO='{entry.GameObjectName}', Path='{entry.HierarchyPath}'");
+            }
+
+            // Contar cuántas pasarán los filtros
+            int problematicOnRoot = result.GetProblematicOnClothingRoot().Count();
+            int userDecisionToDisable = result.GetUserDecisionToDisable().Count();
+            int problematicToDisable = result.GetProblematicToDisable().Count();
+
+            Debug.Log($"[MRAnalisisColision NDMF] --- FILTROS ---");
+            Debug.Log($"[MRAnalisisColision NDMF] GetProblematicOnClothingRoot(): {problematicOnRoot} entradas");
+            Debug.Log($"[MRAnalisisColision NDMF] GetUserDecisionToDisable(): {userDecisionToDisable} entradas");
+            Debug.Log($"[MRAnalisisColision NDMF] GetProblematicToDisable(): {problematicToDisable} entradas");
+            Debug.Log($"[MRAnalisisColision NDMF] ====================================");
+        }
+
+        /// <summary>
+        /// Busca el componente equivalente en el clon del avatar.
+        /// Usa múltiples estrategias de búsqueda para ser robusto.
+        /// </summary>
+        private MonoBehaviour FindComponentInClone(ColisionEntry entry, GameObject avatarClone)
+        {
+            if (entry == null || avatarClone == null)
+            {
+                Debug.LogWarning("[MRAnalisisColision NDMF] FindComponentInClone: entry o avatarClone es null");
+                return null;
+            }
+
+            string typeName = entry.ComponentTypeName;
+            if (string.IsNullOrEmpty(typeName))
+            {
+                Debug.LogWarning("[MRAnalisisColision NDMF] FindComponentInClone: ComponentTypeName está vacío");
+                return null;
+            }
+
+            // Estrategia 1: Buscar por HierarchyPath si está disponible
+            if (!string.IsNullOrEmpty(entry.HierarchyPath))
+            {
+                var targetTransform = avatarClone.transform.Find(entry.HierarchyPath);
+                if (targetTransform != null)
                 {
-                    var roots = new List<GameObject>();
-
-                    // Usar reflexion para obtener la lista de ropas
-                    var clothingList = coserRopa.DetectedClothings;
-                    if (clothingList != null)
+                    var component = FindComponentByTypeName(targetTransform.gameObject, typeName);
+                    if (component != null)
                     {
-                        foreach (var clothing in clothingList)
-                        {
-                            if (clothing != null && clothing.GameObject != null)
-                            {
-                                roots.Add(clothing.GameObject);
-                            }
-                        }
+                        Debug.Log($"[MRAnalisisColision NDMF] Encontrado por path: {typeName} en {entry.HierarchyPath}");
+                        return component;
                     }
+                }
+                else
+                {
+                    Debug.Log($"[MRAnalisisColision NDMF] Path no encontrado: '{entry.HierarchyPath}', intentando búsqueda alternativa...");
+                }
+            }
 
-                    if (roots.Count > 0)
+            // Estrategia 2: Buscar por nombre del GameObject original
+            string gameObjectName = entry.GameObjectName;
+            if (!string.IsNullOrEmpty(gameObjectName) && gameObjectName != "(null)")
+            {
+                // Buscar todos los GameObjects con ese nombre en el clon
+                var matchingObjects = FindAllChildrenByName(avatarClone.transform, gameObjectName);
+
+                foreach (var obj in matchingObjects)
+                {
+                    var component = FindComponentByTypeName(obj, typeName);
+                    if (component != null)
                     {
-                        analisis.UpdateClothingRoots(roots);
-                        Debug.Log($"[MRAnalisisColision NDMF] Actualizadas {roots.Count} raices de ropa desde MRCoserRopa");
+                        Debug.Log($"[MRAnalisisColision NDMF] Encontrado por nombre de GameObject: {typeName} en {obj.name}");
+                        return component;
                     }
                 }
             }
-            catch (Exception e)
+
+            // Estrategia 3: Búsqueda global por tipo en todo el avatar
+            var allComponents = avatarClone.GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (var comp in allComponents)
             {
-                Debug.LogWarning($"[MRAnalisisColision NDMF] Error obteniendo raices de ropa: {e.Message}");
+                if (comp != null && comp.GetType().Name == typeName)
+                {
+                    // Si hay múltiples, intentar coincidir por nombre del GameObject
+                    if (comp.gameObject.name == gameObjectName)
+                    {
+                        Debug.Log($"[MRAnalisisColision NDMF] Encontrado por búsqueda global (match exacto): {typeName} en {comp.gameObject.name}");
+                        return comp;
+                    }
+                }
             }
+
+            // Estrategia 4: Si no hay match exacto, usar el primero del tipo correcto
+            foreach (var comp in allComponents)
+            {
+                if (comp != null && comp.GetType().Name == typeName)
+                {
+                    Debug.Log($"[MRAnalisisColision NDMF] Encontrado por búsqueda global (primer match): {typeName} en {comp.gameObject.name}");
+                    return comp;
+                }
+            }
+
+            Debug.LogWarning($"[MRAnalisisColision NDMF] No se pudo encontrar {typeName} en el clon del avatar");
+            return null;
+        }
+
+        /// <summary>
+        /// Busca un componente por nombre de tipo en un GameObject.
+        /// </summary>
+        private MonoBehaviour FindComponentByTypeName(GameObject obj, string typeName)
+        {
+            if (obj == null || string.IsNullOrEmpty(typeName))
+                return null;
+
+            var components = obj.GetComponents<MonoBehaviour>();
+            foreach (var comp in components)
+            {
+                if (comp != null && comp.GetType().Name == typeName)
+                {
+                    return comp;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Encuentra todos los hijos (recursivo) con un nombre específico.
+        /// </summary>
+        private List<GameObject> FindAllChildrenByName(Transform root, string name)
+        {
+            var results = new List<GameObject>();
+            FindAllChildrenByNameRecursive(root, name, results);
+            return results;
+        }
+
+        private void FindAllChildrenByNameRecursive(Transform current, string name, List<GameObject> results)
+        {
+            if (current.name == name)
+            {
+                results.Add(current.gameObject);
+            }
+
+            for (int i = 0; i < current.childCount; i++)
+            {
+                FindAllChildrenByNameRecursive(current.GetChild(i), name, results);
+            }
+        }
+
+        /// <summary>
+        /// DESTRUYE un componente en el clon del avatar.
+        /// IMPORTANTE: Solo desactivar (enabled=false) NO funciona porque Modular Avatar
+        /// procesa componentes incluso si están desactivados usando GetComponentsInChildren(true).
+        /// Por eso debemos DESTRUIR el componente completamente.
+        /// </summary>
+        private bool DisableInClone(ColisionEntry entry, GameObject avatarClone, string reason)
+        {
+            var cloneComponent = FindComponentInClone(entry, avatarClone);
+
+            if (cloneComponent == null)
+            {
+                Debug.LogWarning($"[MRAnalisisColision NDMF] No se pudo encontrar {entry.ShortTypeName} para destruir ({reason})");
+                return false;
+            }
+
+            string gameObjectName = cloneComponent.gameObject.name;
+
+            // DESTRUIR el componente, no solo desactivarlo
+            UnityEngine.Object.DestroyImmediate(cloneComponent);
+
+            Debug.Log($"[MRAnalisisColision NDMF] ✓ DESTRUIDO {entry.ShortTypeName} en '{gameObjectName}' ({reason})");
+            return true;
         }
 
         /// <summary>
         /// Desactiva componentes problematicos en raiz de ropa.
         /// </summary>
-        private int DisableProblematicOnRoot(MRAnalisisColision analisis)
+        private int DisableProblematicOnRoot(MRAnalisisColision analisis, GameObject avatarClone)
         {
             if (analisis?.ScanResult == null) return 0;
 
             int count = 0;
+            var entries = analisis.ScanResult.GetProblematicOnClothingRoot().ToList();
 
-            foreach (var entry in analisis.ScanResult.GetProblematicOnClothingRoot())
+            Debug.Log($"[MRAnalisisColision NDMF] Procesando {entries.Count} componente(s) problemático(s) en raíz de ropa...");
+
+            foreach (var entry in entries)
             {
-                if (entry.IsValid && entry.IsEnabled)
+                // No verificar IsValid aquí porque la referencia puede apuntar al original
+                // En su lugar, intentamos encontrar el componente por nombre/tipo
+                if (string.IsNullOrEmpty(entry.ComponentTypeName))
                 {
-                    if (entry.Component is MonoBehaviour mb)
-                    {
-                        mb.enabled = false;
-                        count++;
-                        Debug.Log($"[MRAnalisisColision NDMF] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}'");
-                    }
+                    Debug.LogWarning($"[MRAnalisisColision NDMF] Entry sin ComponentTypeName, saltando...");
+                    continue;
                 }
+
+                if (DisableInClone(entry, avatarClone, "Problematic en raiz"))
+                    count++;
             }
 
             return count;
@@ -186,38 +366,36 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// <summary>
         /// Desactiva componentes marcados por el usuario (UserDecision y Problematic).
         /// </summary>
-        private int DisableUserSelectedComponents(MRAnalisisColision analisis)
+        private int DisableUserSelectedComponents(MRAnalisisColision analisis, GameObject avatarClone)
         {
             if (analisis?.ScanResult == null) return 0;
 
             int count = 0;
 
             // Desactivar UserDecision marcados
-            foreach (var entry in analisis.ScanResult.GetUserDecisionToDisable())
+            var userDecisionEntries = analisis.ScanResult.GetUserDecisionToDisable().ToList();
+            Debug.Log($"[MRAnalisisColision NDMF] Procesando {userDecisionEntries.Count} componente(s) UserDecision marcados para desactivar...");
+
+            foreach (var entry in userDecisionEntries)
             {
-                if (entry.IsValid && entry.IsEnabled)
-                {
-                    if (entry.Component is MonoBehaviour mb)
-                    {
-                        mb.enabled = false;
-                        count++;
-                        Debug.Log($"[MRAnalisisColision NDMF] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (UserDecision marcado)");
-                    }
-                }
+                if (string.IsNullOrEmpty(entry.ComponentTypeName))
+                    continue;
+
+                if (DisableInClone(entry, avatarClone, "UserDecision marcado"))
+                    count++;
             }
 
             // Desactivar Problematicos marcados por el usuario
-            foreach (var entry in analisis.ScanResult.GetProblematicToDisable())
+            var problematicEntries = analisis.ScanResult.GetProblematicToDisable().ToList();
+            Debug.Log($"[MRAnalisisColision NDMF] Procesando {problematicEntries.Count} componente(s) Problematic marcados para desactivar...");
+
+            foreach (var entry in problematicEntries)
             {
-                if (entry.IsValid && entry.IsEnabled)
-                {
-                    if (entry.Component is MonoBehaviour mb)
-                    {
-                        mb.enabled = false;
-                        count++;
-                        Debug.Log($"[MRAnalisisColision NDMF] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (Problematic marcado)");
-                    }
-                }
+                if (string.IsNullOrEmpty(entry.ComponentTypeName))
+                    continue;
+
+                if (DisableInClone(entry, avatarClone, "Problematic marcado"))
+                    count++;
             }
 
             return count;
