@@ -45,6 +45,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         // Color para BlendshapeSync (naranja especial)
         private static readonly Color BlendshapeSyncColor = new Color(1f, 0.6f, 0.2f);
 
+        // Color para botón de Menú
+        private static readonly Color MenuActiveColor = new Color(0.3f, 0.7f, 0.9f);
+        private static readonly Color MenuDisabledColor = new Color(0.6f, 0.6f, 0.6f);
+
+        // Componentes de menú (para contar)
+        private static readonly string[] MENU_COMPONENTS = new[]
+        {
+            "Animator",
+            "ModularAvatarMergeAnimator",
+            "ModularAvatarParameters",
+            "ModularAvatarMenuInstaller",
+            "ModularAvatarMenuGroup",
+            "ModularAvatarMenuItem"
+        };
+
         // SerializedProperties para las listas
         private SerializedProperty _scanResultProp;
         private SerializedProperty _problematicEntriesProp;
@@ -439,6 +454,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 GUILayout.Label("[MA]", EditorStyles.miniBoldLabel);
                 GUI.contentColor = Color.white;
             }
+
+            // Botón "Menú" para desactivar/activar componentes de menú de esta prenda
+            DrawMenuToggleButton(clothing.Name, entries);
 
             // Boton para mostrar la prenda en jerarquia
             if (GUILayout.Button(EditorGUIUtility.IconContent("d_SceneViewFx"), GUILayout.Width(25), GUILayout.Height(18)))
@@ -875,6 +893,86 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         #endregion
 
+        #region Menu Toggle Button
+
+        /// <summary>
+        /// Dibuja el botón "Menú" para una prenda específica.
+        /// </summary>
+        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <param name="entries">Entradas de componentes de la prenda.</param>
+        private void DrawMenuToggleButton(string clothingName, List<ColisionEntry> entries)
+        {
+            // Contar componentes de menú en esta prenda
+            int menuComponentCount = CountMenuComponents(entries);
+
+            // Si no hay componentes de menú, no mostrar el botón
+            if (menuComponentCount == 0)
+                return;
+
+            bool isMenuDisabled = _target.IsMenuDisabledForClothing(clothingName);
+
+            // Estilo del botón según estado
+            var buttonColor = isMenuDisabled ? MenuDisabledColor : MenuActiveColor;
+            var buttonText = isMenuDisabled ? "Menú ✗" : "Menú ✓";
+            var tooltip = isMenuDisabled
+                ? $"Menú DESACTIVADO ({menuComponentCount} componentes). Clic para activar."
+                : $"Menú ACTIVO ({menuComponentCount} componentes). Clic para desactivar.";
+
+            GUI.backgroundColor = buttonColor;
+            if (GUILayout.Button(new GUIContent(buttonText, tooltip), EditorStyles.miniButton, GUILayout.Width(60), GUILayout.Height(18)))
+            {
+                Undo.RecordObject(_target, isMenuDisabled ? "Activar Menú Prenda" : "Desactivar Menú Prenda");
+
+                if (isMenuDisabled)
+                {
+                    int restored = _target.EnableMenuComponentsForClothing(clothingName);
+                    if (restored > 0)
+                    {
+                        Debug.Log($"[MRAnalisisColision] Menú activado para '{clothingName}': {restored} componente(s) restaurado(s)");
+                    }
+                }
+                else
+                {
+                    int disabled = _target.DisableMenuComponentsForClothing(clothingName);
+                    if (disabled > 0)
+                    {
+                        Debug.Log($"[MRAnalisisColision] Menú desactivado para '{clothingName}': {disabled} componente(s) desactivado(s)");
+                    }
+                }
+
+                EditorUtility.SetDirty(_target);
+            }
+            GUI.backgroundColor = Color.white;
+        }
+
+        /// <summary>
+        /// Cuenta los componentes de menú en una lista de entradas.
+        /// </summary>
+        private int CountMenuComponents(List<ColisionEntry> entries)
+        {
+            if (entries == null) return 0;
+
+            return entries.Count(e => e.IsValid && IsMenuComponentType(e.ComponentTypeName));
+        }
+
+        /// <summary>
+        /// Verifica si un tipo de componente es un componente de menú.
+        /// </summary>
+        private bool IsMenuComponentType(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName)) return false;
+
+            foreach (var menuComp in MENU_COMPONENTS)
+            {
+                if (typeName.Contains(menuComp))
+                    return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+
         #region Action Buttons
 
         private void DrawActionButtons()
@@ -1265,7 +1363,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             var infoText = "• Componentes PROBLEMATICOS: Desmarcados por defecto (se desactivaran). Marca para mantener.\n" +
                           "• Componentes DECISION USUARIO: Marcados por defecto (se mantienen). Desmarca para desactivar.\n" +
-                          "• Componentes COMPATIBLES: No modificados (MR los respeta)";
+                          "• Componentes COMPATIBLES: No modificados (MR los respeta)\n" +
+                          "• Botón MENÚ: Desactiva/activa Animator, Parameters, MenuInstaller, etc. por prenda.";
 
             EditorGUILayout.LabelField(infoText, EditorStyles.wordWrappedMiniLabel);
 

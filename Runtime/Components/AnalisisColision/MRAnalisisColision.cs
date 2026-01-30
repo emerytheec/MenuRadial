@@ -44,6 +44,20 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         /// </summary>
         private const string BLENDSHAPE_SYNC_TYPE = "ModularAvatarBlendshapeSync";
 
+        /// <summary>
+        /// Componentes de Modular Avatar relacionados con el sistema de menú.
+        /// Estos pueden ser desactivados por prenda usando el botón "Menú".
+        /// </summary>
+        private static readonly string[] MENU_COMPONENTS = new[]
+        {
+            "Animator",                      // Unity Animator
+            "ModularAvatarMergeAnimator",    // MA Merge Animator
+            "ModularAvatarParameters",       // MA Parameters
+            "ModularAvatarMenuInstaller",    // MA Menu Installer
+            "ModularAvatarMenuGroup",        // MA Menu Group
+            "ModularAvatarMenuItem"          // MA Menu Item
+        };
+
         #endregion
 
         #region Serialized Fields
@@ -69,6 +83,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         [SerializeField]
         [Tooltip("Mostrar componentes compatibles en el inspector")]
         private bool _showCompatibleComponents = false;
+
+        [SerializeField]
+        [Tooltip("Lista de nombres de prendas con menú desactivado")]
+        private List<string> _clothingWithMenuDisabled = new List<string>();
 
         #endregion
 
@@ -226,6 +244,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             UpdateVersion("0.001");
             _scanResult ??= new ColisionScanResult();
             _clothingRoots ??= new List<GameObject>();
+            _clothingWithMenuDisabled ??= new List<string>();
         }
 
         #endregion
@@ -308,6 +327,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
             // Re-marcar entradas existentes
             UpdateClothingRootFlags();
+
+            // Limpiar entradas de menú desactivado que ya no existen
+            CleanupOrphanedMenuDisabledEntries();
         }
 
         /// <summary>
@@ -478,6 +500,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 }
             }
 
+            // Limpiar lista de menús desactivados ya que todo fue restaurado
+            _clothingWithMenuDisabled.Clear();
+
 #if UNITY_EDITOR
             if (count > 0 && !Application.isPlaying)
             {
@@ -494,6 +519,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         public void ClearScanResults()
         {
             _scanResult.Clear();
+            // También limpiar lista de menús desactivados ya que el escaneo se reinicia
+            _clothingWithMenuDisabled.Clear();
         }
 
         /// <summary>
@@ -656,6 +683,214 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         public string GetBlendshapeSyncControllerStatus()
         {
             return BlendshapeSyncController.GetStatusInfo();
+        }
+
+        #endregion
+
+        #region Menu Toggle Methods
+
+        /// <summary>
+        /// Verifica si el menú está desactivado para una prenda específica.
+        /// </summary>
+        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <returns>True si el menú está desactivado para esta prenda.</returns>
+        public bool IsMenuDisabledForClothing(string clothingName)
+        {
+            if (string.IsNullOrEmpty(clothingName)) return false;
+            return _clothingWithMenuDisabled.Contains(clothingName);
+        }
+
+        /// <summary>
+        /// Alterna el estado del menú (activo/desactivado) para una prenda específica.
+        /// </summary>
+        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <returns>True si ahora el menú está desactivado, False si está activo.</returns>
+        public bool ToggleMenuForClothing(string clothingName)
+        {
+            if (string.IsNullOrEmpty(clothingName)) return false;
+
+            if (IsMenuDisabledForClothing(clothingName))
+            {
+                EnableMenuComponentsForClothing(clothingName);
+                return false;
+            }
+            else
+            {
+                DisableMenuComponentsForClothing(clothingName);
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Desactiva todos los componentes de menú de MA para una prenda específica.
+        /// Esto desactiva el componente en Edit Mode Y lo marca para destrucción en NDMF.
+        /// </summary>
+        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <returns>Cantidad de componentes desactivados.</returns>
+        public int DisableMenuComponentsForClothing(string clothingName)
+        {
+            if (string.IsNullOrEmpty(clothingName) || _scanResult == null)
+                return 0;
+
+            int count = 0;
+
+            foreach (var entry in _scanResult.AllEntries)
+            {
+                if (!entry.IsValid)
+                    continue;
+
+                // Verificar si pertenece a esta prenda
+                if (!BelongsToClothing(entry, clothingName))
+                    continue;
+
+                // Verificar si es un componente de menú
+                if (!IsMenuComponent(entry.ComponentTypeName))
+                    continue;
+
+                // Desactivar en Edit Mode
+                if (entry.IsEnabled)
+                {
+                    entry.Disable();
+                }
+
+                // Marcar para destrucción en NDMF (UserWantsDisabled = true significa "desactivar/destruir")
+                entry.UserWantsDisabled = true;
+
+                count++;
+                Debug.Log($"[MRAnalisisColision] Menú: Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (prenda: {clothingName})");
+            }
+
+            // Registrar que esta prenda tiene menú desactivado
+            if (!_clothingWithMenuDisabled.Contains(clothingName))
+            {
+                _clothingWithMenuDisabled.Add(clothingName);
+            }
+
+#if UNITY_EDITOR
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return count;
+        }
+
+        /// <summary>
+        /// Restaura (activa) todos los componentes de menú de MA para una prenda específica.
+        /// Esto restaura el componente en Edit Mode Y lo desmarca para destrucción en NDMF.
+        /// </summary>
+        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <returns>Cantidad de componentes restaurados.</returns>
+        public int EnableMenuComponentsForClothing(string clothingName)
+        {
+            if (string.IsNullOrEmpty(clothingName) || _scanResult == null)
+                return 0;
+
+            int count = 0;
+
+            foreach (var entry in _scanResult.AllEntries)
+            {
+                if (!entry.IsValid)
+                    continue;
+
+                // Verificar si pertenece a esta prenda
+                if (!BelongsToClothing(entry, clothingName))
+                    continue;
+
+                // Verificar si es un componente de menú
+                if (!IsMenuComponent(entry.ComponentTypeName))
+                    continue;
+
+                // Restaurar en Edit Mode
+                entry.Restore();
+
+                // Desmarcar para destrucción en NDMF (UserWantsDisabled = false significa "mantener activo")
+                entry.UserWantsDisabled = false;
+
+                count++;
+                Debug.Log($"[MRAnalisisColision] Menú: Restaurado {entry.ShortTypeName} en '{entry.GameObjectName}' (prenda: {clothingName})");
+            }
+
+            // Quitar de la lista de menús desactivados
+            _clothingWithMenuDisabled.Remove(clothingName);
+
+#if UNITY_EDITOR
+            if (count > 0 && !Application.isPlaying)
+            {
+                EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
+
+            return count;
+        }
+
+        /// <summary>
+        /// Obtiene la cantidad de componentes de menú de MA en una prenda específica.
+        /// </summary>
+        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <returns>Cantidad de componentes de menú encontrados.</returns>
+        public int GetMenuComponentCountForClothing(string clothingName)
+        {
+            if (string.IsNullOrEmpty(clothingName) || _scanResult == null)
+                return 0;
+
+            return _scanResult.AllEntries
+                .Count(e => e.IsValid &&
+                            BelongsToClothing(e, clothingName) &&
+                            IsMenuComponent(e.ComponentTypeName));
+        }
+
+        /// <summary>
+        /// Verifica si una entrada pertenece a una prenda específica.
+        /// Busca si el GameObject de la entrada es hijo (o es) del root de la prenda.
+        /// </summary>
+        private bool BelongsToClothing(ColisionEntry entry, string clothingName)
+        {
+            if (entry?.Component == null || string.IsNullOrEmpty(clothingName))
+                return false;
+
+            // Buscar el root de la prenda
+            var clothingRoot = _clothingRoots.FirstOrDefault(r => r != null && r.name == clothingName);
+            if (clothingRoot == null)
+                return false;
+
+            // Verificar si el componente está en el root o es hijo del root
+            return entry.Component.gameObject == clothingRoot ||
+                   entry.Component.transform.IsChildOf(clothingRoot.transform);
+        }
+
+        /// <summary>
+        /// Verifica si un tipo de componente es un componente de menú.
+        /// </summary>
+        private bool IsMenuComponent(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName))
+                return false;
+
+            foreach (var menuComp in MENU_COMPONENTS)
+            {
+                if (typeName.Contains(menuComp))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Limpia las prendas de la lista de menú desactivado que ya no existen.
+        /// </summary>
+        public void CleanupOrphanedMenuDisabledEntries()
+        {
+            if (_clothingRoots == null || _clothingWithMenuDisabled == null)
+                return;
+
+            var validClothingNames = _clothingRoots
+                .Where(r => r != null)
+                .Select(r => r.name)
+                .ToHashSet();
+
+            _clothingWithMenuDisabled.RemoveAll(name => !validClothingNames.Contains(name));
         }
 
         #endregion
