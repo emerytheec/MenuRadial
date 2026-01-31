@@ -5,6 +5,11 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.20] - 2026-01-31
+
+### Mejorado
+- **CI/CD**: El workflow de release ahora genera `.unitypackage` además del ZIP para VPM
+
 ## [0.8.19] - 2026-01-31
 
 ### Agregado
