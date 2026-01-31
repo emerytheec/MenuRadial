@@ -981,7 +981,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
             if (!IsScanned)
             {
-                result.AddChild(ValidationResult.Warning("Haz clic en 'Escanear' para detectar colisiones"));
+                result.AddChild(ValidationResult.Warning("Detecta las ropas para escanear colisiones automaticamente"));
                 return result;
             }
 

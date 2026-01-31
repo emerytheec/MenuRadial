@@ -123,6 +123,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// <summary>
         /// Sincroniza la lista de raíces de ropa en MRAnalisisColision desde MRCoserRopa.
         /// Esto es necesario para que la lógica de clasificación funcione correctamente.
+        /// Si hay cambios en la lista de ropas, re-escanea automáticamente.
         /// </summary>
         private void SyncClothingRoots()
         {
@@ -139,10 +140,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             bool needsUpdate = currentRoots.Count != newRoots.Count ||
                                !currentRoots.SequenceEqual(newRoots);
 
-            if (needsUpdate && newRoots.Count > 0)
+            if (needsUpdate)
             {
                 Undo.RecordObject(_target, "Sync Clothing Roots");
                 _target.UpdateClothingRoots(newRoots);
+
+                // Re-escanear componentes de MA cuando cambia la lista de ropas
+                if (_target.AvatarRoot != null && _target.IsMAAvailable)
+                {
+                    _target.ScanAvatar();
+                }
+
                 EditorUtility.SetDirty(_target);
             }
         }
@@ -180,21 +188,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                     EditorGUILayout.Space(8);
                 }
 
-                // Botones de accion
-                DrawActionButtons();
-
-                EditorGUILayout.Space(8);
-
                 // Seccion especial para BlendshapeSync (si hay alguno)
                 if (_target.BlendshapeSyncCount > 0)
                 {
                     DrawBlendshapeSyncSection();
                     EditorGUILayout.Space(8);
                 }
-
-                // Seccion de control de NDMF Preview
-                DrawNDMFPreviewControlSection();
-                EditorGUILayout.Space(8);
 
                 // Info NDMF
                 DrawNDMFInfo();
@@ -252,6 +251,26 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 GUI.contentColor = Color.white;
 
                 GUILayout.EndHorizontal();
+
+                // Checkbox para desactivar previews de MA (ShapeChanger, MeshDeleter)
+                if (NDMFPreviewController.IsAvailable)
+                {
+                    bool previewsEnabled = NDMFPreviewController.IsShapeChangerEnabled || NDMFPreviewController.IsMeshDeleterEnabled;
+
+                    EditorGUI.BeginChangeCheck();
+                    bool newValue = EditorGUILayout.Toggle(
+                        new GUIContent("MA Preview Edit Mode",
+                            "Activa/desactiva la previsualizacion de ShapeChanger y MeshDeleter de MA en Edit Mode"),
+                        previewsEnabled);
+
+                    if (EditorGUI.EndChangeCheck() && newValue != previewsEnabled)
+                    {
+                        if (newValue)
+                            NDMFPreviewController.EnableAllBodyAffectingPreviews();
+                        else
+                            NDMFPreviewController.DisableAllBodyAffectingPreviews();
+                    }
+                }
             }
         }
 
@@ -271,7 +290,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             else if (!_target.IsScanned)
             {
                 EditorGUILayout.LabelField("Sin escanear", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField("Haz clic en 'Escanear' para detectar colisiones.", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("El escaneo se realiza automaticamente al detectar ropas.", EditorStyles.miniLabel);
             }
             else if (!_target.HasAnyColision)
             {
@@ -329,6 +348,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                         $"{_target.ProblematicOnRootCount} en raiz de ropa (se desactivaran)",
                         EditorStyles.miniLabel);
                     GUI.contentColor = Color.white;
+
+                    // Nota sobre ubicación correcta de componentes
+                    EditorGUILayout.Space(5);
+                    EditorGUILayout.HelpBox(
+                        "Estos componentes (Vertex Filter, Mesh Cutter, Shape Changer) estan en la raiz de la prenda, " +
+                        "pero deberian estar en el GameObject del mesh que modifican.\n\n" +
+                        "Muevelos al mesh correcto para que funcionen sin conflictos con MR.",
+                        MessageType.Info);
                 }
             }
 
@@ -973,61 +1000,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         #endregion
 
-        #region Action Buttons
-
-        private void DrawActionButtons()
-        {
-            EditorGUILayout.BeginHorizontal();
-
-            // Boton Escanear
-            if (GUILayout.Button(new GUIContent("Escanear", "Re-escanear componentes de MA"), GUILayout.Height(25)))
-            {
-                Undo.RecordObject(_target, "Escanear Avatar");
-                _target.ScanAvatar();
-                EditorUtility.SetDirty(_target);
-            }
-
-            // Boton Desactivar Problematicos en Raiz
-            GUI.enabled = _target.HasProblematicOnRoot;
-            if (GUILayout.Button(new GUIContent("Desactivar en Raiz", "Desactivar problematicos en raiz de ropa"), GUILayout.Height(25)))
-            {
-                Undo.RecordObject(_target, "Desactivar en Raiz");
-                int disabled = _target.DisableProblematicOnClothingRoots();
-                if (disabled > 0)
-                {
-                    EditorUtility.DisplayDialog("Componentes Desactivados",
-                        $"Se desactivaron {disabled} componente(s) en raiz de ropa.", "OK");
-                }
-                EditorUtility.SetDirty(_target);
-            }
-            GUI.enabled = true;
-
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space(3);
-
-            // Boton Restaurar
-            EditorGUILayout.BeginHorizontal();
-
-            GUI.enabled = _target.TotalCount > 0;
-            if (GUILayout.Button(new GUIContent("Restaurar Todos", "Restaurar componentes a su estado original"), GUILayout.Height(25)))
-            {
-                Undo.RecordObject(_target, "Restaurar Componentes");
-                int restored = _target.RestoreAllComponents();
-                if (restored > 0)
-                {
-                    EditorUtility.DisplayDialog("Componentes Restaurados",
-                        $"Se restauraron {restored} componente(s) a su estado original.", "OK");
-                }
-                EditorUtility.SetDirty(_target);
-            }
-            GUI.enabled = true;
-
-            EditorGUILayout.EndHorizontal();
-        }
-
-        #endregion
-
         #region BlendshapeSync Section
 
         /// <summary>
@@ -1183,168 +1155,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         {
             if (string.IsNullOrEmpty(typeName)) return false;
             return typeName.Contains("BlendshapeSync");
-        }
-
-        #endregion
-
-        #region NDMF Preview Control Section
-
-        // Color para la sección de NDMF Preview
-        private static readonly Color NDMFPreviewColor = new Color(0.6f, 0.4f, 0.9f);
-
-        /// <summary>
-        /// Dibuja la sección de control de previsualizaciones NDMF.
-        /// Permite desactivar Shape Changer y Mesh Deleter que afectan al body.
-        /// </summary>
-        private void DrawNDMFPreviewControlSection()
-        {
-            // Verificar si hay componentes ShapeChanger o MeshCutter detectados
-            bool hasRelevantComponents = _target.ScanResult?.AllEntries?.Any(e =>
-                e.IsValid &&
-                (e.ComponentTypeName.Contains("ShapeChanger") ||
-                 e.ComponentTypeName.Contains("MeshCutter") ||
-                 e.ComponentTypeName.Contains("MeshDeleter"))) ?? false;
-
-            // Solo mostrar si hay componentes relevantes O si los previews están desactivados
-            // (para poder restaurarlos)
-            bool shapeChangerEnabled = NDMFPreviewController.IsAvailable && NDMFPreviewController.IsShapeChangerEnabled;
-            bool meshDeleterEnabled = NDMFPreviewController.IsAvailable && NDMFPreviewController.IsMeshDeleterEnabled;
-            bool anyDisabled = !shapeChangerEnabled || !meshDeleterEnabled;
-
-            if (!hasRelevantComponents && !anyDisabled)
-                return;
-
-            // Fondo con color especial
-            GUI.backgroundColor = new Color(NDMFPreviewColor.r, NDMFPreviewColor.g, NDMFPreviewColor.b, 0.15f);
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUI.backgroundColor = Color.white;
-
-            // Header
-            EditorGUILayout.BeginHorizontal();
-            GUI.contentColor = NDMFPreviewColor;
-            EditorGUILayout.LabelField("Preview de MA en Edit Mode", EditorStyles.boldLabel);
-            GUI.contentColor = Color.white;
-
-            // Estado actual
-            GUILayout.FlexibleSpace();
-            if (NDMFPreviewController.IsAvailable)
-            {
-                string statusText;
-                if (!shapeChangerEnabled && !meshDeleterEnabled)
-                    statusText = "Desactivados";
-                else if (shapeChangerEnabled && meshDeleterEnabled)
-                    statusText = "Activos";
-                else
-                    statusText = "Parcial";
-
-                GUI.contentColor = (shapeChangerEnabled || meshDeleterEnabled) ? UserDecisionColor : CompatibleColor;
-                EditorGUILayout.LabelField(statusText, EditorStyles.miniLabel);
-                GUI.contentColor = Color.white;
-            }
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space(3);
-
-            // Información del problema
-            var infoStyle = new GUIStyle(EditorStyles.wordWrappedMiniLabel)
-            {
-                richText = true
-            };
-
-            EditorGUILayout.LabelField(
-                "<b>Problema:</b> Los componentes ShapeChanger y MeshDeleter de Modular Avatar " +
-                "modifican el body del avatar en tiempo real, incluso fuera de Play Mode.",
-                infoStyle);
-
-            EditorGUILayout.Space(2);
-
-            EditorGUILayout.LabelField(
-                "<b>Solución:</b> Desactiva las previsualizaciones de NDMF para ver el body " +
-                "sin las modificaciones de MA mientras editas.",
-                infoStyle);
-
-            EditorGUILayout.Space(5);
-
-            // Estado de cada preview
-            if (NDMFPreviewController.IsAvailable)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Space(10);
-
-                // Shape Changer status
-                GUI.contentColor = shapeChangerEnabled ? UserDecisionColor : CompatibleColor;
-                string scIcon = shapeChangerEnabled ? "●" : "○";
-                EditorGUILayout.LabelField($"{scIcon} Shape Changer: {(shapeChangerEnabled ? "Activo" : "Desactivado")}",
-                    EditorStyles.miniLabel, GUILayout.Width(160));
-
-                // Mesh Deleter status
-                GUI.contentColor = meshDeleterEnabled ? UserDecisionColor : CompatibleColor;
-                string mdIcon = meshDeleterEnabled ? "●" : "○";
-                EditorGUILayout.LabelField($"{mdIcon} Mesh Deleter: {(meshDeleterEnabled ? "Activo" : "Desactivado")}",
-                    EditorStyles.miniLabel, GUILayout.Width(160));
-
-                GUI.contentColor = Color.white;
-                GUILayout.FlexibleSpace();
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.Space(5);
-
-                // Botones
-                EditorGUILayout.BeginHorizontal();
-
-                // Botón Desactivar
-                GUI.enabled = shapeChangerEnabled || meshDeleterEnabled;
-                GUI.backgroundColor = new Color(0.9f, 0.5f, 0.3f);
-                if (GUILayout.Button(
-                    new GUIContent("Desactivar Previews",
-                        "Desactiva Shape Changer y Mesh Deleter para ver el body original"),
-                    GUILayout.Height(25)))
-                {
-                    NDMFPreviewController.DisableAllBodyAffectingPreviews();
-                    Debug.Log("[MRAnalisisColision] Previews de MA desactivados. El body ya no se verá afectado en Edit Mode.");
-                }
-                GUI.backgroundColor = Color.white;
-
-                // Botón Activar
-                GUI.enabled = !shapeChangerEnabled || !meshDeleterEnabled;
-                GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f);
-                if (GUILayout.Button(
-                    new GUIContent("Activar Previews",
-                        "Reactiva las previsualizaciones de MA"),
-                    GUILayout.Height(25)))
-                {
-                    NDMFPreviewController.EnableAllBodyAffectingPreviews();
-                    Debug.Log("[MRAnalisisColision] Previews de MA activados.");
-                }
-                GUI.backgroundColor = Color.white;
-                GUI.enabled = true;
-
-                EditorGUILayout.EndHorizontal();
-
-                // Nota informativa
-                EditorGUILayout.Space(3);
-                GUI.contentColor = Color.gray;
-                EditorGUILayout.LabelField(
-                    "Esta configuración se guarda globalmente y afecta a todos los avatares.",
-                    EditorStyles.wordWrappedMiniLabel);
-                GUI.contentColor = Color.white;
-            }
-            else
-            {
-                // Controlador no disponible
-                EditorGUILayout.HelpBox(
-                    "El controlador de NDMF Preview no está disponible. " +
-                    "Verifica que NDMF y Modular Avatar estén instalados correctamente.",
-                    MessageType.Warning);
-
-                // Botón de diagnóstico
-                if (GUILayout.Button("Mostrar diagnóstico", EditorStyles.miniButton))
-                {
-                    Debug.Log(NDMFPreviewController.GetStatusInfo());
-                }
-            }
-
-            EditorGUILayout.EndVertical();
         }
 
         #endregion

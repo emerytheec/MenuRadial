@@ -471,6 +471,71 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
             }
 
             Debug.Log($"[MRCoserRopa] Total: {_detectedClothings.Count} ropas detectadas");
+
+            // Configurar visibilidad por defecto: roots activos, meshes desactivados
+            SetDefaultClothingVisibility();
+        }
+
+        /// <summary>
+        /// Configura la visibilidad por defecto de las ropas detectadas:
+        /// - Root de la ropa: ACTIVO (para que MRAgruparObjetos pueda acceder)
+        /// - Meshes de la ropa: DESACTIVADOS (para no ver todos los vestidos al tiempo)
+        /// </summary>
+        public void SetDefaultClothingVisibility()
+        {
+            if (_detectedClothings == null || _detectedClothings.Count == 0)
+                return;
+
+#if UNITY_EDITOR
+            bool anyChange = false;
+#endif
+
+            foreach (var clothing in _detectedClothings)
+            {
+                if (clothing?.GameObject == null)
+                    continue;
+
+                // Activar el root de la ropa si está desactivado
+                if (!clothing.GameObject.activeSelf)
+                {
+#if UNITY_EDITOR
+                    UnityEditor.Undo.RecordObject(clothing.GameObject, "Activar root de ropa");
+                    anyChange = true;
+#endif
+                    clothing.GameObject.SetActive(true);
+                }
+
+                // Desactivar todos los meshes dentro de la ropa (excepto el root)
+                var renderers = clothing.GameObject.GetComponentsInChildren<Renderer>(true);
+
+                foreach (var renderer in renderers)
+                {
+                    if (renderer == null)
+                        continue;
+
+                    // NO desactivar si el renderer está en el root de la ropa
+                    // (algunas ropas tienen el mesh directamente en la raíz)
+                    if (renderer.gameObject == clothing.GameObject)
+                        continue;
+
+                    // Desactivar el GameObject del mesh si está activo
+                    if (renderer.gameObject.activeSelf)
+                    {
+#if UNITY_EDITOR
+                        UnityEditor.Undo.RecordObject(renderer.gameObject, "Desactivar mesh de ropa");
+                        anyChange = true;
+#endif
+                        renderer.gameObject.SetActive(false);
+                    }
+                }
+            }
+
+#if UNITY_EDITOR
+            if (anyChange && !Application.isPlaying)
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
+#endif
         }
 
         /// <summary>

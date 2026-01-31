@@ -37,6 +37,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         private static readonly Color WarningColor = new Color(0.9f, 0.7f, 0.2f);
         private static readonly Color ModularAvatarColor = new Color(0.4f, 0.7f, 1f); // Azul para MA
 
+        // Auto-detección de cambios en jerarquía
+        private int _lastAvatarChildCount = -1;
+        private GameObject _lastAvatarRoot = null;
+
         private void OnEnable()
         {
             _target = (MRCoserRopa)target;
@@ -60,11 +64,51 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             };
         }
 
+        /// <summary>
+        /// Detecta cambios en la jerarquía del avatar y refresca automáticamente.
+        /// </summary>
+        private void CheckForHierarchyChanges()
+        {
+            if (_target.AvatarRoot == null)
+            {
+                _lastAvatarChildCount = -1;
+                _lastAvatarRoot = null;
+                return;
+            }
+
+            // Si cambió el avatar, resetear conteo y aplicar visibilidad
+            if (_lastAvatarRoot != _target.AvatarRoot)
+            {
+                _lastAvatarRoot = _target.AvatarRoot;
+                _lastAvatarChildCount = _target.AvatarRoot.transform.childCount;
+
+                // Aplicar visibilidad por defecto a ropas existentes
+                if (_target.DetectedClothingCount > 0)
+                {
+                    _target.SetDefaultClothingVisibility();
+                    EditorUtility.SetDirty(_target);
+                }
+                return;
+            }
+
+            // Verificar si cambió el número de hijos
+            int currentChildCount = _target.AvatarRoot.transform.childCount;
+            if (currentChildCount != _lastAvatarChildCount && _lastAvatarChildCount >= 0)
+            {
+                _lastAvatarChildCount = currentChildCount;
+                _target.RefreshDetection();
+                EditorUtility.SetDirty(_target);
+            }
+        }
+
         public override void OnInspectorGUI()
         {
             if (target == null || serializedObject == null) return;
 
             serializedObject.Update();
+
+            // Auto-detectar cambios en la jerarquía del avatar
+            CheckForHierarchyChanges();
 
             // Header
             DrawHeader();
