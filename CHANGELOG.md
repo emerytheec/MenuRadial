@@ -5,6 +5,29 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.19] - 2026-01-31
+
+### Agregado
+- **MRAnalisisColision**: Detección de meshes en raíz de ropa
+  - Nuevo modelo `MeshOnRootEntry` para rastrear Renderers en GameObjects raíz
+  - Sección de advertencia en inspector mostrando meshes mal ubicados
+  - Botón de selección para localizar meshes problemáticos
+  - Ayuda a identificar assets de ropa con meshes incorrectamente en la raíz
+- **MRUnificarObjetos**: Botón de duplicar (+) para frames en la lista reordenable
+- **MRCoserRopa**: Detección automática de ropa al cambiar la jerarquía
+  - `SetDefaultClothingVisibility()` activa raíces de ropa y desactiva meshes
+  - Escaneo automático de componentes MA cuando cambia la lista de ropa
+
+### Mejorado
+- **MRAnalisisColision**: UI simplificada
+  - Removidos botones de acción (Escanear, Desactivar en Raíz, Restaurar Todos)
+  - Sección NDMF Preview reemplazada por checkbox simple
+  - Nota informativa sobre ubicación de componentes problemáticos
+- **MRMenuControlInspector**: Solo resetea previews cuando hay uno activo
+
+### Corregido
+- Meshes directamente en raíz de ropa ya no se desactivan incorrectamente
+
 ## [0.8.18] - 2026-01-26
 
 ### Mejorado
