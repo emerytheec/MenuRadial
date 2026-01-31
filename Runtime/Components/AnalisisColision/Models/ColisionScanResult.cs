@@ -26,6 +26,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         private List<ColisionEntry> _compatibleEntries = new List<ColisionEntry>();
 
         [SerializeField]
+        [Tooltip("Lista de meshes detectados en raíces de ropa (error del autor)")]
+        private List<MeshOnRootEntry> _meshOnRootEntries = new List<MeshOnRootEntry>();
+
+        [SerializeField]
         [Tooltip("Si el escaneo se completo exitosamente")]
         private bool _scanCompleted;
 
@@ -55,6 +59,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         /// Lista de componentes compatibles (solo informativos).
         /// </summary>
         public List<ColisionEntry> CompatibleEntries => _compatibleEntries;
+
+        /// <summary>
+        /// Lista de meshes detectados directamente en raíces de ropa.
+        /// Esto indica un error del autor de la ropa que puede causar
+        /// que el sistema de menú confunda estos meshes con meshes del avatar base.
+        /// </summary>
+        public List<MeshOnRootEntry> MeshOnRootEntries => _meshOnRootEntries;
 
         /// <summary>
         /// Si el escaneo se completo exitosamente.
@@ -109,9 +120,19 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         public int CompatibleCount => _compatibleEntries?.Count ?? 0;
 
         /// <summary>
+        /// Cantidad de meshes detectados en raíces de ropa.
+        /// </summary>
+        public int MeshOnRootCount => _meshOnRootEntries?.Count ?? 0;
+
+        /// <summary>
         /// Si hay algun componente problematico.
         /// </summary>
         public bool HasProblematic => ProblematicCount > 0;
+
+        /// <summary>
+        /// Si hay meshes en raíces de ropa (error del autor).
+        /// </summary>
+        public bool HasMeshOnRoot => MeshOnRootCount > 0;
 
         /// <summary>
         /// Si hay componentes problematicos en raiz de ropa (que se desactivaran automaticamente).
@@ -151,6 +172,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             _problematicEntries.Clear();
             _userDecisionEntries.Clear();
             _compatibleEntries.Clear();
+            _meshOnRootEntries.Clear();
             _scanCompleted = false;
             _lastScanTime = "";
         }
@@ -177,6 +199,15 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         }
 
         /// <summary>
+        /// Agrega una entrada de mesh en raíz de ropa.
+        /// </summary>
+        public void AddMeshOnRoot(MeshOnRootEntry entry)
+        {
+            if (entry == null) return;
+            _meshOnRootEntries.Add(entry);
+        }
+
+        /// <summary>
         /// Elimina entradas invalidas (componentes destruidos).
         /// </summary>
         /// <returns>Cantidad de entradas eliminadas.</returns>
@@ -186,6 +217,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             removed += _problematicEntries.RemoveAll(e => !e.IsValid);
             removed += _userDecisionEntries.RemoveAll(e => !e.IsValid);
             removed += _compatibleEntries.RemoveAll(e => !e.IsValid);
+            removed += _meshOnRootEntries.RemoveAll(e => !e.IsValid);
             return removed;
         }
 
@@ -231,16 +263,24 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         /// </summary>
         public string GetSummary()
         {
-            if (!_maAvailable)
-                return "Modular Avatar no instalado";
-
             if (!_scanCompleted)
                 return "Sin escanear";
 
-            if (TotalCount == 0)
-                return "Sin colisiones detectadas";
-
             var parts = new List<string>();
+
+            // Meshes en raíz de ropa (siempre mostrar, no depende de MA)
+            if (MeshOnRootCount > 0)
+                parts.Add($"{MeshOnRootCount} mesh(es) en raíz de ropa");
+
+            if (!_maAvailable)
+            {
+                if (parts.Count == 0)
+                    return "Modular Avatar no instalado";
+                return string.Join(", ", parts) + " (MA no instalado)";
+            }
+
+            if (TotalCount == 0 && MeshOnRootCount == 0)
+                return "Sin colisiones detectadas";
 
             if (ProblematicCount > 0)
                 parts.Add($"{ProblematicCount} problematico(s)");
@@ -251,7 +291,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             if (CompatibleCount > 0)
                 parts.Add($"{CompatibleCount} compatible(s)");
 
-            return string.Join(", ", parts);
+            return parts.Count > 0 ? string.Join(", ", parts) : "Sin colisiones detectadas";
         }
 
         public override string ToString() => GetSummary();

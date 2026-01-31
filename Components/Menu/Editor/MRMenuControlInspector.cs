@@ -7,6 +7,7 @@ using Bender_Dios.MenuRadial.Components.Frame;
 using Bender_Dios.MenuRadial.Components.Illumination;
 using Bender_Dios.MenuRadial.Components.UnifyMaterial;
 using Bender_Dios.MenuRadial.Core.Common;
+using Bender_Dios.MenuRadial.Core.Preview;
 using Bender_Dios.MenuRadial.Localization;
 using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
@@ -55,6 +56,7 @@ public class MRMenuControlInspector : Editor
     /// Handler para cambios de selección en el Editor.
     /// Se ejecuta DESPUÉS de que la selección cambia, permitiendo verificar
     /// correctamente si el nuevo objeto tiene componentes MR conflictivos.
+    /// Solo resetea previews si hay uno activo (evita desactivar objetos innecesariamente).
     /// </summary>
     private static void OnSelectionChanged()
     {
@@ -62,6 +64,14 @@ public class MRMenuControlInspector : Editor
         if (_lastActiveControlMenu == null)
         {
             // Actualizar referencia al nuevo objeto si hay uno seleccionado
+            UpdateLastActiveControlMenu();
+            return;
+        }
+
+        // IMPORTANTE: Solo resetear si hay un preview activo
+        // Esto evita desactivar objetos (como roots de ropa) cuando no hay preview
+        if (!PreviewManager.HasActivePreview)
+        {
             UpdateLastActiveControlMenu();
             return;
         }

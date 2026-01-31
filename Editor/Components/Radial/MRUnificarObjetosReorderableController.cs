@@ -128,46 +128,57 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         private void DrawReorderableListElement(Rect rect, int index, bool isActive, bool isFocused)
         {
             if (index >= _framesProp.arraySize) return;
-            
+
             var element = _framesProp.GetArrayElementAtIndex(index);
             var frame = element.objectReferenceValue as MRAgruparObjetos;
-            
+
             rect.y += 2f; // Padding vertical
             rect.height = FRAME_ITEM_HEIGHT;
-            
-            // Dividir el rect en secciones (simplificado - solo label, field y botón eliminar)
+
+            // Dividir el rect en secciones (label, field, botón duplicar, botón eliminar)
             var labelRect = new Rect(rect.x, rect.y, 60f, rect.height);
-            var objectFieldRect = new Rect(rect.x + 65f, rect.y, rect.width - 95f, rect.height); // Más ancho
+            var objectFieldRect = new Rect(rect.x + 65f, rect.y, rect.width - 120f, rect.height);
+            var duplicateButtonRect = new Rect(rect.x + rect.width - 50f, rect.y, 22f, rect.height);
             var deleteButtonRect = new Rect(rect.x + rect.width - 25f, rect.y, 25f, rect.height);
-            
+
             // Indicador de frame activo
             Color originalColor = GUI.color;
             bool isActiveFrame = (index == _target.ActiveFrameIndex);
-            
+
             if (isActiveFrame)
             {
                 GUI.color = Color.green;
             }
-            
+
             // Etiqueta del frame
             EditorGUI.LabelField(labelRect, $"Frame {index + 1}");
-            
+
             GUI.color = originalColor;
-            
+
             // Campo del objeto (más ancho, hace la función de selección automáticamente)
             var newFrame = (MRAgruparObjetos)EditorGUI.ObjectField(objectFieldRect, frame, typeof(MRAgruparObjetos), true);
-            
+
             if (newFrame != frame)
             {
                 element.objectReferenceValue = newFrame;
             }
-            
-            // Solo botón Eliminar (X)
+
+            // Botón Duplicar
+            GUI.enabled = frame != null;
+            GUI.color = new Color(0.5f, 0.8f, 1f);
+            if (GUI.Button(duplicateButtonRect, new GUIContent("+", "Duplicar frame")))
+            {
+                DuplicateFrame(index, frame);
+            }
+            GUI.color = originalColor;
+            GUI.enabled = true;
+
+            // Botón Eliminar (X)
             GUI.color = Color.red;
             if (GUI.Button(deleteButtonRect, "X"))
             {
-                if (EditorUtility.DisplayDialog("Eliminar Frame", 
-                    $"¿Estás seguro de que deseas eliminar el Frame {index + 1}?", 
+                if (EditorUtility.DisplayDialog("Eliminar Frame",
+                    $"¿Estás seguro de que deseas eliminar el Frame {index + 1}?",
                     "Eliminar", "Cancelar"))
                 {
                     _framesProp.DeleteArrayElementAtIndex(index);
@@ -175,6 +186,88 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 }
             }
             GUI.color = originalColor;
+        }
+
+        /// <summary>
+        /// Duplica un frame y lo inserta debajo del original
+        /// </summary>
+        private void DuplicateFrame(int sourceIndex, MRAgruparObjetos sourceFrame)
+        {
+            if (sourceFrame == null) return;
+
+            // Obtener el padre del frame original para crear el duplicado en el mismo lugar
+            Transform parent = sourceFrame.transform.parent;
+
+            // Crear nuevo GameObject
+            var newFrameGO = new GameObject($"{sourceFrame.gameObject.name} (Copy)");
+            newFrameGO.transform.SetParent(parent);
+
+            // Posicionar justo debajo del original en la jerarquía
+            int siblingIndex = sourceFrame.transform.GetSiblingIndex() + 1;
+            newFrameGO.transform.SetSiblingIndex(siblingIndex);
+
+            // Agregar componente MRAgruparObjetos
+            var newFrame = newFrameGO.AddComponent<MRAgruparObjetos>();
+
+            // Copiar datos del frame original
+            CopyFrameData(sourceFrame, newFrame);
+
+            // Registrar para Undo
+            Undo.RegisterCreatedObjectUndo(newFrameGO, "Duplicar Frame");
+
+            // Insertar en la lista justo debajo del original
+            int insertIndex = sourceIndex + 1;
+            _framesProp.InsertArrayElementAtIndex(insertIndex);
+            _framesProp.GetArrayElementAtIndex(insertIndex).objectReferenceValue = newFrame;
+
+            _serializedObject.ApplyModifiedProperties();
+
+            // Seleccionar el nuevo frame
+            Selection.activeGameObject = newFrameGO;
+        }
+
+        /// <summary>
+        /// Copia los datos de un frame a otro
+        /// </summary>
+        private void CopyFrameData(MRAgruparObjetos source, MRAgruparObjetos destination)
+        {
+            if (source == null || destination == null) return;
+
+            // Copiar nombre
+            destination.FrameName = source.FrameName + " (Copy)";
+
+            // Copiar ObjectReferences
+            foreach (var objRef in source.ObjectReferences)
+            {
+                if (objRef?.GameObject != null)
+                {
+                    destination.AddGameObject(objRef.GameObject, objRef.IsActive);
+                }
+            }
+
+            // Copiar MaterialReferences
+            foreach (var matRef in source.MaterialReferences)
+            {
+                if (matRef?.TargetRenderer != null)
+                {
+                    destination.AddMaterialReference(
+                        matRef.TargetRenderer,
+                        matRef.MaterialIndex,
+                        matRef.AlternativeMaterial);
+                }
+            }
+
+            // Copiar BlendshapeReferences
+            foreach (var blendRef in source.BlendshapeReferences)
+            {
+                if (blendRef?.TargetRenderer != null)
+                {
+                    destination.AddBlendshapeReference(
+                        blendRef.TargetRenderer,
+                        blendRef.BlendshapeName,
+                        blendRef.Value);
+                }
+            }
         }
         
         

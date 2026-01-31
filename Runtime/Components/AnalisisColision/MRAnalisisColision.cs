@@ -169,6 +169,16 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         public bool HasAnyColision => _scanResult?.HasAny ?? false;
 
         /// <summary>
+        /// Cantidad de meshes detectados en raíces de ropa.
+        /// </summary>
+        public int MeshOnRootCount => _scanResult?.MeshOnRootCount ?? 0;
+
+        /// <summary>
+        /// Si hay meshes en raíces de ropa (error del autor).
+        /// </summary>
+        public bool HasMeshOnRoot => _scanResult?.HasMeshOnRoot ?? false;
+
+        /// <summary>
         /// Si se deben desactivar automaticamente los componentes problematicos en raiz de ropa.
         /// </summary>
         public bool AutoDisableProblematicOnRoot
@@ -264,6 +274,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
         /// <summary>
         /// Escanea el avatar buscando componentes de MA que puedan colisionar.
+        /// También detecta meshes problemáticos en raíces de ropa.
         /// </summary>
         public void ScanAvatar()
         {
@@ -275,12 +286,21 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 return;
             }
 
+            // SIEMPRE escanear meshes en raíces de ropa (no depende de MA)
+            ScanMeshesOnClothingRoots();
+
             _scanResult.MAAvailable = IsMAAvailable;
 
             if (!IsMAAvailable)
             {
                 Debug.Log("[MRAnalisisColision] Modular Avatar no esta instalado");
                 _scanResult.MarkCompleted();
+
+                // Log de meshes en raíz aunque MA no esté instalado
+                if (_scanResult.HasMeshOnRoot)
+                {
+                    Debug.LogWarning($"[MRAnalisisColision] Detectados {_scanResult.MeshOnRootCount} mesh(es) en raiz de ropa (error del autor)");
+                }
                 return;
             }
 
@@ -312,6 +332,60 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                     Debug.Log($"[MRAnalisisColision] Desactivados {disabled} componente(s) problematico(s) en raiz de ropa");
                 }
             }
+        }
+
+        /// <summary>
+        /// Escanea las raíces de ropa buscando meshes directamente en el GameObject raíz.
+        /// Esto es un error del autor de la ropa - los meshes deberían estar en GameObjects hijos.
+        /// </summary>
+        private void ScanMeshesOnClothingRoots()
+        {
+            if (_clothingRoots == null || _clothingRoots.Count == 0)
+                return;
+
+            foreach (var clothingRoot in _clothingRoots)
+            {
+                if (clothingRoot == null) continue;
+
+                // Buscar Renderer directamente en el GameObject raíz de la ropa
+                var renderers = clothingRoot.GetComponents<Renderer>();
+
+                foreach (var renderer in renderers)
+                {
+                    if (renderer == null) continue;
+
+                    // Calcular ruta de jerarquía
+                    string hierarchyPath = GetHierarchyPath(renderer.transform);
+
+                    // Crear entrada para este mesh problemático
+                    var entry = new MeshOnRootEntry(renderer, clothingRoot, hierarchyPath);
+                    _scanResult.AddMeshOnRoot(entry);
+
+                    Debug.LogWarning($"[MRAnalisisColision] Mesh en raíz de ropa: '{renderer.gameObject.name}' ({renderer.GetType().Name}) en '{clothingRoot.name}'. " +
+                                     "Esto es un error del autor de la ropa - el mesh debería estar en un GameObject hijo.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la ruta de jerarquía de un transform relativa al avatar.
+        /// </summary>
+        private string GetHierarchyPath(Transform target)
+        {
+            if (target == null || _avatarRoot == null) return "";
+
+            var path = new System.Text.StringBuilder();
+            var current = target;
+
+            while (current != null && current.gameObject != _avatarRoot)
+            {
+                if (path.Length > 0)
+                    path.Insert(0, "/");
+                path.Insert(0, current.name);
+                current = current.parent;
+            }
+
+            return path.ToString();
         }
 
         /// <summary>
@@ -973,20 +1047,31 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 return result;
             }
 
-            if (!IsMAAvailable)
-            {
-                result.AddChild(ValidationResult.Info("Modular Avatar no esta instalado"));
-                return result;
-            }
-
             if (!IsScanned)
             {
                 result.AddChild(ValidationResult.Warning("Detecta las ropas para escanear colisiones automaticamente"));
                 return result;
             }
 
+            // Meshes en raíz de ropa (siempre mostrar, independiente de MA)
+            if (HasMeshOnRoot)
+            {
+                result.AddChild(ValidationResult.Warning(
+                    $"{MeshOnRootCount} mesh(es) en raiz de ropa detectado(s). " +
+                    "Esto puede causar que el sistema confunda estos meshes con meshes del avatar base."));
+            }
+
+            if (!IsMAAvailable)
+            {
+                if (!HasMeshOnRoot)
+                {
+                    result.AddChild(ValidationResult.Info("Modular Avatar no esta instalado"));
+                }
+                return result;
+            }
+
             // Mostrar resultados
-            if (!HasAnyColision)
+            if (!HasAnyColision && !HasMeshOnRoot)
             {
                 result.AddChild(ValidationResult.Success("Sin colisiones detectadas"));
                 return result;

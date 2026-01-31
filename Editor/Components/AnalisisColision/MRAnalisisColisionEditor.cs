@@ -31,6 +31,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         private static readonly Color CompatibleColor = new Color(0.3f, 0.8f, 0.3f);
         private static readonly Color MABlueColor = new Color(0.4f, 0.7f, 1f);
         private static readonly Color CriticalRedColor = new Color(1f, 0.2f, 0.2f);
+        private static readonly Color MeshOnRootColor = new Color(1f, 0.5f, 0f); // Naranja para meshes en raíz
 
         // Componentes criticos que siempre se muestran en rojo y se desactivan automaticamente
         private static readonly string[] CRITICAL_COMPONENTS = new[]
@@ -180,6 +181,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 DrawSummarySection();
 
                 EditorGUILayout.Space(8);
+
+                // Meshes en raíces de ropa (mostrar siempre si hay)
+                if (_target.IsScanned && _target.HasMeshOnRoot)
+                {
+                    DrawMeshOnRootSection();
+                    EditorGUILayout.Space(8);
+                }
 
                 // Secciones de componentes agrupados por GameObject
                 if (_target.IsScanned && _target.HasAnyColision)
@@ -356,6 +364,107 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                         "pero deberian estar en el GameObject del mesh que modifican.\n\n" +
                         "Muevelos al mesh correcto para que funcionen sin conflictos con MR.",
                         MessageType.Info);
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        #endregion
+
+        #region Mesh On Root Section
+
+        /// <summary>
+        /// Dibuja la sección de meshes detectados en raíces de ropa.
+        /// Estos son errores del autor de la ropa que pueden causar problemas.
+        /// </summary>
+        private void DrawMeshOnRootSection()
+        {
+            var meshEntries = _target.ScanResult.MeshOnRootEntries;
+            if (meshEntries == null || meshEntries.Count == 0) return;
+
+            string foldoutKey = "mesh_on_root_section";
+            if (!_gameObjectFoldouts.ContainsKey(foldoutKey))
+                _gameObjectFoldouts[foldoutKey] = true; // Abierto por defecto
+
+            // Fondo con color naranja
+            GUI.backgroundColor = new Color(MeshOnRootColor.r, MeshOnRootColor.g, MeshOnRootColor.b, 0.15f);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUI.backgroundColor = Color.white;
+
+            // Header
+            EditorGUILayout.BeginHorizontal();
+
+            GUI.contentColor = MeshOnRootColor;
+            _gameObjectFoldouts[foldoutKey] = EditorGUILayout.Foldout(
+                _gameObjectFoldouts[foldoutKey],
+                $"⚠ Meshes en Raíz de Ropa ({meshEntries.Count})",
+                true,
+                EditorStyles.foldoutHeader);
+            GUI.contentColor = Color.white;
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            if (_gameObjectFoldouts[foldoutKey])
+            {
+                EditorGUILayout.Space(3);
+
+                // Explicación del problema
+                var infoStyle = new GUIStyle(EditorStyles.wordWrappedMiniLabel)
+                {
+                    richText = true
+                };
+
+                EditorGUILayout.LabelField(
+                    "<b>Problema:</b> Se detectaron meshes (Renderers) directamente en el GameObject raíz de una ropa. " +
+                    "Esto es un error del autor de la ropa - los meshes deberían estar en GameObjects hijos.",
+                    infoStyle);
+
+                EditorGUILayout.Space(2);
+
+                EditorGUILayout.LabelField(
+                    "<b>Consecuencia:</b> El sistema de auto-generación de menú puede confundir estos meshes " +
+                    "con meshes del avatar base, causando que se apaguen incorrectamente.",
+                    infoStyle);
+
+                EditorGUILayout.Space(2);
+
+                EditorGUILayout.LabelField(
+                    "<b>Solución:</b> Mueve el componente Renderer a un GameObject hijo, o elimina el mesh si no es necesario.",
+                    infoStyle);
+
+                EditorGUILayout.Space(5);
+
+                // Lista de meshes problemáticos
+                foreach (var entry in meshEntries)
+                {
+                    if (!entry.IsValid) continue;
+
+                    EditorGUILayout.BeginHorizontal();
+
+                    // Icono de warning
+                    GUILayout.Label(EditorGUIUtility.IconContent("d_console.warnicon.sml"), GUILayout.Width(20), GUILayout.Height(18));
+
+                    // Información del mesh
+                    GUI.contentColor = MeshOnRootColor;
+                    EditorGUILayout.LabelField(entry.DisplayName, EditorStyles.boldLabel);
+                    GUI.contentColor = Color.white;
+
+                    GUILayout.FlexibleSpace();
+
+                    // Nombre de la ropa
+                    EditorGUILayout.LabelField($"en '{entry.ClothingRootName}'", EditorStyles.miniLabel, GUILayout.Width(150));
+
+                    // Botón para seleccionar en jerarquía
+                    if (GUILayout.Button(
+                        new GUIContent(EditorGUIUtility.IconContent("d_SceneViewFx").image, "Seleccionar en jerarquía"),
+                        GUILayout.Width(25), GUILayout.Height(18)))
+                    {
+                        entry.SelectInHierarchy();
+                    }
+
+                    EditorGUILayout.EndHorizontal();
                 }
             }
 

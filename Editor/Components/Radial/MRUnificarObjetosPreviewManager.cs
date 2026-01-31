@@ -15,11 +15,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
     /// </summary>
     public class MRUnificarObjetosPreviewManager
     {
-        
+
         private readonly MRUnificarObjetos _target;
-        
-        
-        
+
+
+
         public MRUnificarObjetosPreviewManager(MRUnificarObjetos target)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
@@ -35,33 +35,33 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         {
             if (_target.FrameCount == 0)
                 return;
-            
+
             // NUEVO: Lógica especial para animaciones On/Off (1 frame)
             if (_target.FrameCount == 1)
             {
                 ApplyOnOffFramePreview();
                 return;
             }
-            
+
             // Lógica original para múltiples frames
             if (_target.ActiveFrame == null)
                 return;
-                
+
             // SOLUCIÓN DIRECTA: Restaurar todos los objetos a su estado original
             // y luego aplicar solo el frame activo
             RestoreAllObjectsToOriginalState();
-            
+
             // Aplicar directamente el frame activo
             _target.ActiveFrame.ApplyCurrentFrame();
-            
+
             // Marcar la escena como modificada para que Unity actualice la vista
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
-                
+
             // Forzar repaint de la Scene View
             SceneView.RepaintAll();
         }
-        
+
         /// <summary>
         /// NUEVO: Aplica previsualización especial para animaciones On/Off (1 frame)
         /// ActiveFrameIndex 0 = Estado OFF (todo apagado)
@@ -78,7 +78,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             {
                 // Estado ON: Aplicar el único frame disponible
                 RestoreAllObjectsToOriginalState();
-                
+
                 // Verificar que el frame existe antes de aplicarlo
                 if (_target.FrameObjects.Count > 0 && _target.FrameObjects[0] != null)
                 {
@@ -88,11 +88,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 {
                 }
             }
-            
+
             // Marcar la escena como modificada
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
-                
+
             // Forzar repaint de la Scene View
             SceneView.RepaintAll();
         }
@@ -145,11 +145,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         private void RestoreAllGameObjectStates()
         {
             var allGameObjects = new HashSet<GameObject>();
-            
+
             foreach (var frame in _target.FrameObjects)
             {
                 if (frame?.ObjectReferences == null) continue;
-                
+
                 foreach (var objRef in frame.ObjectReferences)
                 {
                     if (objRef?.GameObject != null)
@@ -158,7 +158,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                     }
                 }
             }
-            
+
             // Desactivar todos los objetos (estado neutro)
             foreach (var go in allGameObjects)
             {
