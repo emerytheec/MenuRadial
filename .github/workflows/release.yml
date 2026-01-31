@@ -25,10 +25,101 @@ jobs:
             -x "*.git*" \
             -x ".github/*"
 
-      - name: Upload zip to release
+      - name: Create unitypackage
+        run: |
+          python3 << 'EOF'
+          import os
+          import re
+          import tarfile
+          import tempfile
+          import shutil
+
+          def get_guid_from_meta(meta_path):
+              """Extract GUID from .meta file"""
+              try:
+                  with open(meta_path, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                      match = re.search(r'guid:\s*([a-fA-F0-9]+)', content)
+                      if match:
+                          return match.group(1)
+              except:
+                  pass
+              return None
+
+          def create_unitypackage(source_dir, output_path, base_path="Assets/Bender_Dios/MenuRadial"):
+              """Create a .unitypackage from source directory"""
+              temp_dir = tempfile.mkdtemp()
+
+              try:
+                  # Find all files (excluding .git and .github)
+                  for root, dirs, files in os.walk(source_dir):
+                      # Skip .git and .github directories
+                      dirs[:] = [d for d in dirs if d not in ['.git', '.github']]
+
+                      for file in files:
+                          file_path = os.path.join(root, file)
+                          rel_path = os.path.relpath(file_path, source_dir)
+
+                          # Skip .git files
+                          if '.git' in rel_path:
+                              continue
+
+                          # Construct the asset path as it would appear in Unity
+                          asset_path = os.path.join(base_path, rel_path).replace('\\', '/')
+
+                          # For .meta files, we process them with their asset
+                          if file.endswith('.meta'):
+                              continue
+
+                          meta_path = file_path + '.meta'
+
+                          # Get GUID from meta file
+                          guid = None
+                          if os.path.exists(meta_path):
+                              guid = get_guid_from_meta(meta_path)
+
+                          if not guid:
+                              # Generate a simple hash-based GUID for files without .meta
+                              import hashlib
+                              guid = hashlib.md5(asset_path.encode()).hexdigest()
+
+                          # Create directory for this asset
+                          asset_dir = os.path.join(temp_dir, guid)
+                          os.makedirs(asset_dir, exist_ok=True)
+
+                          # Copy asset file
+                          shutil.copy2(file_path, os.path.join(asset_dir, 'asset'))
+
+                          # Copy meta file if exists
+                          if os.path.exists(meta_path):
+                              shutil.copy2(meta_path, os.path.join(asset_dir, 'asset.meta'))
+
+                          # Write pathname file
+                          with open(os.path.join(asset_dir, 'pathname'), 'w', encoding='utf-8') as f:
+                              f.write(asset_path)
+
+                  # Create tar.gz (unitypackage format)
+                  with tarfile.open(output_path, 'w:gz') as tar:
+                      for item in os.listdir(temp_dir):
+                          item_path = os.path.join(temp_dir, item)
+                          tar.add(item_path, arcname=item)
+
+                  print(f"Created {output_path}")
+
+              finally:
+                  shutil.rmtree(temp_dir)
+
+          # Create the unitypackage
+          version = "${{ steps.get_version.outputs.VERSION }}"
+          create_unitypackage('.', f'MenuRadial-{version}.unitypackage')
+          EOF
+
+      - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
-          files: "com.bender-dios.menu-radial-${{ steps.get_version.outputs.VERSION }}.zip"
+          files: |
+            com.bender-dios.menu-radial-${{ steps.get_version.outputs.VERSION }}.zip
+            MenuRadial-${{ steps.get_version.outputs.VERSION }}.unitypackage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
