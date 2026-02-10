@@ -11,7 +11,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - **Código muerto**: ~30 archivos eliminados (~4500 líneas) — preview duplicados (FrameStateManager, MRFrameStateManager, FramePreviewService, PreviewStateManager, PreviewOperations), managers sin uso (FrameObjectManager, FrameMaterialManager, FrameBlendshapeManager, BaseReferenceManager), RadialPreviewService, WeakEventManager, ValidationRules, MRServiceInitializer, MRServiceAttribute
 - **LinqOptimizations**: Clase eliminada (~330 líneas de extension methods sin callers), solo queda `FrameBasedCache`
 - **ObjectPool**: Campos de estadísticas sin uso (`_totalCreated`, `_totalRequested`, `_totalReturned`, `_poolHits`)
-- **MenuRadialServiceBootstrap**: 6 métodos muertos eliminados (`ClearServices`, `InvalidateServicesIfNeeded`, `RegisterService` públicos, `RegisterServiceWithInterfaces`, `GetServiceOrFallback`)
+- **MenuRadialServiceBootstrap**: Simplificado de 167 a 27 líneas — eliminada infraestructura DI (diccionarios, factories, `EnsureInitialized`, `ForceReinitialize`, `Cleanup`, `TryGetService`, 6 métodos muertos). Reemplazado con lazy singletons directos
 
 ### Corregido
 - **MRMeshImportFixPlugin**: Ya no modifica assets del proyecto durante build NDMF (violaba principio no-destructivo). Ahora emite `Debug.LogWarning` con detalles de meshes que necesitan corrección manual
