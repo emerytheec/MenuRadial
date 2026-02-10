@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.22] - 2026-02-10
+
+### Corregido
+- **CI/CD**: Workflow de release ya no falla cuando `VPM_TOKEN` expira o no está configurado
+  - Usa `steps.checkout_vpm.outcome` en vez de `success()` para detectar fallo real del checkout
+  - Verifica existencia del archivo `index.json` en vez del directorio (que se crea vacío al fallar)
+  - Agrega paso de diagnóstico con warning claro cuando el token falta o es inválido
+  - El release se crea correctamente independientemente del estado del VPM listing
+
 ## [0.8.21] - 2026-02-10
 
 ### Corregido
