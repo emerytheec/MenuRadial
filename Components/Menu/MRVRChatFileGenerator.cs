@@ -103,6 +103,17 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                     }
                 }
 
+                // Paso 4.5: Validar límite de bits de parámetros VRChat
+                int bitCost = _parametersGenerator.CalculateBitCost(slotInfoList);
+                if (bitCost > MRVRChatConstants.MAX_PARAMETER_BITS)
+                {
+                    Debug.LogError($"[MRVRChatFileGenerator] Parámetros requieren {bitCost} bits, " +
+                        $"pero el límite de VRChat es {MRVRChatConstants.MAX_PARAMETER_BITS}. " +
+                        $"Reduce slots o usa toggles (Bool=1 bit) en vez de radiales (Float=8 bits).");
+                    return false;
+                }
+                Debug.Log($"[MRVRChatFileGenerator] Costo de parámetros: {bitCost}/{MRVRChatConstants.MAX_PARAMETER_BITS} bits");
+
                 // Paso 5: Generar FX Controller
                 Debug.Log("[MRVRChatFileGenerator] Generando FX Controller...");
                 var fxController = _fxGenerator.Generate(slotInfoList);
@@ -120,10 +131,6 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                     Debug.LogError("[MRVRChatFileGenerator] Error al crear Expression Parameters.");
                     return false;
                 }
-
-                // Calcular y mostrar costo de bits
-                int bitCost = _parametersGenerator.CalculateBitCost(slotInfoList);
-                Debug.Log($"[MRVRChatFileGenerator] Costo total de parámetros: {bitCost} bits de 256 disponibles");
 
                 // Paso 7: Generar Expressions Menu
                 Debug.Log("[MRVRChatFileGenerator] Generando Expressions Menu...");

@@ -139,9 +139,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 Debug.Log($"[MRMenuRadial NDMF] Buscando MRMenuRadial externo para avatar '{avatarName}'...");
 
                 var allMenuRadials = UnityEngine.Object.FindObjectsByType<MRMenuRadial>(FindObjectsSortMode.None);
-                menuRadials = allMenuRadials
-                    .Where(mr => mr != null && mr.AvatarRoot != null && mr.AvatarRoot.name == avatarName)
+                var matches = allMenuRadials
+                    .Where(mr => mr != null
+                        && mr.AvatarRoot != null
+                        && mr.AvatarRoot != context.AvatarRootObject
+                        && mr.AvatarRoot.GetComponent<VRCAvatarDescriptor>() != null
+                        && mr.AvatarRoot.name == avatarName)
                     .ToArray();
+
+                if (matches.Length > 1)
+                {
+                    Debug.LogWarning($"[MRMenuRadial NDMF] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
+                        "Esto puede causar conflictos si apuntan a avatares diferentes con el mismo nombre.");
+                }
+
+                menuRadials = matches;
             }
 
             return menuRadials;

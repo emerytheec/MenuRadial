@@ -7,6 +7,7 @@ using UnityEngine;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
+using VRC.SDK3.Avatars.Components;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 using MADetector = Bender_Dios.MenuRadial.Components.CoserRopa.Controllers.ModularAvatarDetector;
@@ -68,9 +69,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 }
 
                 var allMenuRadials = UnityEngine.Object.FindObjectsByType<MRMenuRadial>(FindObjectsSortMode.None);
-                menuRadials = allMenuRadials
-                    .Where(mr => mr != null && mr.AvatarRoot != null && mr.AvatarRoot.name == avatarName)
+                var matches = allMenuRadials
+                    .Where(mr => mr != null
+                        && mr.AvatarRoot != null
+                        && mr.AvatarRoot != context.AvatarRootObject
+                        && mr.AvatarRoot.GetComponent<VRCAvatarDescriptor>() != null
+                        && mr.AvatarRoot.name == avatarName)
                     .ToArray();
+
+                if (matches.Length > 1)
+                {
+                    Debug.LogWarning($"[MRCoserRopa NDMF] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
+                        "Esto puede causar conflictos si apuntan a avatares diferentes con el mismo nombre.");
+                }
+
+                menuRadials = matches;
             }
 
             // Si algún MRMenuRadial tiene el cosido desactivado, saltar el proceso

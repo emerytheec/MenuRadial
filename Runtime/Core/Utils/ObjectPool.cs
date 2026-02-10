@@ -18,14 +18,8 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         private readonly Action<T> _resetAction;
         private readonly int _maxSize;
         private readonly string _poolName;
-        
-        // Estadísticas del pool
-        private int _totalCreated = 0;
-        private int _totalRequested = 0;
-        private int _totalReturned = 0;
-        private int _poolHits = 0;
-        
-        
+
+
         
         /// <summary>
         /// Constructor del ObjectPool con configuración personalizable
@@ -55,19 +49,12 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         /// <returns>Objeto reutilizable del pool</returns>
         public T Get()
         {
-            _totalRequested++;
-            
             if (_objects.Count > 0)
             {
-                _poolHits++;
                 return _objects.Pop();
             }
-            
-            // Crear nuevo objeto si el pool está vacío
-            var item = _objectGenerator();
-            _totalCreated++;
-            
-            return item;
+
+            return _objectGenerator();
         }
         
         /// <summary>
@@ -86,10 +73,8 @@ namespace Bender_Dios.MenuRadial.Core.Utils
                 return;
             }
             
-            // Resetear objeto antes de devolverlo al pool
             _resetAction?.Invoke(item);
             _objects.Push(item);
-            _totalReturned++;
         }
         
         /// <summary>
@@ -97,7 +82,6 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         /// </summary>
         public void Clear()
         {
-            var previousCount = _objects.Count;
             _objects.Clear();
         }
         

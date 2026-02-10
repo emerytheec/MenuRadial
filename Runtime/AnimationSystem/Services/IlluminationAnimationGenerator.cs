@@ -3,7 +3,6 @@ using System.Linq;
 using UnityEngine;
 using Bender_Dios.MenuRadial.AnimationSystem.Interfaces;
 using Bender_Dios.MenuRadial.Core.Common;
-using Bender_Dios.MenuRadial.Core.Services;
 using Bender_Dios.MenuRadial.Shaders;
 using Bender_Dios.MenuRadial.Shaders.Models;
 
@@ -12,7 +11,6 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
     /// <summary>
     /// Generador de animaciones de iluminación para materiales compatibles
     /// </summary>
-    [MRService(typeof(IIlluminationAnimationGenerator))]
     public partial class IlluminationAnimationGenerator : IIlluminationAnimationGenerator
     {
         /// <summary>

@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.23] - 2026-02-10
+
+### Eliminado
+- **Código muerto**: ~30 archivos eliminados (~4500 líneas) — preview duplicados (FrameStateManager, MRFrameStateManager, FramePreviewService, PreviewStateManager, PreviewOperations), managers sin uso (FrameObjectManager, FrameMaterialManager, FrameBlendshapeManager, BaseReferenceManager), RadialPreviewService, WeakEventManager, ValidationRules, MRServiceInitializer, MRServiceAttribute
+- **LinqOptimizations**: Clase eliminada (~330 líneas de extension methods sin callers), solo queda `FrameBasedCache`
+- **ObjectPool**: Campos de estadísticas sin uso (`_totalCreated`, `_totalRequested`, `_totalReturned`, `_poolHits`)
+- **MenuRadialServiceBootstrap**: 6 métodos muertos eliminados (`ClearServices`, `InvalidateServicesIfNeeded`, `RegisterService` públicos, `RegisterServiceWithInterfaces`, `GetServiceOrFallback`)
+
+### Corregido
+- **MRMeshImportFixPlugin**: Ya no modifica assets del proyecto durante build NDMF (violaba principio no-destructivo). Ahora emite `Debug.LogWarning` con detalles de meshes que necesitan corrección manual
+- **Matching externo NDMF**: Los 3 plugins (MRMenuRadialPlugin, MRCoserRopaPlugin, MRDisableMAPlugin) ahora validan `VRCAvatarDescriptor` en el AvatarRoot, excluyen el clon del avatar, y advierten si hay múltiples matches
+- **Límite 256 bits**: `MRVRChatFileGenerator` ahora valida el costo de bits ANTES de generar archivos y bloquea la generación si excede el límite de 256 bits de VRChat
+
 ## [0.8.22] - 2026-02-10
 
 ### Corregido

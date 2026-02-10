@@ -10,7 +10,6 @@ namespace Bender_Dios.MenuRadial.Core.Services
     /// Servicio para escanear y detectar materiales compatibles
     /// OPTIMIZADO [2025-07-04]: Cache de resultados para evitar escaneos repetitivos
     /// </summary>
-    [MRService(typeof(IIlluminationMaterialScanner))]
     public class IlluminationMaterialScanner : IIlluminationMaterialScanner
     {
         

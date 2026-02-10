@@ -92,33 +92,20 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 return; // No hay problemas que corregir
             }
 
-            Debug.Log($"[MRMeshImportFix] Encontrados {meshesToFix.Count} mesh(es) con problemas de importacion. Corrigiendo...");
-
-            int fixedCount = 0;
-            int errorCount = 0;
+            Debug.LogWarning($"[MRMeshImportFix] Encontrados {meshesToFix.Count} mesh(es) con problemas de importación que requieren corrección manual:");
 
             foreach (var kvp in meshesToFix)
             {
                 var mesh = kvp.Key;
                 var issues = kvp.Value;
+                string fixes = "";
 
-                try
-                {
-                    if (FixMeshImportSettings(mesh, issues))
-                    {
-                        fixedCount++;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning($"[MRMeshImportFix] Error corrigiendo '{mesh.name}': {e.Message}");
-                    errorCount++;
-                }
-            }
+                if (issues.NeedsReadWrite)
+                    fixes += "Read/Write desactivado";
+                if (issues.NeedsLegacyBlendShapeNormals)
+                    fixes += (fixes.Length > 0 ? ", " : "") + "BlendShape Normals en Calculate (debe ser Import)";
 
-            if (fixedCount > 0)
-            {
-                Debug.Log($"[MRMeshImportFix] Corregidos {fixedCount} mesh(es). Errores: {errorCount}");
+                Debug.LogWarning($"[MRMeshImportFix] '{mesh.name}' ({issues.AssetPath}): {fixes}");
             }
         }
 
@@ -159,44 +146,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
         }
 
-        /// <summary>
-        /// Corrige la configuracion de importacion de un mesh.
-        /// </summary>
-        private bool FixMeshImportSettings(Mesh mesh, MeshImportIssues issues)
-        {
-            var importer = AssetImporter.GetAtPath(issues.AssetPath) as ModelImporter;
-            if (importer == null)
-                return false;
-
-            bool changed = false;
-            string fixes = "";
-
-            // Corregir Read/Write
-            if (issues.NeedsReadWrite)
-            {
-                importer.isReadable = true;
-                fixes += "Read/Write ";
-                changed = true;
-            }
-
-            // Corregir Blendshape Normals
-            if (issues.NeedsLegacyBlendShapeNormals)
-            {
-                importer.importBlendShapeNormals = ModelImporterNormals.Import;
-                fixes += "BlendshapeNormals ";
-                changed = true;
-            }
-
-            if (changed)
-            {
-                Debug.Log($"[MRMeshImportFix] Corrigiendo '{mesh.name}': {fixes.Trim()}");
-
-                // Guardar y reimportar
-                importer.SaveAndReimport();
-            }
-
-            return changed;
-        }
     }
 
     /// <summary>

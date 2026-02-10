@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using nadena.dev.ndmf;
 using UnityEngine;
+using VRC.SDK3.Avatars.Components;
 using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.MenuRadial.MRDisableMAPlugin))]
@@ -130,9 +131,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 }
 
                 var allMenuRadials = UnityEngine.Object.FindObjectsByType<MRMenuRadial>(FindObjectsSortMode.None);
-                menuRadials = allMenuRadials
-                    .Where(mr => mr != null && mr.AvatarRoot != null && mr.AvatarRoot.name == avatarName)
+                var matches = allMenuRadials
+                    .Where(mr => mr != null
+                        && mr.AvatarRoot != null
+                        && mr.AvatarRoot != context.AvatarRootObject
+                        && mr.AvatarRoot.GetComponent<VRCAvatarDescriptor>() != null
+                        && mr.AvatarRoot.name == avatarName)
                     .ToArray();
+
+                if (matches.Length > 1)
+                {
+                    Debug.LogWarning($"[MR DisableMA] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
+                        "Esto puede causar conflictos si apuntan a avatares diferentes con el mismo nombre.");
+                }
+
+                menuRadials = matches;
             }
 
             return menuRadials;

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Core.Utils;
 using Bender_Dios.MenuRadial.AnimationSystem.Interfaces;
@@ -63,45 +62,8 @@ namespace Bender_Dios.MenuRadial.Core.Services
             _isInitialized = false;
         }
         
-        
-        /// <summary>
-        /// Limpia todos los servicios (alias para Cleanup para compatibilidad)
-        /// </summary>
-        public static void ClearServices()
-        {
-            Cleanup();
-        }
-        
-        
-        
-        
-        /// <summary>
-        /// Invalida servicios si es necesario (para compatibilidad con MRUnificarObjetosUIRenderer)
-        /// </summary>
-        /// <param name="forceReinitialize">Fuerza la reinicialización incluso si está inicializado</param>
-        /// <returns>True si se invalidaron servicios</returns>
-        public static bool InvalidateServicesIfNeeded(bool forceReinitialize = false)
-        {
-            if (!_isInitialized)
-            {
-                // Sistema no inicializado, consideramos que "se invalidó" (necesita inicialización)
-                return true;
-            }
-            
-            if (forceReinitialize)
-            {
-                // Forzar reinicialización: limpiar e inicializar de nuevo
-                Cleanup();
-                EnsureInitialized();
-                return true;
-            }
-            
-            // En esta implementación simplificada, los servicios están siempre válidos una vez inicializados
-            // Esta función principalmente existe para compatibilidad con el código anterior
-            return false;
-        }
-        
-        
+
+
         
         /// <summary>
         /// Registra servicios principales del sistema
@@ -131,51 +93,8 @@ namespace Bender_Dios.MenuRadial.Core.Services
             _factories[typeof(TInterface)] = () => new TImplementation();
         }
         
-        /// <summary>
-        /// Registra un servicio público (para compatibilidad con MRServiceInitializer)
-        /// </summary>
-        public static void RegisterService<TInterface, TImplementation>()
-            where TImplementation : class, TInterface, new()
-            where TInterface : class
-        {
-            RegisterSingleton<TInterface, TImplementation>();
-        }
-        
-        /// <summary>
-        /// Registra una instancia de servicio directamente (para compatibilidad con MRServiceInitializer)
-        /// </summary>
-        public static void RegisterService(object serviceInstance)
-        {
-            if (serviceInstance == null) return;
-            
-            var serviceType = serviceInstance.GetType();
-            _singletonServices[serviceType] = serviceInstance;
-            
-            // También registrar por todas las interfaces implementadas
-            var interfaces = serviceType.GetInterfaces();
-            foreach (var interfaceType in interfaces)
-            {
-                _singletonServices[interfaceType] = serviceInstance;
-            }
-        }
-        
-        /// <summary>
-        /// Registra un servicio con múltiples interfaces específicas (para compatibilidad)
-        /// </summary>
-        public static void RegisterServiceWithInterfaces(object serviceInstance, params System.Type[] interfaceTypes)
-        {
-            if (serviceInstance == null || interfaceTypes == null) return;
-            
-            foreach (var interfaceType in interfaceTypes)
-            {
-                if (interfaceType != null && interfaceType.IsInterface)
-                {
-                    _singletonServices[interfaceType] = serviceInstance;
-                }
-            }
-        }
-        
-        
+
+
         
         /// <summary>
         /// Resuelve un servicio de forma segura con logging de errores
@@ -242,28 +161,6 @@ namespace Bender_Dios.MenuRadial.Core.Services
             
             service = null;
             return false;
-        }
-        
-        /// <summary>
-        /// Obtiene un servicio o usa el fallback si no está disponible
-        /// </summary>
-        /// <typeparam name="T">Tipo de servicio</typeparam>
-        /// <param name="fallbackFactory">Factory para crear instancia de fallback</param>
-        /// <returns>Servicio o fallback</returns>
-        public static T GetServiceOrFallback<T>(Func<T> fallbackFactory) where T : class
-        {
-            if (TryGetService<T>(out var service))
-            {
-                return service;
-            }
-            
-            // Validación defensiva antes de usar fallback
-            if (fallbackFactory != null)
-            {
-                return fallbackFactory();
-            }
-            
-            return null;
         }
         
     }
