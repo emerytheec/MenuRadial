@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.21] - 2026-02-10
+
+### Corregido
+- **ObjectReference**: `Equals()` y `GetHashCode()` ahora incluyen el estado `IsActive` en la comparación, evitando que dos referencias al mismo objeto con diferente estado se consideren iguales
+- **FrameData**: `ValidateReferences()` ahora valida objetos, materiales y blendshapes (antes solo validaba objetos)
+- **FrameData**: `MaterialReferences` usa cache para evitar alocación de lista en cada acceso
+- **MRDisableMAPlugin**: Usa `DestroyImmediate` en vez de `enabled = false` porque Modular Avatar detecta componentes desactivados con `GetComponentsInChildren(true)`
+- **FramePreviewService**: `UpdateSavedStates()` bloquea durante preview activo para no capturar estados de preview como originales
+- **IlluminationAnimationGenerator**: `ValidateMaterials()` retorna `false` para listas donde todos los materiales son null
+- **FrameSegmentCalculator**: `ContainsTime()` usa end exclusivo (`<`) consistente con `ContainsFrame()`
+- **RadialAnimationBuilder**: Animaciones Linear ahora soportan `MeshRenderer` además de `SkinnedMeshRenderer` para materiales
+- **RadialAnimationBuilder**: Valores de blendshape usan presencia en región en vez de comparar con `!= 0f`, permitiendo valor 0 como estado deseado explícito
+
 ## [0.8.20] - 2026-01-31
 
 ### Mejorado
