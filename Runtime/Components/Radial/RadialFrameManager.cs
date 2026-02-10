@@ -454,41 +454,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         // Métodos públicos - Compatibilidad
         
         /// <summary>
-        /// Obtiene la lista de IFrameData para compatibilidad con interfaces
-        /// OPTIMIZADO [2025-07-04]: Sin listas temporales LINQ
-        /// </summary>
-        /// <returns>Lista de IFrameData de todos los frames válidos</returns>
-        public List<IFrameData> GetFrameDataList()
-        {
-            var frameDataList = ListPools.FrameObjects.Get();
-            try
-            {
-                if (_frames != null)
-                {
-                    frameDataList.Clear();
-                    foreach (var f in _frames)
-                        if (f != null) frameDataList.Add(f);
-                }
-                
-                // Convertir a IFrameData usando lista temporal
-                var result = new List<IFrameData>();
-                foreach (var frame in frameDataList)
-                {
-                    if (frame.Frames != null)
-                    {
-                        result.AddRange(frame.Frames);
-                    }
-                }
-                
-                return result;
-            }
-            finally
-            {
-                ListPools.FrameObjects.Return(frameDataList);
-            }
-        }
-        
-        /// <summary>
         /// Obtiene descripción del tipo de animación 
         /// </summary>
         /// <returns>Descripción legible del tipo de animación</returns>

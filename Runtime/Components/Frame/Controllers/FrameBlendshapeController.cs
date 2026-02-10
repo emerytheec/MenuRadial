@@ -7,10 +7,9 @@ namespace Bender_Dios.MenuRadial.Components.Frame
 {
     /// <summary>
     /// Controlador especializado para la gestión de blendshapes en frames.
-    /// Implementa IBlendshapeReferenceController para abstracción.
     /// REFACTORIZADO: Extraído de MRAgruparObjetos.cs para responsabilidad única.
     /// </summary>
-    public class FrameBlendshapeController : IBlendshapeReferenceController
+    public class FrameBlendshapeController
     {
         private readonly FrameData _frameData;
 
@@ -23,7 +22,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _frameData = frameData ?? throw new System.ArgumentNullException(nameof(frameData));
         }
 
-        #region IReferenceController Implementation
+        #region Reference Operations
 
         public int Count => _frameData.BlendshapeReferences?.Count ?? 0;
         public int ValidCount => _frameData.BlendshapeReferences?.Count(b => b != null && b.IsValid) ?? 0;

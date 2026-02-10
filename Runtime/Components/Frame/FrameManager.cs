@@ -13,7 +13,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
     public class FrameManager
     {
         private readonly FrameData _frameData;
-        private readonly IFramePreviewStrategy _previewStrategy;
+        private readonly FramePreviewStrategy _previewStrategy;
         
         /// <summary>
         /// Datos del frame gestionado
@@ -25,10 +25,10 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         /// </summary>
         /// <param name="frameData">Datos del frame a gestionar</param>
         /// <param name="previewStrategy">Estrategia de previsualización</param>
-        public FrameManager(FrameData frameData, IFramePreviewStrategy previewStrategy = null)
+        public FrameManager(FrameData frameData, FramePreviewStrategy previewStrategy = null)
         {
             _frameData = frameData ?? new FrameData("Managed Frame");
-            _previewStrategy = previewStrategy ?? new DefaultFramePreviewStrategy();
+            _previewStrategy = previewStrategy ?? new FramePreviewStrategy();
         }
         
         

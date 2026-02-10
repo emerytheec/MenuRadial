@@ -7,10 +7,9 @@ namespace Bender_Dios.MenuRadial.Components.Frame
 {
     /// <summary>
     /// Controlador especializado para la gestión de materiales en frames.
-    /// Implementa IMaterialReferenceController para abstracción.
     /// REFACTORIZADO: Extraído de MRAgruparObjetos.cs para responsabilidad única.
     /// </summary>
-    public class FrameMaterialController : IMaterialReferenceController
+    public class FrameMaterialController
     {
         private readonly FrameData _frameData;
 
@@ -23,7 +22,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _frameData = frameData ?? throw new System.ArgumentNullException(nameof(frameData));
         }
 
-        #region IReferenceController Implementation
+        #region Reference Operations
 
         public int Count => _frameData.MaterialReferencesData?.Count ?? 0;
         public int ValidCount => _frameData.MaterialReferencesData?.Count(m => m != null && m.IsValid) ?? 0;

@@ -9,8 +9,6 @@ using Bender_Dios.MenuRadial.Core.Preview;
 
 namespace Bender_Dios.MenuRadial.Components.Frame
 {
-    // EventArgs eliminados - usando eventos estáticos simples
-
     /// <summary>
     /// Componente MR Agrupar Objetos (antes MRFrameObject)
     /// Captura estados de GameObjects, materiales y blendshapes para animaciones
@@ -19,179 +17,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
     [AddComponentMenu("MR/MR Agrupar Objetos")]
     public class MRAgruparObjetos : MRComponentBase, IAnimationProvider, IPreviewable, System.IDisposable
     {
-        
-        private static IFrameControllerFactory _controllerFactory = new DefaultFrameControllerFactory();
-        
-        /// <summary>
-        /// Configura el factory para inyección de dependencias
-        /// </summary>
-        /// <param name="factory">Factory personalizado o null para usar el por defecto</param>
-        public static void SetControllerFactory(IFrameControllerFactory factory)
-        {
-            _controllerFactory = factory ?? new DefaultFrameControllerFactory();
-        }
-        
-        
-        
-        /// <summary>
-        /// Evento disparado cuando se agrega un GameObject a un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, GameObject> OnObjectAdded
-        {
-            add => FrameObjectEventSystem.OnObjectAdded += value;
-            remove => FrameObjectEventSystem.OnObjectAdded -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando se remueve un GameObject de un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, GameObject> OnObjectRemoved
-        {
-            add => FrameObjectEventSystem.OnObjectRemoved += value;
-            remove => FrameObjectEventSystem.OnObjectRemoved -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando se agrega un material a un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, Renderer, int> OnMaterialAdded
-        {
-            add => FrameObjectEventSystem.OnMaterialAdded += value;
-            remove => FrameObjectEventSystem.OnMaterialAdded -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando se remueve un material de un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, Renderer, int> OnMaterialRemoved
-        {
-            add => FrameObjectEventSystem.OnMaterialRemoved += value;
-            remove => FrameObjectEventSystem.OnMaterialRemoved -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando se agrega un blendshape a un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, SkinnedMeshRenderer, string> OnBlendshapeAdded
-        {
-            add => FrameObjectEventSystem.OnBlendshapeAdded += value;
-            remove => FrameObjectEventSystem.OnBlendshapeAdded -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando se remueve un blendshape de un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, SkinnedMeshRenderer, string> OnBlendshapeRemoved
-        {
-            add => FrameObjectEventSystem.OnBlendshapeRemoved += value;
-            remove => FrameObjectEventSystem.OnBlendshapeRemoved -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando cambia el estado interno de un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, string> OnStateChanged
-        {
-            add => FrameObjectEventSystem.OnStateChanged += value;
-            remove => FrameObjectEventSystem.OnStateChanged -= value;
-        }
-        
-        /// <summary>
-        /// Evento disparado cuando cambia el estado de preview de un frame
-        /// </summary>
-        public static event System.Action<MRAgruparObjetos, bool> OnPreviewStateChanged
-        {
-            add => FrameObjectEventSystem.OnPreviewStateChanged += value;
-            remove => FrameObjectEventSystem.OnPreviewStateChanged -= value;
-        }
-        
-        /// <summary>
-        /// Limpia todas las suscripciones de eventos estáticos para prevenir memory leaks
-        /// IMPORTANTE: Llamar antes de recargar assemblies o cambiar escenas
-        /// </summary>
-        public static void CleanupAllEventSubscriptions()
-        {
-            FrameObjectEventSystem.UnregisterEvents();
-        }
-        
-        /// <summary>
-        /// Verifica si hay suscriptores activos en los eventos estáticos
-        /// </summary>
-        /// <returns>True si hay al menos un suscriptor activo</returns>
-        public static bool HasActiveEventSubscriptions()
-        {
-            // Verificación delegada al sistema de eventos
-            return true; // Simplificado - el sistema de eventos maneja esto internamente
-        }
-        
-        // Los eventos estáticos se subscriben directamente
-        
-        /// <summary>
-        /// Disparar evento de objeto agregado
-        /// </summary>
-        private void RaiseObjectAdded(GameObject gameObject)
-        {
-            FrameObjectEventSystem.NotifyObjectAdded(this, gameObject);
-        }
-        
-        /// <summary>
-        /// Disparar evento de objeto eliminado
-        /// </summary>
-        private void RaiseObjectRemoved(GameObject gameObject)
-        {
-            FrameObjectEventSystem.NotifyObjectRemoved(this, gameObject);
-        }
-        
-        /// <summary>
-        /// Disparar evento de material agregado
-        /// </summary>
-        private void RaiseMaterialAdded(Renderer renderer, int materialIndex)
-        {
-            FrameObjectEventSystem.NotifyMaterialAdded(this, renderer, materialIndex);
-        }
-        
-        /// <summary>
-        /// Disparar evento de material eliminado
-        /// </summary>
-        private void RaiseMaterialRemoved(Renderer renderer, int materialIndex)
-        {
-            FrameObjectEventSystem.NotifyMaterialRemoved(this, renderer, materialIndex);
-        }
-        
-        /// <summary>
-        /// Disparar evento de blendshape agregado
-        /// </summary>
-        private void RaiseBlendshapeAdded(SkinnedMeshRenderer skinnedMeshRenderer, string blendshapeName)
-        {
-            FrameObjectEventSystem.NotifyBlendshapeAdded(this, skinnedMeshRenderer, blendshapeName);
-        }
-        
-        /// <summary>
-        /// Disparar evento de blendshape eliminado
-        /// </summary>
-        private void RaiseBlendshapeRemoved(SkinnedMeshRenderer skinnedMeshRenderer, string blendshapeName)
-        {
-            FrameObjectEventSystem.NotifyBlendshapeRemoved(this, skinnedMeshRenderer, blendshapeName);
-        }
-        
-        /// <summary>
-        /// Disparar evento de cambio de estado
-        /// </summary>
-        private void RaiseStateChanged(string stateChange = null)
-        {
-            InvalidateValidationCache(); // Invalidar cache cuando cambia el estado
-            FrameObjectEventSystem.NotifyStateChanged(this, stateChange ?? "StateChanged");
-        }
-        
-        /// <summary>
-        /// Disparar evento de cambio de preview
-        /// </summary>
-        private void RaisePreviewStateChanged(bool isPreviewActive)
-        {
-            FrameObjectEventSystem.NotifyPreviewStateChanged(this, isPreviewActive);
-        }
-        
-        
         [SerializeField] private FrameData _frameData = new FrameData("Agrupar Objetos");
         [SerializeField] private bool _autoUpdatePaths = true;
         [SerializeField] private bool _showObjectList = true;
@@ -286,8 +111,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             // Solo disparar eventos si se añadió correctamente
             if (success)
             {
-                RaiseObjectAdded(gameObject);
-                RaiseStateChanged();
+                InvalidateValidationCache();
             }
 
             return success;
@@ -300,9 +124,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             EnsureControllersInitialized();
             _objectController.RemoveObject(gameObject);
             
-            // Disparar evento (thread-safe)
-            RaiseObjectRemoved(gameObject);
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         // remover en próxima major
@@ -323,11 +145,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _objectController.ClearAllObjects();
             
             // Emitir eventos por cada objeto eliminado (thread-safe)
-            foreach (var gameObject in removedObjects)
-            {
-                RaiseObjectRemoved(gameObject);
-            }
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         public void SelectAllObjects()
@@ -366,7 +184,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _objectController.RemoveInvalidReferences();
             
             // Emitir evento de cambio de estado (thread-safe) - no podemos emitir OnObjectRemoved para objetos null
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         // remover en próxima major
@@ -403,8 +221,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             // Solo disparar eventos si se añadió correctamente
             if (success)
             {
-                RaiseMaterialAdded(renderer, materialIndex);
-                RaiseStateChanged();
+                InvalidateValidationCache();
             }
 
             return success;
@@ -417,9 +234,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             EnsureControllersInitialized();
             _materialController.RemoveMaterial(renderer, materialIndex);
             
-            // Disparar evento (thread-safe)
-            RaiseMaterialRemoved(renderer, materialIndex);
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         // remover en próxima major
@@ -441,11 +256,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _materialController.ClearAllMaterials();
             
             // Emitir eventos por cada material eliminado (thread-safe)
-            foreach (var material in removedMaterials)
-            {
-                RaiseMaterialRemoved(material.TargetRenderer, material.MaterialIndex);
-            }
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         public void RemoveInvalidMaterialReferences()
@@ -458,7 +269,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _materialController.RemoveInvalidMaterialReferences();
             
             // Emitir evento de cambio de estado (thread-safe) - no podemos emitir OnMaterialRemoved para renderers null
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         public void UpdateAllOriginalMaterials()
@@ -505,15 +316,14 @@ namespace Bender_Dios.MenuRadial.Components.Frame
 
             // Salvaguarda extra (por si EnsureControllersInitialized cambia en el futuro)
             if (_blendshapeController == null)
-                _blendshapeController = _controllerFactory.CreateBlendshapeController(_frameData ?? (_frameData = new FrameData("Agrupar Objetos")));
+                _blendshapeController = new FrameBlendshapeController(_frameData ?? (_frameData = new FrameData("Agrupar Objetos")));
 
             bool success = _blendshapeController.AddBlendshape(renderer, blendshapeName, value);
 
             // Solo disparar eventos si se añadió correctamente
             if (success)
             {
-                RaiseBlendshapeAdded(renderer, blendshapeName);
-                RaiseStateChanged();
+                InvalidateValidationCache();
             }
 
             return success;
@@ -526,9 +336,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             EnsureControllersInitialized();
             _blendshapeController.RemoveBlendshape(renderer, blendshapeName);
             
-            // Disparar evento (thread-safe)
-            RaiseBlendshapeRemoved(renderer, blendshapeName);
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         public void RemoveAllBlendshapeReferences(SkinnedMeshRenderer renderer)
@@ -544,11 +352,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _blendshapeController.RemoveAllBlendshapesFromRenderer(renderer);
             
             // Emitir eventos por cada blendshape eliminado (thread-safe)
-            foreach (var blendshapeName in blendshapesToRemove)
-            {
-                RaiseBlendshapeRemoved(renderer, blendshapeName);
-            }
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
 
         public void ClearBlendshapes()
@@ -562,11 +366,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _blendshapeController.ClearAllBlendshapes();
             
             // Emitir eventos por cada blendshape eliminado (thread-safe)
-            foreach (var blendshape in removedBlendshapes)
-            {
-                RaiseBlendshapeRemoved(blendshape.TargetRenderer, blendshape.BlendshapeName);
-            }
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         public void RemoveInvalidBlendshapeReferences()
@@ -579,7 +379,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _blendshapeController.RemoveInvalidBlendshapeReferences();
             
             // Emitir evento de cambio de estado (thread-safe) - no podemos emitir OnBlendshapeRemoved para renderers null
-            RaiseStateChanged();
+            InvalidateValidationCache();
         }
         
         public void UpdateAllBlendshapeRendererPaths()
@@ -678,9 +478,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _previewController.PreviewFrame();
             _isPreviewActive = _previewController.IsPreviewActive;
 
-            // Disparar evento (thread-safe)
-            RaisePreviewStateChanged(_isPreviewActive);
-            RaiseStateChanged();
+            InvalidateValidationCache();
             
             #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -728,9 +526,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _previewController.CancelPreview();
             _isPreviewActive = _previewController.IsPreviewActive;
             
-            // Disparar evento (thread-safe)
-            RaisePreviewStateChanged(_isPreviewActive);
-            RaiseStateChanged();
+            InvalidateValidationCache();
             
             #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
@@ -874,10 +670,10 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         {
             if (_controllersInitialized) return;
             
-            _objectController = _controllerFactory.CreateObjectController(_frameData);
-            _materialController = _controllerFactory.CreateMaterialController(_frameData);
-            _blendshapeController = _controllerFactory.CreateBlendshapeController(_frameData);
-            _previewController = _controllerFactory.CreatePreviewController(_objectController, _materialController, _blendshapeController);
+            _objectController = new FrameObjectController(_frameData);
+            _materialController = new FrameMaterialController(_frameData);
+            _blendshapeController = new FrameBlendshapeController(_frameData);
+            _previewController = new FramePreviewController(_objectController, _materialController, _blendshapeController);
             
             _previewController.SyncWithSerializedStates(_isPreviewActive, _originalStates, _originalMaterialStates, _originalBlendshapeStates);
             _controllersInitialized = true;

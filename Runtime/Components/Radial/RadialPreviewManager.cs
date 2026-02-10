@@ -278,24 +278,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             
         }
         
-        /// <summary>
-        /// Fuerza la limpieza a un estado seguro en caso de error
-        /// </summary>
-        private void ForceCleanupToSafeState()
-        {
-            _isPreviewActive = false;
-            
-            // Restaurar a estado seguro por defecto
-            if (_frameManager?.HasValidFrames() == true)
-            {
-                _frameManager.SelectFrameByIndex(0);
-                _frameManager.ApplyCurrentFrame();
-            }
-            
-            // Disparar evento de desactivación
-            OnPreviewStateChanged?.Invoke(false);
-        }
-        
         // Métodos públicos - Limpieza
         
         /// <summary>
@@ -317,55 +299,5 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             }
         }
         
-        // Soporte de integración con Unity
-        
-        /// <summary>
-        /// Verifica si el preview puede ser activado (para validación en UI)
-        /// </summary>
-        /// <returns>True si puede activarse, False si no</returns>
-        public bool CanActivatePreview()
-        {
-            if (_isPreviewActive)
-                return false;
-                
-            if (!_frameManager.HasValidFrames())
-                return false;
-                
-            if (_frameManager.AnimationType == AnimationType.None)
-                return false;
-                
-            return true;
-        }
-        
-        /// <summary>
-        /// Obtiene el valor normalizado actual para sliders (solo para Linear)
-        /// </summary>
-        /// <returns>Valor entre 0 y 1, o -1 si no aplicable</returns>
-        public float GetCurrentNormalizedValue()
-        {
-            if (!_isPreviewActive || _frameManager.AnimationType != AnimationType.Linear)
-                return -1f;
-                
-            if (_frameManager.FrameCount <= 1)
-                return 0f;
-                
-            return (float)_frameManager.ActiveFrameIndex / (_frameManager.FrameCount - 1);
-        }
-        
-        /// <summary>
-        /// Obtiene el estado booleano actual para toggles (ON/OFF, A/B)
-        /// </summary>
-        /// <returns>True/False según el estado, null si no aplicable</returns>
-        public bool? GetCurrentToggleState()
-        {
-            if (!_isPreviewActive)
-                return null;
-                
-            var animType = _frameManager.AnimationType;
-            if (animType != AnimationType.OnOff && animType != AnimationType.AB)
-                return null;
-                
-            return _frameManager.ActiveFrameIndex == 1;
-        }
     }
 }

@@ -5,33 +5,9 @@ using Bender_Dios.MenuRadial.Core.Common;
 namespace Bender_Dios.MenuRadial.Components.Frame
 {
     /// <summary>
-    /// Interfaz para estrategias de previsualización de frames
-    /// FASE 3: Strategy Pattern para diferentes tipos de preview
+    /// Previsualización de frames: guarda estados, aplica frame, restaura al cancelar.
     /// </summary>
-    public interface IFramePreviewStrategy
-    {
-        /// <summary>
-        /// Indica si hay una previsualización activa
-        /// </summary>
-        bool IsPreviewActive { get; }
-        
-        /// <summary>
-        /// Previsualiza un frame aplicando su estado
-        /// </summary>
-        /// <param name="frameData">Datos del frame a previsualizar</param>
-        void PreviewFrame(FrameData frameData);
-        
-        /// <summary>
-        /// Cancela la previsualización restaurando el estado original
-        /// </summary>
-        void CancelPreview();
-    }
-    
-    /// <summary>
-    /// Estrategia por defecto para previsualización de frames
-    /// NUEVO: Extrae lógica compleja del MRAgruparObjetos original
-    /// </summary>
-    public class DefaultFramePreviewStrategy : IFramePreviewStrategy
+    public class FramePreviewStrategy
     {
         private bool _isPreviewActive = false;
         private List<ObjectReference> _originalObjectStates = new List<ObjectReference>();

@@ -7,10 +7,9 @@ namespace Bender_Dios.MenuRadial.Components.Frame
 {
     /// <summary>
     /// Controlador especializado para la gestión de GameObjects en frames.
-    /// Implementa IObjectReferenceController para abstracción.
     /// REFACTORIZADO: Extraído de MRAgruparObjetos.cs para responsabilidad única.
     /// </summary>
-    public class FrameObjectController : IObjectReferenceController
+    public class FrameObjectController
     {
         private readonly FrameData _frameData;
 
@@ -23,7 +22,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _frameData = frameData ?? throw new System.ArgumentNullException(nameof(frameData));
         }
 
-        #region IReferenceController Implementation
+        #region Reference Operations
 
         public int Count => _frameData.ObjectReferences?.Count ?? 0;
         public int ValidCount => _frameData.ObjectReferences?.Count(o => o != null && o.IsValid) ?? 0;

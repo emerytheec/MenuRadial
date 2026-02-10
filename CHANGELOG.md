@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.25] - 2026-02-10
+
+### Eliminado
+- **Código muerto**: 17 archivos eliminados (~4286 líneas) — AsyncUnityOperationsRuntime, MRFallbackManager, EventSubscriptionManager, ReferenceValidator, RadialImmutableCache, RadialObjectPools, RadialAnimationSettings, VRChatSettings, ReferenceListOperations, ReferenceListValidator, ValidationCacheHelper, FrameObjectEventSystem, IFrameControllerFactory, DefaultFrameControllerFactory, IReferenceController (4 interfaces), RadialUnityIntegration
+- **Patrón Observer vacío**: Eliminado FrameObjectEventSystem (8 eventos estáticos sin suscriptores) y 8 métodos Raise* de MRAgruparObjetos
+- **Patrón Factory innecesario**: Eliminado IFrameControllerFactory + DefaultFrameControllerFactory — reemplazado con `new` directo en MRAgruparObjetos
+- **Interfaces sin polimorfismo**: Eliminado IReferenceController.cs con 4 interfaces (IObjectReferenceController, IMaterialReferenceController, IBlendshapeReferenceController, IReferenceController) — ninguna se usaba polimórficamente
+- **RadialUnityIntegration**: Eliminado completamente (402 líneas) — sus 7 métodos públicos no tenían callers
+- **RadialMenuState**: Simplificado de 182 a 84 líneas — eliminada integración con RadialUnityIntegration y método Initialize
+- **RadialPreviewManager**: Eliminados 4 métodos muertos (ForceCleanupToSafeState, CanActivatePreview, GetCurrentNormalizedValue, GetCurrentToggleState)
+- **RadialFrameManager**: Eliminado método muerto GetFrameDataList
+- **IFramePreviewStrategy**: Eliminada interfaz con un solo implementador — renombrado DefaultFramePreviewStrategy a FramePreviewStrategy
+
 ## [0.8.24] - 2026-02-10
 
 ### Eliminado
