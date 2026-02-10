@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.24] - 2026-02-10
+
+### Eliminado
+- **Código muerto**: 11 archivos eliminados (~1400 líneas) — RadialLifecycleManager, RadialUnityValidationManager, RadialPropertyValidator, RadialPathProcessor, RadialPropertyNotifier, IFrameComponent, IIlluminationComponent, PreviewStrategyBase, FrameOperationHelper, IFrameEventNotifier, directorio Internal/
+- **RadialPropertyManager**: Simplificado de 393 a 104 líneas — inlineados 3 delegados (Validator, PathProcessor, Notifier), eliminados 7 métodos muertos (DoesPathExist, GetPathStatistics, GetPropertiesSummary, GenerateUniqueName, SuggestPathFromHierarchy, SetProperties, ConnectServiceCoordinator)
+- **ObjectPool**: Simplificado de 241 a 69 líneas — eliminados 8 pools sin uso, PoolExtensions y PooledObject
+- **RadialMenuState**: Eliminado campo `_propertyNotifier` (nunca accedido externamente) y llamada no-op `ConnectServiceCoordinator(null)`
+- **Interfaces muertas**: Removido `IFrameComponent` de MRAgruparObjetos, `IIlluminationComponent` de MRIluminacionRadial
+- **RadialPreviewManager**: Removido campo `_previewStrategy` sin uso
+
 ## [0.8.23] - 2026-02-10
 
 ### Eliminado

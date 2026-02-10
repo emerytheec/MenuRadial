@@ -17,7 +17,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
     /// </summary>
     [System.Serializable]
     [AddComponentMenu("MR/MR Agrupar Objetos")]
-    public class MRAgruparObjetos : MRComponentBase, IFrameComponent, IAnimationProvider, IPreviewable, System.IDisposable
+    public class MRAgruparObjetos : MRComponentBase, IAnimationProvider, IPreviewable, System.IDisposable
     {
         
         private static IFrameControllerFactory _controllerFactory = new DefaultFrameControllerFactory();

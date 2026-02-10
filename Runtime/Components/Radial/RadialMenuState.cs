@@ -18,7 +18,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         // Gestores especializados
         private RadialFrameManager _frameManager;
         private RadialPropertyManager _propertyManager;
-        private RadialPropertyNotifier _propertyNotifier;
         private RadialPreviewManager _previewManager;
         private RadialUnityIntegration _unityIntegration;
         
@@ -57,11 +56,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// Gestor de propiedades
         /// </summary>
         public RadialPropertyManager PropertyManager => _propertyManager;
-        
-        /// <summary>
-        /// Notificador de propiedades
-        /// </summary>
-        public RadialPropertyNotifier PropertyNotifier => _propertyNotifier;
         
         /// <summary>
         /// Gestor de preview
@@ -140,7 +134,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             _propertyManager?.Cleanup();
             _frameManager = null;
             _propertyManager = null;
-            _propertyNotifier = null;
             _previewManager = null;
             _unityIntegration = null;
             
@@ -162,7 +155,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             // FASE 1: Gestores independientes
             _frameManager = new RadialFrameManager(frames, activeFrameIndex);
             _propertyManager = new RadialPropertyManager(_componentName, animationName, animationPath, autoUpdatePaths);
-            _propertyNotifier = new RadialPropertyNotifier(_componentName, null);
             
             // FASE 2: Gestores con dependencias
             if (_frameManager != null)
@@ -181,9 +173,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                     _ownerComponent
                 );
             }
-            
-            // FASE 4: Conectar referencias cruzadas
-            _propertyManager?.ConnectServiceCoordinator(null);
             
             _isInitialized = true;
         }

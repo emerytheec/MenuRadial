@@ -4,6 +4,7 @@ using UnityEngine;
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Core.Preview;
 
+
 namespace Bender_Dios.MenuRadial.Components.Radial
 {
     /// <summary>
@@ -26,8 +27,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         // Preview state
         private bool _isPreviewActive = false;
         private int _originalFrameIndex = 0;
-        private PreviewStrategyBase _previewStrategy;
-        
         // Eventos
         /// <summary>
         /// Evento disparado cuando cambia el estado de preview

@@ -15,7 +15,7 @@ namespace Bender_Dios.MenuRadial.Components.Illumination
     /// </summary>
     [System.Serializable]
     [AddComponentMenu("MR/MR Iluminación Radial")]
-    public class MRIluminacionRadial : MRComponentBase, IIlluminationComponent, IAnimationProvider, IPreviewable
+    public class MRIluminacionRadial : MRComponentBase, IAnimationProvider, IPreviewable
     {
         [FormerlySerializedAs("rootObject")]
         [SerializeField] private GameObject _rootObject;
