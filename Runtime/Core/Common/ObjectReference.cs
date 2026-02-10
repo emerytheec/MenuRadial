@@ -94,7 +94,32 @@ namespace Bender_Dios.MenuRadial.Core.Common
         }
         
         /// <summary>
-        /// Representación como string 
+        /// Compara dos ObjectReference considerando target Y estado IsActive
+        /// </summary>
+        public override bool Equals(object obj)
+        {
+            if (obj is ObjectReference other)
+            {
+                return _target == other._target && _isActive == other._isActive;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Hash code basado en target y estado IsActive
+        /// </summary>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = _target != null ? _target.GetHashCode() : 0;
+                hash = (hash * 397) ^ _isActive.GetHashCode();
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// Representación como string
         /// </summary>
         /// <returns>String descriptivo del objeto</returns>
         public override string ToString()

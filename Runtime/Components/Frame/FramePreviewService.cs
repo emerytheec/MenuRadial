@@ -250,9 +250,14 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         {
             if (_isPreviewActive)
             {
-                // Actualizar estados guardados sin cambiar el estado de preview
-                SaveOriginalStates();
+                // NO re-capturar durante preview activo: los estados actuales son los del preview,
+                // no los originales. Re-capturar aquí haría imposible restaurar al estado original.
+                Debug.LogWarning("[FramePreviewService] UpdateSavedStates ignorado: preview activo. " +
+                    "Los estados actuales son del preview, no los originales.");
+                return;
             }
+            // Solo capturar cuando NO hay preview activo (estados son los originales reales)
+            SaveOriginalStates();
         }
         
         /// <summary>

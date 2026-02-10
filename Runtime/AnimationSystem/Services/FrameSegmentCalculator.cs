@@ -185,7 +185,9 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
         /// <returns>True si el tiempo está en el segmento</returns>
         public bool ContainsTime(float time)
         {
-            return time >= StartTime && time <= EndTime;
+            // Usar end exclusivo para ser consistente con ContainsFrame
+            // Evita que un tiempo en la frontera pertenezca a dos segmentos
+            return time >= StartTime && time < EndTime;
         }
 
         /// <summary>

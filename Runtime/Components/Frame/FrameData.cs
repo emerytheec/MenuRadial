@@ -19,6 +19,10 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         [SerializeField] private ReferenceListManager<ObjectReference, GameObject> _objectManager = new ReferenceListManager<ObjectReference, GameObject>();
         [SerializeField] private ReferenceListManager<MaterialReference, Renderer> _materialManager = new ReferenceListManager<MaterialReference, Renderer>();
         [SerializeField] private ReferenceListManager<BlendshapeReference, SkinnedMeshRenderer> _blendshapeManager = new ReferenceListManager<BlendshapeReference, SkinnedMeshRenderer>();
+
+        // Cache para evitar alocación en cada acceso a MaterialReferences (interfaz IMaterialReference)
+        [NonSerialized] private List<IMaterialReference> _materialReferencesCache;
+        [NonSerialized] private int _materialReferencesCacheCount = -1;
         
         /// <summary>
         /// Nombre identificativo del frame
@@ -37,7 +41,20 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         /// <summary>
         /// Lista de referencias de materiales en este frame (conversión para compatibilidad)
         /// </summary>
-        public List<IMaterialReference> MaterialReferences => _materialManager.References.Cast<IMaterialReference>().ToList();
+        public List<IMaterialReference> MaterialReferences
+        {
+            get
+            {
+                var refs = _materialManager.References;
+                int currentCount = refs.Count;
+                if (_materialReferencesCache == null || _materialReferencesCacheCount != currentCount)
+                {
+                    _materialReferencesCache = refs.Cast<IMaterialReference>().ToList();
+                    _materialReferencesCacheCount = currentCount;
+                }
+                return _materialReferencesCache;
+            }
+        }
         
         /// <summary>
         /// Lista directa de referencias de materiales (para serialización)
@@ -155,7 +172,9 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         /// </summary>
         public bool ValidateReferences()
         {
-            return _objectManager.References.All(r => r.IsValid);
+            return _objectManager.References.All(r => r.IsValid)
+                && _materialManager.References.All(r => r.IsValid)
+                && _blendshapeManager.References.All(r => r.IsValid);
         }
         
         

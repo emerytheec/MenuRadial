@@ -450,26 +450,29 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
                     foreach (var matRef in activeFrame.MaterialReferences)
                     {
                         if (matRef?.TargetRenderer == null) continue;
-                        
-                        var skinnedRenderer = matRef.TargetRenderer as SkinnedMeshRenderer;
-                        if (skinnedRenderer == null) continue;
-                        
-                        if (matRef.MaterialIndex < 0 || matRef.MaterialIndex >= skinnedRenderer.sharedMaterials.Length)
+
+                        // Soportar tanto SkinnedMeshRenderer como MeshRenderer
+                        var rendererInfo = GetRendererAndType(matRef.TargetRenderer.gameObject);
+                        if (!rendererInfo.HasValue) continue;
+
+                        var (targetRenderer, rendererType) = rendererInfo.Value;
+
+                        if (matRef.MaterialIndex < 0 || matRef.MaterialIndex >= targetRenderer.sharedMaterials.Length)
                             continue;
-                        
-                        string relativePath = GetRelativePath(animationData.AvatarRoot, skinnedRenderer.transform);
+
+                        string relativePath = GetRelativePath(animationData.AvatarRoot, targetRenderer.transform);
                         if (string.IsNullOrEmpty(relativePath)) continue;
-                        
-                        string bindingKey = $"{relativePath}|{matRef.MaterialIndex}";
-                        
+
+                        string bindingKey = $"{relativePath}|{matRef.MaterialIndex}|{rendererType.Name}";
+
                         Material activeMat = matRef.HasAlternativeMaterial ? matRef.AlternativeMaterial : matRef.OriginalMaterial;
                         Material baseMat = matRef.OriginalMaterial;
-                        
+
                         if (activeMat == null || baseMat == null) continue;
-                        
+
                         if (!materialBindings.ContainsKey(bindingKey))
                             materialBindings[bindingKey] = new List<(int frameIndex, float tStart, Material activeMat, Material baseMat)>();
-                            
+
                         materialBindings[bindingKey].Add((regionIndex, tStart, activeMat, baseMat));
                     }
                 }
@@ -566,44 +569,50 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
             {
                 var bindingKey = kvp.Key;
                 var regions = kvp.Value;
-                
+
                 var bindingParts = bindingKey.Split('|');
                 string path = bindingParts[0];
                 int materialIndex = int.Parse(bindingParts[1]);
-                
+                string rendererTypeName = bindingParts.Length > 2 ? bindingParts[2] : "SkinnedMeshRenderer";
+
+                // Determinar tipo de renderer correcto
+                System.Type rendererType = rendererTypeName == "MeshRenderer"
+                    ? typeof(MeshRenderer)
+                    : typeof(SkinnedMeshRenderer);
+
                 var keyframes = new List<ObjectReferenceKeyframe>();
-                
+
                 // Añadir keyframes para cada región
                 for (int regionIndex = 0; regionIndex < timeRegions.Count; regionIndex++)
                 {
                     float tStart = ToSec(timeRegions[regionIndex].StartStep);
-                    
+
                     var activeRegion = regions.FirstOrDefault(r => r.frameIndex == regionIndex);
-                    Material materialToUse = activeRegion.activeMat != null ? activeRegion.activeMat : 
+                    Material materialToUse = activeRegion.activeMat != null ? activeRegion.activeMat :
                                            regions.FirstOrDefault().baseMat;
-                    
+
                     keyframes.Add(new ObjectReferenceKeyframe
                     {
                         time = tStart,
                         value = materialToUse
                     });
                 }
-                
+
                 // Keyframe final en tEnd con material de la última región
                 var lastRegion = regions.FirstOrDefault(r => r.frameIndex == timeRegions.Count - 1);
-                Material finalMaterial = lastRegion.activeMat != null ? lastRegion.activeMat : 
+                Material finalMaterial = lastRegion.activeMat != null ? lastRegion.activeMat :
                                        regions.FirstOrDefault().baseMat;
-                
+
                 keyframes.Add(new ObjectReferenceKeyframe
                 {
                     time = tEnd,
                     value = finalMaterial
                 });
-                
+
                 AnimationUtility.SetObjectReferenceCurve(animation, new EditorCurveBinding
                 {
                     path = path,
-                    type = typeof(SkinnedMeshRenderer),
+                    type = rendererType,
                     propertyName = $"m_Materials.Array.data[{materialIndex}]"
                 }, keyframes.ToArray());
             }
@@ -624,22 +633,40 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
                 for (int regionIndex = 0; regionIndex < timeRegions.Count; regionIndex++)
                 {
                     float tStart = ToSec(timeRegions[regionIndex].StartStep);
-                    
-                    var activeRegion = regions.FirstOrDefault(r => r.frameIndex == regionIndex);
-                    float value = activeRegion.activeValue != 0f ? activeRegion.activeValue : activeRegion.baseValue;
-                    
+
+                    // Usar presencia en la región para determinar valor, no comparar con 0
+                    // Un blendshape puede tener valor 0 como estado deseado explícito
+                    float value;
+                    if (regions.Any(r => r.frameIndex == regionIndex))
+                    {
+                        var activeRegion = regions.First(r => r.frameIndex == regionIndex);
+                        value = activeRegion.activeValue;
+                    }
+                    else
+                    {
+                        value = 0f;
+                    }
+
                     var keyframe = new Keyframe(tStart, value);
                     keyframe.inTangent = 0f;
                     keyframe.outTangent = 0f;
                     var idx = curve.AddKey(keyframe);
-                    
+
                     AnimationUtility.SetKeyLeftTangentMode(curve, idx, AnimationUtility.TangentMode.Constant);
                     AnimationUtility.SetKeyRightTangentMode(curve, idx, AnimationUtility.TangentMode.Constant);
                 }
-                
+
                 // Keyframe final en tEnd con valor de la última región
-                var lastRegion = regions.FirstOrDefault(r => r.frameIndex == timeRegions.Count - 1);
-                float finalValue = lastRegion.activeValue != 0f ? lastRegion.activeValue : lastRegion.baseValue;
+                float finalValue;
+                if (regions.Any(r => r.frameIndex == timeRegions.Count - 1))
+                {
+                    var lastRegion = regions.First(r => r.frameIndex == timeRegions.Count - 1);
+                    finalValue = lastRegion.activeValue;
+                }
+                else
+                {
+                    finalValue = 0f;
+                }
                 
                 var finalKeyframe = new Keyframe(tEnd, finalValue);
                 finalKeyframe.inTangent = 0f;

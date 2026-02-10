@@ -68,7 +68,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 return; // No hacer nada si no está configurado
             }
 
-            Debug.Log("[MR DisableMA] Desactivando componentes de Modular Avatar...");
+            Debug.Log("[MR DisableMA] Destruyendo componentes de Modular Avatar del clon...");
 
             int disabledCount = 0;
 
@@ -83,20 +83,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 var typeName = behaviour.GetType().FullName;
                 if (typeName != null && IsModularAvatarComponent(typeName))
                 {
-                    // Desactivar el componente
-                    behaviour.enabled = false;
+                    // Destruir el componente del clon - desactivar no es suficiente
+                    // porque MA usa GetComponentsInChildren(true) que encuentra componentes desactivados
+                    Debug.Log($"[MR DisableMA] Destruyendo: {behaviour.GetType().Name} en '{behaviour.gameObject.name}'");
+                    UnityEngine.Object.DestroyImmediate(behaviour);
                     disabledCount++;
-                    Debug.Log($"[MR DisableMA] Desactivado: {behaviour.GetType().Name} en '{behaviour.gameObject.name}'");
                 }
             }
 
             if (disabledCount > 0)
             {
-                Debug.Log($"[MR DisableMA] Total: {disabledCount} componentes de Modular Avatar desactivados");
+                Debug.Log($"[MR DisableMA] Total: {disabledCount} componentes de Modular Avatar destruidos del clon");
             }
             else
             {
-                Debug.Log("[MR DisableMA] No se encontraron componentes de Modular Avatar para desactivar");
+                Debug.Log("[MR DisableMA] No se encontraron componentes de Modular Avatar para destruir");
             }
         }
 

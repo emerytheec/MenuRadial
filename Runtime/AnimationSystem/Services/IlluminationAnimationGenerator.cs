@@ -115,20 +115,23 @@ namespace Bender_Dios.MenuRadial.AnimationSystem.Services
         public bool ValidateMaterials(List<Material> materials)
         {
             if (materials == null || materials.Count == 0) return false;
-            
+
             var factory = ShaderStrategyFactory.Instance;
-            
+            bool hasValidMaterial = false;
+
             foreach (var material in materials)
             {
                 if (material == null) continue;
-                
+
                 if (!factory.IsCompatible(material))
                 {
                     return false;
                 }
+                hasValidMaterial = true;
             }
-            
-            return true;
+
+            // Retornar false si todos los materiales eran null
+            return hasValidMaterial;
         }
         
         /// <summary>
