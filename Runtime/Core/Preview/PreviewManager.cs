@@ -123,7 +123,7 @@ namespace Bender_Dios.MenuRadial.Core.Preview
                 if (_lastCleanupFrame != Time.frameCount)
                 {
                     CleanupDestroyedComponents();
-                    _cachedAliveCount = _registeredComponents.CountWhere(wr => wr.IsAlive);
+                    _cachedAliveCount = _registeredComponents.Count(wr => wr.IsAlive);
                     _lastCleanupFrame = Time.frameCount;
                 }
                 return _cachedAliveCount;
@@ -237,7 +237,7 @@ namespace Bender_Dios.MenuRadial.Core.Preview
             CleanupDestroyedComponents();
             
             // Verificar si ya está registrado - OPTIMIZADO: sin LINQ
-            if (_registeredComponents.AnyWhere(wr => wr.IsAlive && wr.Target == preview))
+            if (_registeredComponents.Any(wr => wr.IsAlive && wr.Target == preview))
             {
                 // Invalidar cache
                 _lastCleanupFrame = -1;

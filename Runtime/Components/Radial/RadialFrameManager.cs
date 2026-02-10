@@ -54,7 +54,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 var currentHash = GetFrameListHash();
                 if (_lastFrameListHash != currentHash)
                 {
-                    _cachedValidFrameCount = _frames?.CountNonNull() ?? 0;
+                    _cachedValidFrameCount = _frames?.Count(f => f != null) ?? 0;
                     _lastFrameListHash = currentHash;
                 }
                 return _cachedValidFrameCount;
@@ -465,7 +465,9 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             {
                 if (_frames != null)
                 {
-                    _frames.FilterNonNullTo(frameDataList);
+                    frameDataList.Clear();
+                    foreach (var f in _frames)
+                        if (f != null) frameDataList.Add(f);
                 }
                 
                 // Convertir a IFrameData usando lista temporal
