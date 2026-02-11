@@ -128,58 +128,5 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             return Vector2.Distance(point1, point2);
         }
         
-        /// <summary>
-        /// Calcula el ángulo del mouse relativo al centro del menú
-        /// </summary>
-        /// <param name="mousePosition">Posición del mouse</param>
-        /// <param name="center">Centro del menú</param>
-        /// <returns>Ángulo en grados (ajustado para que 0° esté arriba)</returns>
-        public static float CalculateMouseAngle(Vector2 mousePosition, Vector2 center)
-        {
-            Vector2 direction = mousePosition - center;
-            float mouseAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            
-            // Ajustar para que 0% esté arriba (12 en punto) y crezca en sentido horario
-            mouseAngle += 90f;
-            if (mouseAngle < 0) mouseAngle += 360f;
-            if (mouseAngle >= 360f) mouseAngle -= 360f;
-            
-            return mouseAngle;
-        }
-        
-        /// <summary>
-        /// Calcula puntos para dibujar un arco/sector
-        /// </summary>
-        /// <param name="center">Centro del arco</param>
-        /// <param name="radius">Radio del arco</param>
-        /// <param name="startAngle">Ángulo inicial en grados</param>
-        /// <param name="endAngle">Ángulo final en grados</param>
-        /// <param name="segments">Número de segmentos para suavidad</param>
-        /// <returns>Array de puntos que forman el arco</returns>
-        public static Vector3[] CalculateArcPoints(Vector2 center, float radius, float startAngle, float endAngle, int segments)
-        {
-            if (segments < 2) segments = 2;
-            
-            Vector3[] points = new Vector3[segments + 2];
-            
-            // Primer punto: centro
-            points[0] = center;
-            
-            // Segundo punto: inicio del arco
-            float startRadians = startAngle * Mathf.Deg2Rad;
-            points[1] = center + new Vector2(Mathf.Cos(startRadians), Mathf.Sin(startRadians)) * radius;
-            
-            // Puntos del arco
-            float angleRange = endAngle - startAngle;
-            for (int i = 0; i < segments; i++)
-            {
-                float t = (float)i / (segments - 1);
-                float currentAngle = startAngle + (t * angleRange);
-                float currentRadians = currentAngle * Mathf.Deg2Rad;
-                points[i + 2] = center + new Vector2(Mathf.Cos(currentRadians), Mathf.Sin(currentRadians)) * radius;
-            }
-            
-            return points;
-        }
     }
 }

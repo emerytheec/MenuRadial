@@ -1,11 +1,9 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
-using VRC.SDKBase;
 using Bender_Dios.MenuRadial.Components.UnifyMaterial;
 using Bender_Dios.MenuRadial.Components.AlternativeMaterial;
 using Bender_Dios.MenuRadial.Core.Common;
@@ -70,26 +68,9 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
             return clip;
         }
 
-        /// <summary>
-        /// Busca el objeto raiz del avatar con VRC_AvatarDescriptor
-        /// </summary>
         private static Transform FindAvatarRoot(Transform startTransform)
-        {
-            Transform current = startTransform;
+            => RadialAnimationBuilder.FindAvatarRoot(startTransform);
 
-            while (current != null)
-            {
-                if (current.GetComponent<VRC_AvatarDescriptor>() != null)
-                    return current;
-                current = current.parent;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Crea un AnimationClip configurado correctamente
-        /// </summary>
         private static AnimationClip CreateAnimationClip(string name)
         {
             return new AnimationClip
@@ -167,35 +148,11 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
             AnimationUtility.SetObjectReferenceCurve(clip, binding, keyframes.ToArray());
         }
 
-        /// <summary>
-        /// Guarda la animacion en disco
-        /// </summary>
         private static void SaveAnimation(AnimationClip clip, string savePath)
         {
-            if (clip == null) return;
-
-            if (string.IsNullOrEmpty(savePath))
-                savePath = MRConstants.ANIMATION_OUTPUT_PATH;
-
-            // Asegurar que el directorio existe
-            if (!Directory.Exists(savePath))
-                Directory.CreateDirectory(savePath);
-
-            string fileName = $"{clip.name}{MRFileExtensions.ANIMATION}";
-            string fullPath = Path.Combine(savePath, fileName).Replace('\\', '/');
-
-            // Sobrescribir si existe
-            var existingClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(fullPath);
-            if (existingClip != null)
-            {
-                AssetDatabase.DeleteAsset(fullPath);
-            }
-
-            AssetDatabase.CreateAsset(clip, fullPath);
+            RadialAnimationBuilder.SaveAnimationClip(clip, savePath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-
-            Debug.Log($"[MR Unify Material] Animacion guardada: {fullPath}");
         }
 
         /// <summary>

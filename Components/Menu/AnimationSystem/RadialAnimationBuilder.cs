@@ -203,18 +203,17 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
         /// <summary>
         /// Encuentra el objeto raíz del avatar buscando VRC_AvatarDescriptor
         /// </summary>
-        private static Transform FindAvatarRoot(Transform startTransform)
+        internal static Transform FindAvatarRoot(Transform startTransform)
         {
             Transform current = startTransform;
-            
-            // Buscar hacia arriba en la jerarquía
+
             while (current != null)
             {
                 if (current.GetComponent<VRC_AvatarDescriptor>() != null)
                     return current;
                 current = current.parent;
             }
-            
+
             return null;
         }
         
@@ -901,37 +900,41 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
         /// <summary>
         /// Guarda los archivos .anim de forma clara y sin colisiones
         /// </summary>
+        /// <summary>
+        /// Guarda un AnimationClip en disco, sobrescribiendo si ya existe
+        /// </summary>
+        internal static void SaveAnimationClip(AnimationClip clip, string savePath)
+        {
+            if (clip == null) return;
+
+            if (string.IsNullOrEmpty(savePath))
+                savePath = Core.Common.MRConstants.ANIMATION_OUTPUT_PATH;
+
+            Directory.CreateDirectory(savePath);
+
+            string fileName = $"{clip.name}.anim";
+            string fullPath = Path.Combine(savePath, fileName).Replace('\\', '/');
+
+            var existingClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(fullPath);
+            if (existingClip != null)
+                AssetDatabase.DeleteAsset(fullPath);
+
+            AssetDatabase.CreateAsset(clip, fullPath);
+        }
+
         private static void SaveAnimations(List<AnimationClip> animations, AnimationData animationData)
         {
             if (animations == null || animations.Count == 0) return;
-            
+
             string savePath = animationData.AnimationPath;
             if (string.IsNullOrEmpty(savePath))
                 savePath = Core.Common.MRConstants.ANIMATION_OUTPUT_PATH;
-            
-            // Asegurar que el directorio existe
-            Directory.CreateDirectory(savePath);
-            
+
             foreach (var animation in animations)
             {
-                if (animation == null) continue;
-                
-                string fileName = $"{animation.name}.anim";
-                string fullPath = Path.Combine(savePath, fileName);
-                
-                // Normalizar la ruta para Unity
-                fullPath = fullPath.Replace('\\', '/');
-
-                // CORREGIDO: Sobrescribir archivo existente en lugar de crear uno nuevo
-                var existingClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(fullPath);
-                if (existingClip != null)
-                {
-                    AssetDatabase.DeleteAsset(fullPath);
-                }
-
-                AssetDatabase.CreateAsset(animation, fullPath);
+                SaveAnimationClip(animation, savePath);
             }
-            
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }

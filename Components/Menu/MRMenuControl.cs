@@ -351,13 +351,6 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         
 
         
-        /// <summary>
-        /// Recalcula rutas de componentes
-        /// </summary>
-        public void RecalculatePaths()
-        {
-            // Implementación delegada a gestores si es necesario
-        }
 
         /// <summary>
         /// Resetea todos los previews de los slots a sus estados originales

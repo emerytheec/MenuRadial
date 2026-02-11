@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.29] - 2026-02-11
+
+### Eliminado
+- **ListEditorBase.cs**: Eliminada clase abstracta genérica sin subclases (~322 líneas)
+- **RadialMenuValidator.cs**: Eliminada clase nunca instanciada (~405 líneas)
+- **RadialGeometryCalculator**: Eliminados métodos muertos `CalculateArcPoints` y `CalculateMouseAngle` (0 callers)
+- **MRMenuControl**: Eliminado método vacío `RecalculatePaths()` (0 callers)
+
+### Mejorado
+- **AnimationBuilders**: Consolidado `FindAvatarRoot()` duplicado — ahora compartido como `internal` en RadialAnimationBuilder
+- **AnimationBuilders**: Consolidado `SaveAnimation` duplicado — extraída lógica común en `SaveAnimationClip` compartido
+
 ## [0.8.28] - 2026-02-11
 
 ### Eliminado
