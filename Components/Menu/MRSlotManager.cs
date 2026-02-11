@@ -200,7 +200,6 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                 
                 if (usedNames.Contains(slot.slotName))
                 {
-                    slot.isValid = false;
                     slot.validationMessage = "Nombre duplicado";
                 }
                 else

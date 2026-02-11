@@ -20,33 +20,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const string VRCHAT_OUTPUT_PATH = "Assets/Bender_Dios/Generated/";
 
-        /// <summary>
-        /// Ruta de iconos del sistema.
-        /// NOTA: Esta ruta solo funciona cuando el paquete está en Assets/.
-        /// Para instalaciones VPM, usar Resources.Load() directamente.
-        /// </summary>
-        [System.Obsolete("Use Resources.Load() instead for VPM compatibility")]
-        public const string ICONS_PATH = "Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/";
-
-        /// <summary>
-        /// Prefijo requerido para rutas de Unity
-        /// </summary>
-        public const string ASSETS_PREFIX = "Assets/";
-
-        #endregion
-
-        #region Nombres por Defecto
-
-        /// <summary>
-        /// Nombre por defecto para animaciones de iluminación
-        /// </summary>
-        public const string DEFAULT_ILLUMINATION_NAME = "RadialIllumination";
-
-        /// <summary>
-        /// Nombre por defecto para animaciones de menú radial
-        /// </summary>
-        public const string DEFAULT_RADIAL_MENU_NAME = "RadialAnimation";
-
         #endregion
     }
 
@@ -72,11 +45,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         public const double FRAME_RATE_DOUBLE = 60.0;
 
         /// <summary>
-        /// Frame intermedio para interpolación (mitad de 255)
-        /// </summary>
-        public const int MIDDLE_FRAME = 127;
-
-        /// <summary>
         /// Duración de cada frame en segundos (1/60)
         /// </summary>
         public const float FRAME_DURATION = 0.0166667f;
@@ -86,21 +54,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const float TOTAL_DURATION = 4.25f;
 
-        /// <summary>
-        /// Convierte frame a tiempo en segundos con clamp a TOTAL_FRAMES
-        /// </summary>
-        public static float FrameToSeconds(int frame)
-        {
-            return Mathf.Min(frame, TOTAL_FRAMES) / (float)FRAME_RATE;
-        }
-
-        /// <summary>
-        /// Convierte tiempo en segundos a frame
-        /// </summary>
-        public static int SecondsToFrame(float seconds)
-        {
-            return Mathf.Clamp(Mathf.RoundToInt(seconds * FRAME_RATE), 0, TOTAL_FRAMES);
-        }
     }
 
     /// <summary>
@@ -113,15 +66,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const int MAX_SLOTS = 8;
 
-        /// <summary>
-        /// Profundidad máxima de submenús anidados
-        /// </summary>
-        public const int MAX_SUBMENU_DEPTH = 4;
-
-        /// <summary>
-        /// Radio disponible para el menú radial (normalizado 0-1)
-        /// </summary>
-        public const float AVAILABLE_RADIUS = 0.5f;
     }
 
     /// <summary>
@@ -131,11 +75,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
     public static class MRIlluminationConstants
     {
         #region Valores por Defecto
-
-        /// <summary>
-        /// Valor por defecto de iluminación (50% = frame 127)
-        /// </summary>
-        public const float DEFAULT_VALUE = 0.5f;
 
         /// <summary>
         /// Valor por defecto de inicialización para iluminación en VRChat
@@ -249,26 +188,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
     public static class MRAnimationSuffixes
     {
         /// <summary>
-        /// Sufijo para animación ON (toggle)
-        /// </summary>
-        public const string ON = "_on";
-
-        /// <summary>
-        /// Sufijo para animación OFF (toggle)
-        /// </summary>
-        public const string OFF = "_off";
-
-        /// <summary>
-        /// Sufijo para animación A (alternancia)
-        /// </summary>
-        public const string A = "_A";
-
-        /// <summary>
-        /// Sufijo para animación B (alternancia)
-        /// </summary>
-        public const string B = "_B";
-
-        /// <summary>
         /// Sufijo para animación lineal
         /// </summary>
         public const string LINEAR = "_lin";
@@ -309,36 +228,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const string ANIMATION = ".anim";
 
-        /// <summary>
-        /// Extensión de archivo de controlador
-        /// </summary>
-        public const string CONTROLLER = ".controller";
-
-        /// <summary>
-        /// Extensión de archivo de asset
-        /// </summary>
-        public const string ASSET = ".asset";
-    }
-
-    /// <summary>
-    /// Colores de UI del sistema
-    /// </summary>
-    public static class MRUIColors
-    {
-        /// <summary>
-        /// Color de fondo para elementos de preview
-        /// </summary>
-        public static readonly Color PREVIEW_BACKGROUND = new Color(0.15f, 0.25f, 0.25f, 0.8f);
-
-        /// <summary>
-        /// Color de fondo para elementos inactivos
-        /// </summary>
-        public static readonly Color INACTIVE_BACKGROUND = new Color(0.3f, 0.3f, 0.3f, 0.5f);
-
-        /// <summary>
-        /// Color de advertencia/error
-        /// </summary>
-        public static readonly Color WARNING = new Color(1f, 0.5f, 0.5f, 1f);
     }
 
     /// <summary>
@@ -351,20 +240,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const float DEFAULT_MARGIN_PERCENTAGE = 0.10f;
 
-        /// <summary>
-        /// Porcentaje de margen minimo
-        /// </summary>
-        public const float MIN_MARGIN_PERCENTAGE = 0f;
-
-        /// <summary>
-        /// Porcentaje de margen maximo (50%)
-        /// </summary>
-        public const float MAX_MARGIN_PERCENTAGE = 0.5f;
-
-        /// <summary>
-        /// Nombre por defecto para componente de bounds
-        /// </summary>
-        public const string DEFAULT_COMPONENT_NAME = "AjustarBounds";
     }
 
     /// <summary>
@@ -377,86 +252,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const int MAX_PARAMETER_BITS = 256;
 
-        /// <summary>
-        /// Bits usados por un parámetro Bool
-        /// </summary>
-        public const int BOOL_BITS = 1;
-
-        /// <summary>
-        /// Bits usados por un parámetro Float
-        /// </summary>
-        public const int FLOAT_BITS = 8;
-
-        /// <summary>
-        /// Bits usados por un parámetro Int
-        /// </summary>
-        public const int INT_BITS = 8;
-
-        /// <summary>
-        /// Nombre del layer base en AnimatorController
-        /// </summary>
-        public const string BASE_LAYER_NAME = "Base Layer";
-
-        /// <summary>
-        /// Nombre del estado idle
-        /// </summary>
-        public const string IDLE_STATE_NAME = "Idle";
     }
 
-    /// <summary>
-    /// Constantes para el sistema de peso de texturas
-    /// </summary>
-    public static class MRTextureWeightConstants
-    {
-        /// <summary>
-        /// Bytes por pixel para texturas BC1 (sin alpha)
-        /// </summary>
-        public const double BYTES_PER_PIXEL_NO_ALPHA = 0.5;
-
-        /// <summary>
-        /// Bytes por pixel para texturas BC3/BC7 (con alpha)
-        /// </summary>
-        public const double BYTES_PER_PIXEL_WITH_ALPHA = 1.0;
-
-        /// <summary>
-        /// Factor multiplicador para mipmaps
-        /// </summary>
-        public const double MIPMAP_FACTOR = 1.33;
-
-        /// <summary>
-        /// Umbral para textura individual pesada (10 MB)
-        /// </summary>
-        public const long HIGH_WEIGHT_THRESHOLD = 10 * 1024 * 1024;
-
-        /// <summary>
-        /// Limite de VRChat para Download Size (200 MB comprimido)
-        /// </summary>
-        public const long VRCHAT_DOWNLOAD_SIZE_LIMIT = 200 * 1024 * 1024;
-
-        /// <summary>
-        /// Limite de VRChat para Uncompressed Size (500 MB descomprimido)
-        /// </summary>
-        public const long VRCHAT_UNCOMPRESSED_SIZE_LIMIT = 500 * 1024 * 1024;
-
-        /// <summary>
-        /// Umbral para peso total alto de texturas.
-        /// Basado en el limite de Uncompressed Size de VRChat (500 MB).
-        /// </summary>
-        public const long HIGH_TOTAL_THRESHOLD = 500 * 1024 * 1024;
-
-        /// <summary>
-        /// Pasos de resolución disponibles
-        /// </summary>
-        public static readonly int[] RESOLUTION_STEPS = { 8192, 4096, 2048, 1024, 512, 256, 128 };
-
-        /// <summary>
-        /// Resolución mínima permitida
-        /// </summary>
-        public const int MIN_RESOLUTION = 128;
-
-        /// <summary>
-        /// Resolución máxima soportada
-        /// </summary>
-        public const int MAX_RESOLUTION = 8192;
-    }
 }

@@ -29,7 +29,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         {
             if (_target == null) return;
             
-            var materialCount = _target.GetMaterialCount();
+            var materialCount = _target.GetCounts().Materials;
             var foldoutText = $"Materiales del Frame ({materialCount})";
             
             _target.ShowMaterialList = EditorGUILayout.Foldout(_target.ShowMaterialList, foldoutText, EditorStyleManager.FoldoutStyle);
@@ -154,7 +154,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                         "¿Estás seguro de que quieres eliminar todos los materiales del frame?", 
                         "Sí", "Cancelar"))
                     {
-                        _target.ClearAllMaterials();
+                        _target.ClearMaterials();
                         EditorUtility.SetDirty(_target);
                     }
                 }

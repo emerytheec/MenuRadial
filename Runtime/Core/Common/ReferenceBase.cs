@@ -97,31 +97,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         public abstract void CaptureCurrentState();
         
         /// <summary>
-        /// Validación base que verifica que el target existe
-        /// Las clases derivadas pueden agregar validaciones específicas
-        /// </summary>
-        /// <returns>True si la referencia es válida</returns>
-        protected virtual bool ValidateTarget()
-        {
-            return _target != null;
-        }
-        
-        /// <summary>
-        /// Obtiene el Transform del objeto para operaciones de jerarquía
-        /// Maneja tanto GameObjects como Components
-        /// </summary>
-        /// <returns>Transform del objeto o null</returns>
-        protected Transform GetTransform()
-        {
-            if (_target is GameObject go)
-                return go.transform;
-            else if (_target is Component comp)
-                return comp.transform;
-            
-            return null;
-        }
-        
-        /// <summary>
         /// Representación como string
         /// </summary>
         /// <returns>String descriptivo de la referencia</returns>

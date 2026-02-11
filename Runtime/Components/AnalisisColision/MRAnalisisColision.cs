@@ -251,7 +251,6 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
-            UpdateVersion("0.001");
             _scanResult ??= new ColisionScanResult();
             _clothingRoots ??= new List<GameObject>();
             _clothingWithMenuDisabled ??= new List<string>();

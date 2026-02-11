@@ -162,19 +162,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         }
         
         /// <summary>
-        /// Obtiene el material actual aplicado en el renderer
-        /// </summary>
-        /// <returns>Material actualmente aplicado</returns>
-        public Material GetCurrentMaterial()
-        {
-            if (IsValid)
-            {
-                return Target.sharedMaterials[_materialIndex];
-            }
-            return null;
-        }
-        
-        /// <summary>
         /// Captura el estado actual del material desde el renderer
         /// Implementación del método abstracto CaptureCurrentState()
         /// </summary>

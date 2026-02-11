@@ -120,31 +120,6 @@ namespace Bender_Dios.MenuRadial.Components.Illumination.Controllers
         }
         
         /// <summary>
-        /// Obtiene las propiedades actuales de un material específico
-        /// </summary>
-        /// <param name="material">Material del cual obtener propiedades</param>
-        /// <returns>Propiedades del material o null si no es compatible</returns>
-        public IlluminationProperties GetMaterialProperties(Material material)
-        {
-            if (material == null) return null;
-            
-            var strategy = ShaderStrategyFactory.Instance.GetStrategyForMaterial(material);
-            return strategy?.GetProperties(material);
-        }
-        
-        /// <summary>
-        /// Verifica si un material es compatible
-        /// </summary>
-        /// <param name="material">Material a verificar</param>
-        /// <returns>True si es compatible</returns>
-        public bool IsMaterialCompatible(Material material)
-        {
-            if (material == null) return false;
-            
-            return ShaderStrategyFactory.Instance.IsCompatible(material);
-        }
-        
-        /// <summary>
         /// Obtiene estadísticas de los materiales detectados
         /// </summary>
         /// <param name="rootObject">Objeto raíz para estadísticas adicionales</param>
@@ -163,43 +138,6 @@ namespace Bender_Dios.MenuRadial.Components.Illumination.Controllers
         public void ClearDetectedMaterials()
         {
             DetectedMaterials.Clear();
-        }
-        
-        /// <summary>
-        /// Añade un material específico a la lista de detectados
-        /// </summary>
-        /// <param name="material">Material a añadir</param>
-        /// <returns>True si se añadió correctamente</returns>
-        public bool AddMaterial(Material material)
-        {
-            if (material == null) return false;
-            
-            if (!IsMaterialCompatible(material))
-            {
-                return false;
-            }
-            
-            if (DetectedMaterials.Contains(material))
-            {
-                return false;
-            }
-            
-            DetectedMaterials.Add(material);
-            return true;
-        }
-        
-        /// <summary>
-        /// Remueve un material específico de la lista de detectados
-        /// </summary>
-        /// <param name="material">Material a remover</param>
-        /// <returns>True si se removió correctamente</returns>
-        public bool RemoveMaterial(Material material)
-        {
-            if (material == null) return false;
-            
-            bool removed = DetectedMaterials.Remove(material);
-            
-            return removed;
         }
         
     }

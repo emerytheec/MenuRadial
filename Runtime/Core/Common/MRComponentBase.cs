@@ -11,14 +11,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
     /// </summary>
     public abstract class MRComponentBase : MonoBehaviour, IValidatable, IEditorOnly
     {
-        [SerializeField, HideInInspector] 
-        private string _componentVersion = "0.001";
-        
-        /// <summary>
-        /// Versión del componente para control de actualizaciones
-        /// </summary>
-        public string ComponentVersion => _componentVersion;
-        
         /// <summary>
         /// Valida el estado actual del componente
         /// </summary>
@@ -55,15 +47,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         protected virtual void CleanupComponent()
         {
             // Implementación base vacía, sobreescribir en clases derivadas
-        }
-        
-        /// <summary>
-        /// Actualiza la versión del componente
-        /// </summary>
-        /// <param name="newVersion">Nueva versión</param>
-        protected void UpdateVersion(string newVersion)
-        {
-            _componentVersion = newVersion;
         }
         
 #if UNITY_EDITOR

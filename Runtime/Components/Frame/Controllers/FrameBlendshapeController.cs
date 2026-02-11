@@ -174,7 +174,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             
             foreach (var blendRef in _frameData.BlendshapeReferences.Where(b => b != null && b.TargetRenderer != null))
             {
-                blendRef.UpdateRendererPath();
+                blendRef.UpdateHierarchyPath();
                 updatedCount++;
             }
             

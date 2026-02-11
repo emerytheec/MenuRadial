@@ -281,7 +281,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
-            UpdateVersion("0.002");
             _detectedMeshes ??= new List<MeshBoundsInfo>();
             _detectedParticles ??= new List<ParticleBoundsInfo>();
         }

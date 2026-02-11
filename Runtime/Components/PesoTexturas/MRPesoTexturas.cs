@@ -356,7 +356,6 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
-            UpdateVersion("0.001");
             _textureGroups ??= new List<TextureGroupEntry>();
         }
 

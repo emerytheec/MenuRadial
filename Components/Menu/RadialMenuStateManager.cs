@@ -73,38 +73,15 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         }
         
         /// <summary>
-        /// Verifica si el menú debe mostrar el estado inicial
-        /// </summary>
-        /// <param name="buttonNames">Array de nombres de botones</param>
-        /// <returns>True si debe mostrar estado inicial</returns>
-        public static bool ShouldShowInitialState(string[] buttonNames)
-        {
-            return DetermineMenuState(buttonNames) == MenuState.Initial;
-        }
-        
-        
-        /// <summary>
         /// Obtiene el texto central apropiado para el estado del menú
         /// </summary>
         /// <param name="state">Estado del menú</param>
         /// <returns>Texto central a mostrar</returns>
         public static string GetCentralText(MenuState state)
         {
-            return "Menú Control"; // Mismo texto para todos los estados por ahora
+            return "Menú Control";
         }
-        
-        /// <summary>
-        /// Valida si la transición entre estados es válida
-        /// </summary>
-        /// <param name="fromState">Estado actual</param>
-        /// <param name="toState">Estado destino</param>
-        /// <returns>True si la transición es válida</returns>
-        public static bool IsValidTransition(MenuState fromState, MenuState toState)
-        {
-            // Todas las transiciones son válidas en este sistema simple
-            return true;
-        }
-        
+
         /// <summary>
         /// Obtiene información de configuración para renderizado específica del estado
         /// </summary>

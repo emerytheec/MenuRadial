@@ -293,8 +293,6 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
-            UpdateVersion("0.002");
-
             _detectedClothings ??= new List<ClothingEntry>();
         }
 

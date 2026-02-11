@@ -262,7 +262,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 foreach (var frame in validFrames)
                 {
                     // Cada frame optimiza internamente sus llamadas RecalculatePaths()
-                    frame?.RecalculatePaths();
+                    frame?.UpdateAllPaths();
                 }
             }
         }

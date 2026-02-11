@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Core.Common;
-using Bender_Dios.MenuRadial.Validation.Models;
 
 namespace Bender_Dios.MenuRadial.Components.Frame
 {
@@ -123,22 +122,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         }
         
         /// <summary>
-        /// Obtiene el número de referencias válidas
-        /// </summary>
-        public int GetValidReferenceCount()
-        {
-            return _objectManager.ValidCount;
-        }
-        
-        /// <summary>
-        /// Obtiene el número de referencias inválidas
-        /// </summary>
-        public int GetInvalidReferenceCount()
-        {
-            return _objectManager.InvalidCount;
-        }
-        
-        /// <summary>
         /// Limpia las referencias inválidas
         /// </summary>
         public void RemoveInvalidReferences()
@@ -212,22 +195,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         public void ClearMaterialReferences()
         {
             _materialManager.Clear();
-        }
-        
-        /// <summary>
-        /// Obtiene el número de referencias de materiales válidas
-        /// </summary>
-        public int GetValidMaterialReferenceCount()
-        {
-            return _materialManager.ValidCount;
-        }
-        
-        /// <summary>
-        /// Obtiene el número de referencias de materiales inválidas
-        /// </summary>
-        public int GetInvalidMaterialReferenceCount()
-        {
-            return _materialManager.InvalidCount;
         }
         
         /// <summary>
@@ -307,22 +274,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         }
         
         /// <summary>
-        /// Obtiene el número de referencias de blendshapes válidas
-        /// </summary>
-        public int GetValidBlendshapeReferenceCount()
-        {
-            return _blendshapeManager.ValidCount;
-        }
-        
-        /// <summary>
-        /// Obtiene el número de referencias de blendshapes inválidas
-        /// </summary>
-        public int GetInvalidBlendshapeReferenceCount()
-        {
-            return _blendshapeManager.InvalidCount;
-        }
-        
-        /// <summary>
         /// Limpia las referencias de blendshapes inválidas
         /// </summary>
         public void RemoveInvalidBlendshapeReferences()
@@ -366,125 +317,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         }
         
         
-        
-        /// <summary>
-        /// Obtiene el número total de referencias en el frame
-        /// </summary>
-        public int GetTotalReferenceCount()
-        {
-            return _objectManager.Count + _materialManager.Count + _blendshapeManager.Count;
-        }
-        
-        /// <summary>
-        /// Obtiene el número total de referencias válidas
-        /// </summary>
-        public int GetTotalValidReferenceCount()
-        {
-            return _objectManager.ValidCount + _materialManager.ValidCount + _blendshapeManager.ValidCount;
-        }
-        
-        /// <summary>
-        /// Obtiene el número total de referencias inválidas
-        /// </summary>
-        public int GetTotalInvalidReferenceCount()
-        {
-            return _objectManager.InvalidCount + _materialManager.InvalidCount + _blendshapeManager.InvalidCount;
-        }
-        
-        /// <summary>
-        /// Limpia todas las referencias inválidas de todos los tipos
-        /// </summary>
-        public int RemoveAllInvalidReferences()
-        {
-            int removed = _objectManager.RemoveInvalid();
-            removed += _materialManager.RemoveInvalid();
-            removed += _blendshapeManager.RemoveInvalid();
-            return removed;
-        }
-        
-        /// <summary>
-        /// Limpia todas las referencias de todos los tipos
-        /// </summary>
-        public void ClearAllReferences()
-        {
-            _objectManager.Clear();
-            _materialManager.Clear();
-            _blendshapeManager.Clear();
-        }
-        
-        /// <summary>
-        /// Valida todas las referencias usando los managers
-        /// </summary>
-        public ValidationResult ValidateAllReferences()
-        {
-            var result = new ValidationResult();
-            
-            // Validar cada tipo de referencia
-            result.AddChild(_objectManager.Validate("Objetos"));
-            result.AddChild(_materialManager.Validate("Materiales"));
-            result.AddChild(_blendshapeManager.Validate("Blendshapes"));
-            
-            // Estadísticas generales
-            var totalValid = GetTotalValidReferenceCount();
-            var totalInvalid = GetTotalInvalidReferenceCount();
-            
-            if (totalValid > 0)
-            {
-                result.AddChild(ValidationResult.Success("Total: " + totalValid + " referencias válidas"));
-            }
-            
-            if (totalInvalid > 0)
-            {
-                result.AddChild(ValidationResult.Warning("Total: " + totalInvalid + " referencias inválidas"));
-            }
-            
-            return result;
-        }
-        
-        
-        
-        
-        /// <summary>
-        /// Obtiene el manager de lista de objetos para BaseReferenceManager
-        /// </summary>
-        /// <returns>ReferenceListManager de objetos</returns>
-        public ReferenceListManager<ObjectReference, GameObject> GetObjectListManager()
-        {
-            return _objectManager;
-        }
-        
-        /// <summary>
-        /// Obtiene el manager de lista de materiales para BaseReferenceManager
-        /// </summary>
-        /// <returns>ReferenceListManager de materiales</returns>
-        public ReferenceListManager<MaterialReference, Renderer> GetMaterialListManager()
-        {
-            return _materialManager;
-        }
-        
-        /// <summary>
-        /// Obtiene el manager de lista de blendshapes para BaseReferenceManager
-        /// </summary>
-        /// <returns>ReferenceListManager de blendshapes</returns>
-        public ReferenceListManager<BlendshapeReference, SkinnedMeshRenderer> GetBlendshapeListManager()
-        {
-            return _blendshapeManager;
-        }
-        
-        /// <summary>
-        /// Acceso directo al manager de objetos para compatibilidad con FrameObjectManager
-        /// </summary>
-        public ReferenceListManager<ObjectReference, GameObject> ObjectReferenceListManager => _objectManager;
-        
-        /// <summary>
-        /// Acceso directo al manager de materiales para compatibilidad con FrameMaterialManager
-        /// </summary>
-        public ReferenceListManager<MaterialReference, Renderer> MaterialReferenceListManager => _materialManager;
-        
-        /// <summary>
-        /// Acceso directo al manager de blendshapes para compatibilidad con FrameBlendshapeManager
-        /// </summary>
-        public ReferenceListManager<BlendshapeReference, SkinnedMeshRenderer> BlendshapeReferenceListManager => _blendshapeManager;
         
     }
 }

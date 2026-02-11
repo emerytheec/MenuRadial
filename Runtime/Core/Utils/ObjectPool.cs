@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Bender_Dios.MenuRadial.Components.Frame;
 
 namespace Bender_Dios.MenuRadial.Core.Utils
 {
@@ -57,13 +56,5 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         public static readonly ObjectPool<List<Material>> Materials =
             new ObjectPool<List<Material>>(resetAction: list => list.Clear(), maxSize: 50);
 
-        public static readonly ObjectPool<List<MRAgruparObjetos>> FrameObjects =
-            new ObjectPool<List<MRAgruparObjetos>>(resetAction: list => list.Clear(), maxSize: 20);
-
-        public static void ClearAllPools()
-        {
-            Materials.Clear();
-            FrameObjects.Clear();
-        }
     }
 }

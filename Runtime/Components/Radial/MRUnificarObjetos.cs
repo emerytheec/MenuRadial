@@ -29,13 +29,9 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// </summary>
         [SerializeField] private bool _defaultStateIsOn = false;
         
-        // Estado agregado que centraliza dependencias
-        private RadialMenuState _menuState;
-        
-        // Controladores especializados
+        // Controlador de preview
         private RadialMenuPreviewController _previewController;
-        private UnifiedPreviewStrategy _previewStrategy;
-        
+
         // Cache para validación
         private ValidationResult _lastValidationResult;
         private bool _validationCacheValid = false;
@@ -71,7 +67,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 if (_animationName != value)
                 {
                     _animationName = value;
-                    _menuState?.UpdateProperties(animationName: value);
                     InvalidateValidation();
                 }
             }
@@ -88,7 +83,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 if (_animationPath != value)
                 {
                     _animationPath = value;
-                    _menuState?.UpdateProperties(animationPath: value);
                     InvalidateValidation();
                 }
             }
@@ -105,7 +99,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 if (_autoUpdatePaths != value)
                 {
                     _autoUpdatePaths = value;
-                    _menuState?.UpdateProperties(autoUpdatePaths: value);
                     InvalidateValidation();
                 }
             }
@@ -446,13 +439,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// </summary>
         private ValidationResult ValidateInternal()
         {
-            // Validar usando estado agregado si está disponible
-            if (_menuState != null && _menuState.IsInitialized)
-            {
-                return _menuState.ValidateComplete();
-            }
-            
-            // Validación fallback básica
             if (_frames == null || FrameCount == 0)
                 return new ValidationResult("No hay frames configurados", false, ValidationSeverity.Error);
                 
@@ -604,10 +590,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             {
                 CleanupInvalidFrames();
             }
-            
-            // Actualizar estado agregado si existe
-
-            _menuState?.UpdateProperties(_animationName, _animationPath, _autoUpdatePaths);
         }
         
         /// <summary>
@@ -615,9 +597,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// </summary>
         void OnDestroy()
         {
-            _menuState?.Cleanup();
             _previewController?.Cleanup();
-            _previewStrategy?.Cleanup();
         }
         
         
@@ -638,53 +618,12 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             if (_activeFrameIndex >= _frames.Count)
                 _activeFrameIndex = Mathf.Max(0, _frames.Count - 1);
                 
-            // Inicializar estado agregado
-            InitializeAggregatedState();
-        }
-        
-        /// <summary>
-        /// Inicializa el estado agregado y controladores
-        /// </summary>
-        private void InitializeAggregatedState()
-        {
-            // Validaciones defensivas
-            if (_frames == null) return;
-            if (string.IsNullOrEmpty(_animationName)) return;
-            
-            // Crear estado agregado centralizado
-            _menuState = new RadialMenuState(
-                this,
-                _frames,
-                _activeFrameIndex,
-                _animationName,
-                _animationPath,
-                _autoUpdatePaths
-            );
-            
-            // Crear controlador de preview
-            _previewController = new RadialMenuPreviewController(
-                _frames,
-                () => _activeFrameIndex,
-                () => ActiveFrame
-            );
-            
-            // Crear estrategia unificada de preview
-            _previewStrategy = new UnifiedPreviewStrategy(name)
-                .AsToggle(
-                    onActivate: () => _previewController?.ActivatePreview(),
-                    onDeactivate: () => _previewController?.DeactivatePreview()
-                );
+            // Inicializar controlador de preview
+            EnsurePreviewControllerInitialized();
         }
         
         
         // Compatibility Methods
-        
-        /// <summary>
-        /// Método de compatibilidad para acceso directo a frames
-        /// </summary>
-        /// <returns>Lista de frames para compatibilidad</returns>
-        [System.Obsolete("Use FrameObjects property instead")]
-        public List<MRAgruparObjetos> GetFrames() => _frames;
         
         /// <summary>
         /// Método de compatibilidad para validación simple

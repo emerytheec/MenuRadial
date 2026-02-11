@@ -287,7 +287,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             // Solo recalcular si hay cambios reales
             if (hasChanges)
             {
-                _target.RecalculatePaths();
+                _target.UpdateAllPaths();
             }
         }
         

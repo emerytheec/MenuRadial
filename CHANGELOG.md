@@ -5,6 +5,20 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.28] - 2026-02-11
+
+### Eliminado
+- **9 archivos muertos eliminados** (~1870 líneas): FrameDataFactory, FrameDataValidator, RadialDataStore, RadialMenuValidator, RadialMenuDataStore, RadialInteractionHandler, PreviewServiceCoordinator, AssetValidationResult, FrameSegmentCalculator
+- **5 archivos de Radial eliminados** (~1250 líneas): RadialFrameManager, RadialMenuState, RadialPreviewManager, RadialPropertyManager, UnifiedPreviewStrategy — lógica inlineada en MRUnificarObjetos
+- **2 interfaces eliminadas**: IBoneMapper e IStitchingController (implementación única, nunca usadas polimórficamente)
+- **MRConstants.cs**: Eliminadas 17 constantes muertas (~205 líneas), conservadas solo las 5 en uso
+- **PreviewManager.cs**: Simplificado de 465 a 195 líneas — eliminados 3 eventos sin suscriptores, infraestructura de limpieza de eventos, y 6 propiedades/métodos muertos
+- **FrameData.cs**: Eliminados 18 métodos/propiedades muertos de conteo y acceso a ListManager (~168 líneas)
+- **MRAgruparObjetos.cs**: Eliminados 13 métodos `[Obsolete]` tras migrar los 6 callers a la API actual
+- **Métodos muertos en 10+ archivos**: ReferenceBase (2), BlendshapeReference (5), MaterialReference (1), HierarchyPathHelper (4), FramePreviewController (2), ReferenceListManager (5), DynamicIconManager (5), IlluminationMaterialController (4), RadialMenuStateManager (2), ObjectPool (2)
+- **Sistema ComponentVersion**: Eliminado campo `_componentVersion` de MRComponentBase y llamadas `UpdateVersion()` de 5 componentes
+- **MRSlotManager**: Eliminada asignación muerta `isValid = false` (el setter era no-op)
+
 ## [0.8.27] - 2026-02-11
 
 ### Eliminado

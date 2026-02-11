@@ -29,7 +29,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         {
             if (_target == null) return;
             
-            var objectCount = _target.GetObjectCount();
+            var objectCount = _target.GetCounts().Objects;
             var foldoutText = $"Objetos en el Frame ({objectCount})";
             
             _target.ShowObjectList = EditorGUILayout.Foldout(_target.ShowObjectList, foldoutText, EditorStyleManager.FoldoutStyle);
@@ -139,7 +139,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             if (GUILayout.Button("Recalcular Rutas", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
             {
-                _target.RecalculatePaths();
+                _target.UpdateAllPaths();
                 EditorUtility.SetDirty(_target);
             }
             
@@ -151,7 +151,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                         "¿Estás seguro de que quieres eliminar todos los objetos del frame?", 
                         "Sí", "Cancelar"))
                     {
-                        _target.ClearAllObjects();
+                        _target.ClearObjects();
                         EditorUtility.SetDirty(_target);
                     }
                 }

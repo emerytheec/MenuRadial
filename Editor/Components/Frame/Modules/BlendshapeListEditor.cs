@@ -96,7 +96,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         {
             if (_target == null) return;
             
-            var blendshapeCount = _target.GetBlendshapeCount();
+            var blendshapeCount = _target.GetCounts().Blendshapes;
             var foldoutText = $"Blendshapes del Frame ({blendshapeCount})";
             
             _target.ShowBlendshapeList = EditorGUILayout.Foldout(_target.ShowBlendshapeList, foldoutText, EditorStyleManager.FoldoutStyle);

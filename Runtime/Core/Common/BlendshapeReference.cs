@@ -51,30 +51,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
             set => _actualValue = Mathf.Clamp(value, 0f, 100f); 
         }
         
-        // Propiedades de compatibilidad para archivos antiguos
-        /// <summary>
-        /// Compatibilidad: Renderer (ahora es TargetRenderer)
-        /// </summary>
-        public SkinnedMeshRenderer Renderer => TargetRenderer;
-        
-        /// <summary>
-        /// Compatibilidad: ActiveValue (ahora es Value)
-        /// </summary>
-        public float ActiveValue 
-        { 
-            get => Value; 
-            set => Value = value; 
-        }
-        
-        /// <summary>
-        /// Compatibilidad: BaseValue (ahora es ActualValue)
-        /// </summary>
-        public float BaseValue 
-        { 
-            get => ActualValue; 
-            set => ActualValue = value; 
-        }
-        
         /// <summary>
         /// Ruta jerárquica del renderer (usa base class)
         /// </summary>
@@ -193,24 +169,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
             {
                 _value = GetCurrentValue();
             }
-        }
-        
-        /// <summary>
-        /// Método de compatibilidad: CaptureCurrentValue() -> CaptureCurrentState()
-        /// COMPATIBILIDAD: Requerido por FrameBlendshapeManager línea 119
-        /// </summary>
-        public void CaptureCurrentValue()
-        {
-            CaptureCurrentState();
-        }
-        
-        /// <summary>
-        /// Actualiza la ruta jerárquica del renderer (método para compatibilidad)
-        /// </summary>
-        [System.Obsolete("Use UpdateHierarchyPath() from base class instead. This method is kept for backward compatibility.")]
-        public void UpdateRendererPath()
-        {
-            UpdateHierarchyPath();
         }
         
         /// <summary>

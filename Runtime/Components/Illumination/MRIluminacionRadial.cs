@@ -188,8 +188,6 @@ namespace Bender_Dios.MenuRadial.Components.Illumination
         /// </summary>
         protected override void InitializeComponent()
         {
-            UpdateVersion("0.001");
-            
             // Configurar valores por defecto si es necesario
             if (string.IsNullOrEmpty(_animationName))
                 _animationName = "RadialIllumination";

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Bender_Dios.MenuRadial.Components.CoserRopa.Interfaces;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa.BoneNames;
 
@@ -15,7 +14,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
     /// 2. Nombre exacto (case-insensitive)
     /// 3. Heurística con 230+ patrones de nombres (BoneNameDatabase)
     /// </summary>
-    public class HumanoidBoneMapper : IBoneMapper
+    public class HumanoidBoneMapper
     {
         #region Constants
 

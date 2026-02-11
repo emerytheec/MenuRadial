@@ -73,8 +73,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         }
         
         
-        public List<IFrameData> Frames => _frameData != null ? new List<IFrameData> { _frameData } : new List<IFrameData>();
-        
         public int ActiveFrameIndex { get; set; } = 0;
         
         public void ApplyCurrentFrame()
@@ -123,14 +121,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             InvalidateValidationCache();
         }
         
-        // remover en próxima major
-        [Obsolete("Usa ClearObjects() en su lugar")]
-        public void ClearAllObjects()
-        {
-            EnsureControllersInitialized();
-            _objectController.ClearAllObjects();
-        }
-        
         public void ClearObjects()
         {
             if (ObjectReferences.Count == 0) return;
@@ -156,14 +146,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _objectController.DeselectAllObjects();
         }
         
-        // remover en próxima major
-        [Obsolete("Usa UpdateAllPaths() en su lugar")]
-        public void RecalculatePaths()
-        {
-            EnsureControllersInitialized();
-            _objectController.RecalculateAllPaths();
-        }
-        
         public void UpdateAllPaths()
         {
             EnsureControllersInitialized();
@@ -181,30 +163,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             
             // Emitir evento de cambio de estado (thread-safe) - no podemos emitir OnObjectRemoved para objetos null
             InvalidateValidationCache();
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().Objects en su lugar")]
-        public int GetObjectCount()
-        {
-            EnsureControllersInitialized();
-            return _objectController?.ObjectCount ?? 0;
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().ValidObjects en su lugar")]
-        public int GetValidObjectCount()
-        {
-            EnsureControllersInitialized();
-            return _objectController?.ValidObjectCount ?? 0;
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().InvalidObjects en su lugar")]
-        public int GetInvalidObjectCount()
-        {
-            EnsureControllersInitialized();
-            return _objectController?.InvalidObjectCount ?? 0;
         }
         
         public bool AddMaterialReference(Renderer renderer, int materialIndex = 0, Material alternativeMaterial = null)
@@ -231,14 +189,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _materialController.RemoveMaterial(renderer, materialIndex);
             
             InvalidateValidationCache();
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa ClearMaterials() en su lugar")]
-        public void ClearAllMaterials()
-        {
-            EnsureControllersInitialized();
-            _materialController.ClearAllMaterials();
         }
         
         public void ClearMaterials()
@@ -278,30 +228,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         {
             EnsureControllersInitialized();
             _materialController.UpdateAllMaterialRendererPaths();
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().Materials en su lugar")]
-        public int GetMaterialCount()
-        {
-            EnsureControllersInitialized();
-            return _materialController?.MaterialCount ?? 0;
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().ValidMaterials en su lugar")]
-        public int GetValidMaterialCount()
-        {
-            EnsureControllersInitialized();
-            return _materialController?.ValidMaterialCount ?? 0;
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().InvalidMaterials en su lugar")]
-        public int GetInvalidMaterialCount()
-        {
-            EnsureControllersInitialized();
-            return _materialController?.InvalidMaterialCount ?? 0;
         }
         
         public bool AddBlendshapeReference(SkinnedMeshRenderer renderer, string blendshapeName, float value = 0f)
@@ -388,30 +314,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         {
             EnsureControllersInitialized();
             _blendshapeController.CaptureAllBlendshapeValues();
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().Blendshapes en su lugar")]
-        public int GetBlendshapeCount()
-        {
-            EnsureControllersInitialized();
-            return _blendshapeController?.BlendshapeCount ?? 0;
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().ValidBlendshapes en su lugar")]
-        public int GetValidBlendshapeCount()
-        {
-            EnsureControllersInitialized();
-            return _blendshapeController?.ValidBlendshapeCount ?? 0;
-        }
-        
-        // remover en próxima major
-        [Obsolete("Usa GetCounts().InvalidBlendshapes en su lugar")]
-        public int GetInvalidBlendshapeCount()
-        {
-            EnsureControllersInitialized();
-            return _blendshapeController?.InvalidBlendshapeCount ?? 0;
         }
         
         /// <summary>

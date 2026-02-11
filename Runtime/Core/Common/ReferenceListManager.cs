@@ -41,16 +41,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         public int InvalidCount => _references.Count(r => !r.IsValid);
         
         /// <summary>
-        /// Indica si hay referencias válidas
-        /// </summary>
-        public bool HasValidReferences => ValidCount > 0;
-        
-        /// <summary>
-        /// Indica si hay referencias inválidas
-        /// </summary>
-        public bool HasInvalidReferences => InvalidCount > 0;
-        
-        /// <summary>
         /// Constructor
         /// </summary>
         public ReferenceListManager()
@@ -184,36 +174,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         public bool Contains(TReference reference)
         {
             return _references.Contains(reference);
-        }
-        
-        /// <summary>
-        /// Verifica si contiene una referencia a un target específico
-        /// </summary>
-        /// <param name="target">Target a buscar</param>
-        /// <returns>True si existe</returns>
-        public bool ContainsTarget(TTarget target)
-        {
-            return _references.Any(r => r.Target == target);
-        }
-        
-        /// <summary>
-        /// Busca referencia por target
-        /// </summary>
-        /// <param name="target">Target a buscar</param>
-        /// <returns>Primera referencia encontrada o default</returns>
-        public TReference FindByTarget(TTarget target)
-        {
-            return _references.FirstOrDefault(r => r.Target == target);
-        }
-        
-        /// <summary>
-        /// Busca todas las referencias a un target específico
-        /// </summary>
-        /// <param name="target">Target a buscar</param>
-        /// <returns>Lista de referencias</returns>
-        public List<TReference> FindAllByTarget(TTarget target)
-        {
-            return _references.Where(r => r.Target == target).ToList();
         }
         
         /// <summary>

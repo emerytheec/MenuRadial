@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Bender_Dios.MenuRadial.Components.CoserRopa.Interfaces;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Validation.Models;
 
@@ -16,7 +15,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
     ///
     /// Incluye recálculo de bind poses para preservar deformación correcta de meshes.
     /// </summary>
-    public class BoneStitchingController : IStitchingController
+    public class BoneStitchingController
     {
         /// <summary>
         /// Pila de operaciones para deshacer

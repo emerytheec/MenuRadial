@@ -205,58 +205,5 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         
         
         
-        /// <summary>
-        /// Fuerza la limpieza de todos los estados guardados
-        /// NUEVO: Método para limpieza manual
-        /// </summary>
-        public void ForceCleanup()
-        {
-            _originalObjectStates.Clear();
-            _originalMaterialStates.Clear();
-            _originalBlendshapeStates.Clear();
-            _isPreviewActive = false;
-            
-        }
-        
-        /// <summary>
-        /// Verifica si los estados guardados siguen siendo válidos
-        /// NUEVO: Método para validación de estados
-        /// </summary>
-        /// <returns>True si todos los estados son válidos</returns>
-        public bool AreStatesValid()
-        {
-            if (!HasSavedStates) return true;
-            
-            // Verificar objetos
-            foreach (var objState in _originalObjectStates)
-            {
-                if (objState?.GameObject == null)
-                {
-                    return false;
-                }
-            }
-            
-            // Verificar materiales
-            foreach (var matState in _originalMaterialStates)
-            {
-                if (matState?.TargetRenderer == null)
-                {
-                    return false;
-                }
-            }
-            
-            // Verificar blendshapes
-            foreach (var blendState in _originalBlendshapeStates)
-            {
-                if (blendState?.TargetRenderer == null || string.IsNullOrEmpty(blendState.BlendshapeName))
-                {
-                    return false;
-                }
-            }
-            
-            return true;
-        }
-        
-        
     }
 }
