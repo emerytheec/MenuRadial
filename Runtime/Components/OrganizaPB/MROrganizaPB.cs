@@ -96,32 +96,32 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         public bool IsSDKAvailable => Scanner.IsSDKAvailable;
 
         /// <summary>
-        /// Número total de PhysBones habilitados.
+        /// Número total de PhysBones incluidos para organización.
         /// </summary>
-        public int EnabledPhysBonesCount
+        public int IncludedPhysBonesCount
         {
             get
             {
                 int count = 0;
                 foreach (var pb in _detectedPhysBones)
                 {
-                    if (pb.Enabled && !pb.WasRelocated) count++;
+                    if (pb.Included && !pb.WasRelocated) count++;
                 }
                 return count;
             }
         }
 
         /// <summary>
-        /// Número total de Colliders habilitados.
+        /// Número total de Colliders incluidos para organización.
         /// </summary>
-        public int EnabledCollidersCount
+        public int IncludedCollidersCount
         {
             get
             {
                 int count = 0;
                 foreach (var col in _detectedColliders)
                 {
-                    if (col.Enabled && !col.WasRelocated) count++;
+                    if (col.Included && !col.WasRelocated) count++;
                 }
                 return count;
             }
@@ -264,7 +264,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 return _lastResult;
             }
 
-            Debug.Log($"[MROrganizaPB] Organizando: {EnabledPhysBonesCount} PB, {EnabledCollidersCount} Col");
+            Debug.Log($"[MROrganizaPB] Organizando: {IncludedPhysBonesCount} PB, {IncludedCollidersCount} Col");
 
             _lastResult = Relocator.RelocateAll(_detectedPhysBones, _detectedColliders);
 
@@ -332,24 +332,24 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         }
 
         /// <summary>
-        /// Habilita o deshabilita todos los PhysBones.
+        /// Incluye o excluye todos los PhysBones de la organización.
         /// </summary>
-        public void SetAllPhysBonesEnabled(bool enabled)
+        public void SetAllPhysBonesIncluded(bool included)
         {
             foreach (var pb in _detectedPhysBones)
             {
-                pb.Enabled = enabled;
+                pb.Included = included;
             }
         }
 
         /// <summary>
-        /// Habilita o deshabilita todos los Colliders.
+        /// Incluye o excluye todos los Colliders de la organización.
         /// </summary>
-        public void SetAllCollidersEnabled(bool enabled)
+        public void SetAllCollidersIncluded(bool included)
         {
             foreach (var col in _detectedColliders)
             {
-                col.Enabled = enabled;
+                col.Included = included;
             }
         }
 

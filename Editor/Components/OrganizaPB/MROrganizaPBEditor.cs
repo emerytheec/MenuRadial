@@ -9,7 +9,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 {
     /// <summary>
     /// Editor personalizado para MROrganizaPB.
-    /// Muestra listas de PhysBones y Colliders detectados con controles para habilitarlos.
+    /// Muestra listas de PhysBones y Colliders detectados con controles para incluirlos.
     /// </summary>
     [CustomEditor(typeof(MROrganizaPB))]
     public class MROrganizaPBEditor : UnityEditor.Editor
@@ -220,15 +220,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
                 switch (_target.State)
                 {
-                    case Bender_Dios.MenuRadial.Components.OrganizaPB.Models.OrganizationState.NotScanned:
+                    case OrganizationState.NotScanned:
                         GUI.contentColor = WarningColor;
                         EditorGUILayout.LabelField("No escaneado", EditorStyles.boldLabel);
                         break;
-                    case Bender_Dios.MenuRadial.Components.OrganizaPB.Models.OrganizationState.Scanned:
+                    case OrganizationState.Scanned:
                         GUI.contentColor = new Color(1f, 0.8f, 0.4f);
                         EditorGUILayout.LabelField("Escaneado (no organizado)", EditorStyles.boldLabel);
                         break;
-                    case Bender_Dios.MenuRadial.Components.OrganizaPB.Models.OrganizationState.Organized:
+                    case OrganizationState.Organized:
                         GUI.contentColor = EnabledColor;
                         EditorGUILayout.LabelField("Organizado", EditorStyles.boldLabel);
                         break;
@@ -249,26 +249,53 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
                     if (GUILayout.Button("Organizar PhysBones", organizeStyle, GUILayout.Height(30)))
                     {
-                        Undo.RecordObject(_target, "Organizar PhysBones");
+                        // Bug 6: Confirmación antes de organizar
+                        int pbCount = _target.IncludedPhysBonesCount;
+                        int colCount = _target.IncludedCollidersCount;
 
-                        // Registrar todos los objetos que podrían ser modificados
-                        foreach (var pb in _target.DetectedPhysBones)
-                        {
-                            if (pb.OriginalComponent != null)
-                                Undo.RecordObject(pb.OriginalComponent, "Organizar PhysBones");
-                        }
-                        foreach (var col in _target.DetectedColliders)
-                        {
-                            if (col.OriginalComponent != null)
-                                Undo.RecordObject(col.OriginalComponent, "Organizar PhysBones");
-                        }
+                        bool confirmed = EditorUtility.DisplayDialog(
+                            "Organizar PhysBones",
+                            $"Esta operación moverá {pbCount} PhysBones y {colCount} Colliders a contenedores organizados. La escena será modificada.\n\n¿Continuar?",
+                            "Organizar",
+                            "Cancelar");
 
-                        var result = _target.Organize();
-                        EditorUtility.SetDirty(_target);
-
-                        if (result.Success)
+                        if (confirmed)
                         {
-                            Debug.Log($"[MROrganizaPB] Organización completada: {result.GetSummary()}");
+                            Undo.RecordObject(_target, "Organizar PhysBones");
+
+                            // Registrar todos los objetos que podrían ser modificados
+                            foreach (var pb in _target.DetectedPhysBones)
+                            {
+                                if (pb.OriginalComponent != null)
+                                    Undo.RecordObject(pb.OriginalComponent, "Organizar PhysBones");
+                            }
+                            foreach (var col in _target.DetectedColliders)
+                            {
+                                if (col.OriginalComponent != null)
+                                    Undo.RecordObject(col.OriginalComponent, "Organizar PhysBones");
+                            }
+
+                            var result = _target.Organize();
+                            EditorUtility.SetDirty(_target);
+
+                            if (result.Success)
+                            {
+                                // Bug 5: Registrar GameObjects creados para Undo
+                                foreach (var container in _target.CreatedContainers)
+                                {
+                                    if (container != null)
+                                    {
+                                        Undo.RegisterCreatedObjectUndo(container, "Organizar PhysBones");
+                                        // Registrar los hijos (PB_*, Col_*)
+                                        foreach (Transform child in container.transform)
+                                        {
+                                            Undo.RegisterCreatedObjectUndo(child.gameObject, "Organizar PhysBones");
+                                        }
+                                    }
+                                }
+
+                                Debug.Log($"[MROrganizaPB] Organización completada: {result.GetSummary()}");
+                            }
                         }
                     }
                 }
@@ -279,6 +306,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                     if (GUILayout.Button("Revertir", GUILayout.Width(80), GUILayout.Height(30)))
                     {
                         Undo.RecordObject(_target, "Revertir PhysBones");
+
+                        // Bug 5: Registrar Undo para componentes que serán restaurados
+                        foreach (var pb in _target.DetectedPhysBones)
+                        {
+                            if (pb.WasRelocated && pb.OriginalTransform != null)
+                                Undo.RecordObject(pb.OriginalTransform.gameObject, "Revertir PhysBones");
+                        }
+                        foreach (var col in _target.DetectedColliders)
+                        {
+                            if (col.WasRelocated && col.OriginalTransform != null)
+                                Undo.RecordObject(col.OriginalTransform.gameObject, "Revertir PhysBones");
+                        }
 
                         var result = _target.Revert();
                         EditorUtility.SetDirty(_target);
@@ -316,23 +355,23 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
             if (_showPhysBonesFoldout)
             {
-                // Botones de selección
+                // Bug 7: Botones renombrados a Incluir/Excluir
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Todos", EditorStyles.miniButtonLeft, GUILayout.Width(50)))
+                    if (GUILayout.Button("Incluir todos", EditorStyles.miniButtonLeft, GUILayout.Width(80)))
                     {
-                        Undo.RecordObject(_target, "Habilitar todos PhysBones");
-                        _target.SetAllPhysBonesEnabled(true);
+                        Undo.RecordObject(_target, "Incluir todos PhysBones");
+                        _target.SetAllPhysBonesIncluded(true);
                         EditorUtility.SetDirty(_target);
                     }
-                    if (GUILayout.Button("Ninguno", EditorStyles.miniButtonRight, GUILayout.Width(60)))
+                    if (GUILayout.Button("Excluir todos", EditorStyles.miniButtonRight, GUILayout.Width(80)))
                     {
-                        Undo.RecordObject(_target, "Deshabilitar todos PhysBones");
-                        _target.SetAllPhysBonesEnabled(false);
+                        Undo.RecordObject(_target, "Excluir todos PhysBones");
+                        _target.SetAllPhysBonesIncluded(false);
                         EditorUtility.SetDirty(_target);
                     }
                     GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField($"{_target.EnabledPhysBonesCount} habilitados",
+                    EditorGUILayout.LabelField($"{_target.IncludedPhysBonesCount} incluidos",
                         EditorStyles.miniLabel, GUILayout.Width(80));
                 }
 
@@ -350,23 +389,23 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
             if (_showCollidersFoldout)
             {
-                // Botones de selección
+                // Bug 7: Botones renombrados a Incluir/Excluir
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Todos", EditorStyles.miniButtonLeft, GUILayout.Width(50)))
+                    if (GUILayout.Button("Incluir todos", EditorStyles.miniButtonLeft, GUILayout.Width(80)))
                     {
-                        Undo.RecordObject(_target, "Habilitar todos Colliders");
-                        _target.SetAllCollidersEnabled(true);
+                        Undo.RecordObject(_target, "Incluir todos Colliders");
+                        _target.SetAllCollidersIncluded(true);
                         EditorUtility.SetDirty(_target);
                     }
-                    if (GUILayout.Button("Ninguno", EditorStyles.miniButtonRight, GUILayout.Width(60)))
+                    if (GUILayout.Button("Excluir todos", EditorStyles.miniButtonRight, GUILayout.Width(80)))
                     {
-                        Undo.RecordObject(_target, "Deshabilitar todos Colliders");
-                        _target.SetAllCollidersEnabled(false);
+                        Undo.RecordObject(_target, "Excluir todos Colliders");
+                        _target.SetAllCollidersIncluded(false);
                         EditorUtility.SetDirty(_target);
                     }
                     GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField($"{_target.EnabledCollidersCount} habilitados",
+                    EditorGUILayout.LabelField($"{_target.IncludedCollidersCount} incluidos",
                         EditorStyles.miniLabel, GUILayout.Width(80));
                 }
 
@@ -435,11 +474,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             // Toggle
             var toggleRect = new Rect(x, rect.y, TOGGLE_WIDTH, rect.height);
             EditorGUI.BeginChangeCheck();
-            var newEnabled = EditorGUI.Toggle(toggleRect, entry.Enabled);
+            var newIncluded = EditorGUI.Toggle(toggleRect, entry.Included);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(_target, "Toggle PhysBone");
-                entry.Enabled = newEnabled;
+                entry.Included = newIncluded;
                 EditorUtility.SetDirty(_target);
             }
             x += TOGGLE_WIDTH + 5;
@@ -448,7 +487,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             var nameWidth = rect.width - TOGGLE_WIDTH - CONTEXT_WIDTH - ROOT_BONE_WIDTH - 20;
             var nameRect = new Rect(x, rect.y, nameWidth, rect.height);
 
-            GUI.contentColor = entry.Enabled ? Color.white : DisabledColor;
+            GUI.contentColor = entry.Included ? Color.white : DisabledColor;
             EditorGUI.LabelField(nameRect, entry.GeneratedName);
             x += nameWidth + 5;
 
@@ -481,11 +520,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             // Toggle
             var toggleRect = new Rect(x, rect.y, TOGGLE_WIDTH, rect.height);
             EditorGUI.BeginChangeCheck();
-            var newEnabled = EditorGUI.Toggle(toggleRect, entry.Enabled);
+            var newIncluded = EditorGUI.Toggle(toggleRect, entry.Included);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(_target, "Toggle Collider");
-                entry.Enabled = newEnabled;
+                entry.Included = newIncluded;
                 EditorUtility.SetDirty(_target);
             }
             x += TOGGLE_WIDTH + 5;
@@ -494,7 +533,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             var nameWidth = rect.width - TOGGLE_WIDTH - CONTEXT_WIDTH - ROOT_BONE_WIDTH - 20;
             var nameRect = new Rect(x, rect.y, nameWidth, rect.height);
 
-            GUI.contentColor = entry.Enabled ? Color.white : DisabledColor;
+            GUI.contentColor = entry.Included ? Color.white : DisabledColor;
             EditorGUI.LabelField(nameRect, entry.GeneratedName);
             x += nameWidth + 5;
 

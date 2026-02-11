@@ -17,10 +17,10 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         /// </summary>
         private static readonly string[] ArmatureNames = new[]
         {
-            "Armature", "armature",
-            "Skeleton", "skeleton",
-            "Root", "root",
-            "Rig", "rig"
+            "Armature",
+            "Skeleton",
+            "Root",
+            "Rig"
         };
 
         /// <summary>

@@ -101,7 +101,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         #region Public API
 
         /// <summary>
-        /// Reubica todos los PhysBones y Colliders habilitados.
+        /// Reubica todos los PhysBones y Colliders incluidos.
         /// </summary>
         public OrganizationResult RelocateAll(List<PhysBoneEntry> physBones, List<ColliderEntry> colliders)
         {
@@ -126,10 +126,12 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
             try
             {
+                Debug.Log($"[PhysBoneRelocator] Iniciando reubicación de {physBones.Count} PhysBones y {colliders.Count} Colliders");
+
                 // Primero procesar Colliders para tener el mapeo
                 foreach (var collider in colliders)
                 {
-                    if (!collider.Enabled || collider.WasRelocated)
+                    if (!collider.Included || collider.WasRelocated)
                     {
                         result.CollidersSkipped++;
                         continue;
@@ -155,7 +157,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 // Luego procesar PhysBones
                 foreach (var physBone in physBones)
                 {
-                    if (!physBone.Enabled || physBone.WasRelocated)
+                    if (!physBone.Included || physBone.WasRelocated)
                     {
                         result.PhysBonesSkipped++;
                         continue;
@@ -194,6 +196,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         /// <summary>
         /// Revierte la reorganización, devolviendo los componentes a su ubicación original.
+        /// Bug 1 fix: Revertir Colliders PRIMERO, luego PhysBones, y actualizar las
+        /// referencias de colliders en los PhysBones revertidos.
         /// </summary>
         public OrganizationResult RevertAll(List<PhysBoneEntry> physBones, List<ColliderEntry> colliders)
         {
@@ -209,7 +213,27 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
             try
             {
-                // Primero revertir PhysBones (para actualizar referencias a colliders)
+                // Bug 1 fix: Construir mapeo de colliders revertidos (relocated → reverted)
+                var colliderRevertMapping = new Dictionary<Component, Component>();
+
+                // Primero revertir Colliders (orden inverso al de organización)
+                foreach (var collider in colliders)
+                {
+                    if (!collider.WasRelocated) continue;
+
+                    var relocatedCollider = collider.RelocatedComponent;
+                    if (RevertCollider(collider, result))
+                    {
+                        result.CollidersRelocated++;
+                        // Guardar mapeo: componente reubicado → componente revertido
+                        if (relocatedCollider != null)
+                        {
+                            colliderRevertMapping[relocatedCollider] = collider.OriginalComponent;
+                        }
+                    }
+                }
+
+                // Luego revertir PhysBones
                 foreach (var physBone in physBones)
                 {
                     if (!physBone.WasRelocated) continue;
@@ -217,17 +241,12 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     if (RevertPhysBone(physBone, result))
                     {
                         result.PhysBonesRelocated++;
-                    }
-                }
 
-                // Luego revertir Colliders
-                foreach (var collider in colliders)
-                {
-                    if (!collider.WasRelocated) continue;
-
-                    if (RevertCollider(collider, result))
-                    {
-                        result.CollidersRelocated++;
+                        // Bug 1 fix: Actualizar referencias de colliders en el PhysBone revertido
+                        if (colliderRevertMapping.Count > 0)
+                        {
+                            UpdateRevertedPhysBoneColliderReferences(physBone.OriginalComponent, colliderRevertMapping);
+                        }
                     }
                 }
 
@@ -265,8 +284,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         /// </summary>
         private void DestroyOriginalComponents()
         {
-            Debug.Log($"[PhysBoneRelocator] Destruyendo {_componentsToDestroy.Count} componentes originales...");
-
             foreach (var component in _componentsToDestroy)
             {
                 if (component != null && component)
@@ -293,7 +310,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         {
             try
             {
-                // Validación adicional
                 if (entry == null)
                 {
                     result.AddWarning("Entry de collider es null");
@@ -312,14 +328,11 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     return false;
                 }
 
-                // Verificar que OriginalTransform no esté destruido
                 if (entry.OriginalTransform == null || !entry.OriginalTransform)
                 {
                     result.AddWarning($"OriginalTransform es null o destruido para {entry.GeneratedName}");
                     return false;
                 }
-
-                Debug.Log($"[PhysBoneRelocator] Iniciando reubicación de collider: {entry.GeneratedName}");
 
                 // Obtener o crear contenedor
                 var container = GetOrCreateContainer(entry.Context, COLLIDERS_CONTAINER_NAME, _collidersContainers);
@@ -337,26 +350,10 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 newGameObject.transform.localRotation = Quaternion.identity;
                 newGameObject.transform.localScale = Vector3.one;
 
-                // Determinar el rootTransform objetivo ANTES de copiar
-                // entry.RootTransform = valor del campo rootTransform del collider original (puede ser null)
-                // entry.OriginalTransform = el Transform donde estaba el componente original
-                var targetRootTransform = entry.RootTransform;
+                // Determinar el rootTransform objetivo
+                var targetRootTransform = entry.RootTransform ?? entry.OriginalTransform;
 
-                Debug.Log($"[PhysBoneRelocator] Collider '{entry.GeneratedName}' - DIAGNÓSTICO:");
-                Debug.Log($"  entry.OriginalTransform = {SafeGetName(entry.OriginalTransform)} (GameObject donde estaba el collider)");
-                Debug.Log($"  entry.RootTransform = {SafeGetName(entry.RootTransform)} (valor del campo rootTransform original)");
-
-                // Si RootTransform es null, usar OriginalTransform
-                if (targetRootTransform == null)
-                {
-                    Debug.Log($"  -> entry.RootTransform es null, usando entry.OriginalTransform");
-                    targetRootTransform = entry.OriginalTransform;
-                }
-
-                Debug.Log($"  -> targetRootTransform OBJETIVO = {SafeGetName(targetRootTransform)}");
-
-                // Copiar componente Y establecer rootTransform en un solo paso
-                // Esto evita que el SDK sobrescriba el valor
+                // Copiar componente Y establecer rootTransform
                 var newComponent = CopyComponentWithRootTransform(
                     entry.OriginalComponent,
                     newGameObject,
@@ -369,8 +366,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     result.AddWarning($"No se pudo copiar componente para {entry.GeneratedName}");
                     return false;
                 }
-
-                Debug.Log($"  newComponent.transform = {SafeGetName(newComponent.transform)} (nuevo GameObject)");
 
                 // Guardar referencias en la entrada para poder revertir
                 entry.OriginalSiblingIndex = entry.OriginalTransform.GetSiblingIndex();
@@ -404,7 +399,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         {
             try
             {
-                // Validación adicional
                 if (entry == null)
                 {
                     result.AddWarning("Entry de PhysBone es null");
@@ -423,14 +417,11 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     return false;
                 }
 
-                // Verificar que OriginalTransform no esté destruido
                 if (entry.OriginalTransform == null || !entry.OriginalTransform)
                 {
                     result.AddWarning($"OriginalTransform es null o destruido para {entry.GeneratedName}");
                     return false;
                 }
-
-                Debug.Log($"[PhysBoneRelocator] Iniciando reubicación de PhysBone: {entry.GeneratedName}");
 
                 // Obtener o crear contenedor
                 var container = GetOrCreateContainer(entry.Context, PHYSBONES_CONTAINER_NAME, _physBonesContainers);
@@ -448,20 +439,10 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 newGameObject.transform.localRotation = Quaternion.identity;
                 newGameObject.transform.localScale = Vector3.one;
 
-                // El rootTransform debe apuntar al hueso original donde estaba el componente
-                // Si entry.RootTransform es null o inválido, usar OriginalTransform
-                var targetRootTransform = entry.RootTransform;
-                if (targetRootTransform == null)
-                {
-                    targetRootTransform = entry.OriginalTransform;
-                }
+                // El rootTransform debe apuntar al hueso original
+                var targetRootTransform = entry.RootTransform ?? entry.OriginalTransform;
 
-                Debug.Log($"[PhysBoneRelocator] PhysBone '{entry.GeneratedName}': " +
-                          $"OriginalTransform={SafeGetName(entry.OriginalTransform)}, " +
-                          $"RootTransform={SafeGetName(entry.RootTransform)}, " +
-                          $"TargetRoot={SafeGetName(targetRootTransform)}");
-
-                // Copiar componente Y establecer rootTransform en un solo paso
+                // Copiar componente Y establecer rootTransform
                 var newComponent = CopyComponentWithRootTransform(
                     entry.OriginalComponent,
                     newGameObject,
@@ -483,7 +464,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 entry.RelocatedGameObject = newGameObject;
                 entry.RelocatedComponent = newComponent;
 
-                // Guardar mapeo para actualizar referencias en VRCConstraints
+                // Guardar mapeo
                 _physBoneMapping[entry.OriginalComponent] = newComponent;
 
                 // Marcar componente original para destrucción
@@ -566,216 +547,109 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         /// <summary>
         /// Copia un componente y establece su rootTransform.
-        /// IMPORTANTE: rootTransform se establece DURANTE la copia para evitar que VRChat SDK lo reinicialice.
+        /// Bug 3 fix: También copia el estado enabled del Behaviour.
+        /// Bug 4 fix: Itera toda la cadena de herencia con DeclaredOnly.
         /// </summary>
         private Component CopyComponentWithRootTransform(Component source, GameObject target, Transform newRootTransform, Type componentType)
         {
             if (source == null || target == null)
             {
-                Debug.LogWarning($"[PhysBoneRelocator] CopyComponentWithRootTransform: source o target es null");
+                Debug.LogWarning("[PhysBoneRelocator] CopyComponentWithRootTransform: source o target es null");
                 return null;
             }
 
             var sourceType = source.GetType();
-            Debug.Log($"[PhysBoneRelocator] CopyComponentWithRootTransform: copiando {sourceType.Name} de {SafeGetName(source.gameObject)} a {SafeGetName(target)}");
-            Debug.Log($"[PhysBoneRelocator] rootTransform objetivo: {SafeGetName(newRootTransform)}");
 
-            // NUEVO ENFOQUE: Crear componente via AddComponent y copiar campos manualmente,
-            // estableciendo rootTransform ANTES de copiar otros campos
             try
             {
                 var newComponent = target.AddComponent(sourceType);
                 if (newComponent == null)
                 {
-                    Debug.LogWarning($"[PhysBoneRelocator] CopyComponentWithRootTransform: AddComponent devolvió null para {sourceType.Name}");
+                    Debug.LogWarning($"[PhysBoneRelocator] AddComponent devolvió null para {sourceType.Name}");
                     return null;
                 }
 
-                // PRIMERO: Establecer rootTransform INMEDIATAMENTE después de crear el componente
+                // PRIMERO: Establecer rootTransform INMEDIATAMENTE
                 var rootTransformField = sourceType.GetField("rootTransform", BindingFlags.Public | BindingFlags.Instance);
                 if (rootTransformField != null)
                 {
-                    Debug.Log($"[PhysBoneRelocator] Estableciendo rootTransform ANTES de copiar otros campos");
                     rootTransformField.SetValue(newComponent, newRootTransform);
-                    var checkValue = rootTransformField.GetValue(newComponent) as Transform;
-                    Debug.Log($"[PhysBoneRelocator] rootTransform establecido a: {SafeGetName(checkValue)}");
                 }
 
-                // SEGUNDO: Copiar TODOS los campos EXCEPTO rootTransform
+                // SEGUNDO: Copiar TODOS los campos EXCEPTO rootTransform (Bug 4: incluye clases base)
                 CopyFieldsExcludingRootTransform(source, newComponent, sourceType, rootTransformField);
 
                 // TERCERO: Verificar que rootTransform NO fue sobrescrito
                 if (rootTransformField != null)
                 {
                     var finalValue = rootTransformField.GetValue(newComponent) as Transform;
-                    Debug.Log($"[PhysBoneRelocator] rootTransform FINAL después de copiar campos: {SafeGetName(finalValue)}");
-
-                    // Si fue sobrescrito, volver a establecerlo
                     if (finalValue != newRootTransform)
                     {
-                        Debug.LogWarning($"[PhysBoneRelocator] rootTransform fue sobrescrito durante la copia! Re-estableciendo...");
                         rootTransformField.SetValue(newComponent, newRootTransform);
-                        var recheck = rootTransformField.GetValue(newComponent) as Transform;
-                        Debug.Log($"[PhysBoneRelocator] rootTransform re-establecido a: {SafeGetName(recheck)}");
                     }
+                }
+
+                // Bug 3 fix: Copiar el estado enabled del Behaviour
+                if (source is Behaviour srcBehaviour && newComponent is Behaviour newBehaviour)
+                {
+                    newBehaviour.enabled = srcBehaviour.enabled;
                 }
 
 #if UNITY_EDITOR
                 UnityEditor.EditorUtility.SetDirty(newComponent);
 #endif
 
-                Debug.Log($"[PhysBoneRelocator] CopyComponentWithRootTransform: componente copiado exitosamente");
                 return newComponent;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PhysBoneRelocator] CopyComponentWithRootTransform: Error: {e.Message}\n{e.StackTrace}");
+                Debug.LogError($"[PhysBoneRelocator] Error copiando componente: {e.Message}\n{e.StackTrace}");
                 return null;
             }
         }
 
         /// <summary>
         /// Copia todos los campos excepto rootTransform.
+        /// Bug 4 fix: Itera toda la cadena de herencia usando DeclaredOnly para evitar duplicados.
         /// </summary>
         private void CopyFieldsExcludingRootTransform(Component source, Component target, Type type, FieldInfo rootTransformField)
         {
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            var currentType = type;
 
-            foreach (var field in fields)
+            while (currentType != null && currentType != typeof(Component))
             {
-                try
-                {
-                    // Saltar campos de solo lectura o constantes
-                    if (field.IsLiteral || field.IsInitOnly) continue;
+                var fields = currentType.GetFields(
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-                    // IMPORTANTE: Saltar el campo rootTransform
-                    if (rootTransformField != null && field == rootTransformField)
+                foreach (var field in fields)
+                {
+                    try
                     {
-                        Debug.Log($"[PhysBoneRelocator] Saltando campo rootTransform durante la copia");
-                        continue;
+                        if (field.IsLiteral || field.IsInitOnly) continue;
+
+                        // Saltar rootTransform
+                        if (rootTransformField != null && field == rootTransformField) continue;
+                        if (field.Name.Equals("rootTransform", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        var value = field.GetValue(source);
+                        field.SetValue(target, value);
                     }
-
-                    // Saltar campos que contengan "rootTransform" en el nombre (por si acaso)
-                    if (field.Name.ToLower().Contains("roottransform"))
+                    catch
                     {
-                        Debug.Log($"[PhysBoneRelocator] Saltando campo '{field.Name}' (contiene rootTransform)");
-                        continue;
-                    }
-
-                    var value = field.GetValue(source);
-                    field.SetValue(target, value);
-                }
-                catch
-                {
-                    // Ignorar errores de campos individuales
-                }
-            }
-        }
-
-        private void CopyFieldsViaReflection(Component source, Component target, Type type)
-        {
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
-            foreach (var field in fields)
-            {
-                try
-                {
-                    // Saltar campos de solo lectura o constantes
-                    if (field.IsLiteral || field.IsInitOnly) continue;
-
-                    var value = field.GetValue(source);
-                    field.SetValue(target, value);
-                }
-                catch
-                {
-                    // Ignorar errores de campos individuales
-                }
-            }
-        }
-
-        private void SetRootTransform(Component component, Transform rootTransform, Type componentType)
-        {
-            if (component == null || componentType == null) return;
-
-            Debug.Log($"[PhysBoneRelocator] SetRootTransform: component={SafeGetName(component)}, " +
-                      $"targetRoot={SafeGetName(rootTransform)}, type={componentType.Name}");
-
-            // NOTA: Usamos SOLO reflexión directa porque SerializedObject no persiste
-            // correctamente en el contexto de NDMF build.
-            try
-            {
-                var rootTransformField = componentType.GetField("rootTransform",
-                    BindingFlags.Public | BindingFlags.Instance);
-
-                if (rootTransformField == null)
-                {
-                    // Intentar con NonPublic también
-                    rootTransformField = componentType.GetField("rootTransform",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-                }
-
-                if (rootTransformField != null)
-                {
-                    var valueBefore = rootTransformField.GetValue(component) as Transform;
-                    Debug.Log($"[PhysBoneRelocator] Reflexión - Valor ANTES: {SafeGetName(valueBefore)}");
-
-                    // Establecer el valor
-                    rootTransformField.SetValue(component, rootTransform);
-
-                    // Verificar inmediatamente
-                    var valueAfter = rootTransformField.GetValue(component) as Transform;
-                    Debug.Log($"[PhysBoneRelocator] Reflexión - Valor DESPUÉS: {SafeGetName(valueAfter)}");
-
-                    if (valueAfter == rootTransform)
-                    {
-                        Debug.Log($"[PhysBoneRelocator] rootTransform configurado EXITOSAMENTE");
-                    }
-                    else
-                    {
-                        Debug.LogError($"[PhysBoneRelocator] El valor NO se estableció correctamente!");
-                        Debug.LogError($"  Esperado: {SafeGetName(rootTransform)}");
-                        Debug.LogError($"  Actual: {SafeGetName(valueAfter)}");
-                    }
-
-#if UNITY_EDITOR
-                    // Marcar el objeto como dirty para que Unity guarde los cambios
-                    UnityEditor.EditorUtility.SetDirty(component);
-#endif
-                }
-                else
-                {
-                    Debug.LogError($"[PhysBoneRelocator] No se encontró el campo 'rootTransform' en {componentType.Name}");
-
-                    // Debug: listar todos los campos disponibles
-                    var allFields = componentType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    Debug.Log($"[PhysBoneRelocator] Campos disponibles en {componentType.Name}:");
-                    foreach (var f in allFields)
-                    {
-                        if (f.FieldType == typeof(Transform))
-                        {
-                            Debug.Log($"  - {f.Name} (Transform)");
-                        }
+                        // Ignorar errores de campos individuales
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[PhysBoneRelocator] Error configurando rootTransform: {e.Message}\n{e.StackTrace}");
+
+                currentType = currentType.BaseType;
             }
         }
 
         private void UpdatePhysBoneColliderReferences(Component physBone)
         {
             if (physBone == null || _scanner.PhysBoneType == null) return;
-
-            if (_colliderMapping.Count == 0)
-            {
-                Debug.Log("[PhysBoneRelocator] No hay mapeo de colliders para actualizar");
-                return;
-            }
+            if (_colliderMapping.Count == 0) return;
 
 #if UNITY_EDITOR
-            // En editor, usar SerializedObject para actualizar referencias de colliders
             try
             {
                 var serializedObject = new SerializedObject(physBone);
@@ -794,7 +668,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                         {
                             elementProp.objectReferenceValue = newCollider;
                             anyUpdated = true;
-                            Debug.Log($"[PhysBoneRelocator] Referencia de collider actualizada: {SafeGetName(oldCollider?.gameObject)} -> {SafeGetName(newCollider?.gameObject)}");
                         }
                     }
 
@@ -820,7 +693,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 var collidersList = collidersField.GetValue(physBone);
                 if (collidersList == null) return;
 
-                // Verificar el tipo de la lista
                 var listType = collidersList.GetType();
                 if (!listType.IsGenericType) return;
 
@@ -838,7 +710,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     if (oldCollider != null && _colliderMapping.TryGetValue(oldCollider, out var newCollider))
                     {
                         itemProp.SetValue(collidersList, newCollider, new object[] { i });
-                        Debug.Log($"[PhysBoneRelocator] Referencia de collider actualizada via reflexión");
                     }
                 }
             }
@@ -848,26 +719,81 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             }
         }
 
-        #endregion
-
-        #region Utility Methods
-
         /// <summary>
-        /// Obtiene el nombre de un objeto de Unity de forma segura, manejando objetos destruidos.
+        /// Bug 1 fix: Actualiza las referencias de colliders en un PhysBone revertido
+        /// usando el mapeo de colliders (relocated → reverted).
         /// </summary>
-        private string SafeGetName(UnityEngine.Object obj)
+        private void UpdateRevertedPhysBoneColliderReferences(Component physBone, Dictionary<Component, Component> colliderRevertMapping)
         {
-            if (obj == null) return "null";
+            if (physBone == null || _scanner.PhysBoneType == null) return;
 
+#if UNITY_EDITOR
             try
             {
-                // Verificar si el objeto ha sido destruido (Unity fake null)
-                if (!obj) return "destroyed";
-                return obj.name;
+                var serializedObject = new SerializedObject(physBone);
+                var collidersProp = serializedObject.FindProperty("colliders");
+
+                if (collidersProp != null && collidersProp.isArray)
+                {
+                    bool anyUpdated = false;
+
+                    for (int i = 0; i < collidersProp.arraySize; i++)
+                    {
+                        var elementProp = collidersProp.GetArrayElementAtIndex(i);
+                        var oldCollider = elementProp.objectReferenceValue as Component;
+
+                        if (oldCollider != null && colliderRevertMapping.TryGetValue(oldCollider, out var revertedCollider))
+                        {
+                            elementProp.objectReferenceValue = revertedCollider;
+                            anyUpdated = true;
+                        }
+                    }
+
+                    if (anyUpdated)
+                    {
+                        serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                    }
+                    return;
+                }
             }
-            catch
+            catch (Exception e)
             {
-                return "error";
+                Debug.LogWarning($"[PhysBoneRelocator] Error actualizando colliders revertidos via SerializedObject: {e.Message}");
+            }
+#endif
+
+            // Fallback: reflexión
+            try
+            {
+                var collidersField = _scanner.PhysBoneType.GetField("colliders");
+                if (collidersField == null) return;
+
+                var collidersList = collidersField.GetValue(physBone);
+                if (collidersList == null) return;
+
+                var listType = collidersList.GetType();
+                if (!listType.IsGenericType) return;
+
+                var countProp = listType.GetProperty("Count");
+                var itemProp = listType.GetProperty("Item");
+
+                if (countProp == null || itemProp == null) return;
+
+                int count = (int)countProp.GetValue(collidersList);
+
+                for (int i = 0; i < count; i++)
+                {
+                    var oldCollider = itemProp.GetValue(collidersList, new object[] { i }) as Component;
+
+                    if (oldCollider != null && colliderRevertMapping.TryGetValue(oldCollider, out var revertedCollider))
+                    {
+                        itemProp.SetValue(collidersList, revertedCollider, new object[] { i });
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[PhysBoneRelocator] Error actualizando colliders revertidos via reflexión: {e.Message}");
             }
         }
 
@@ -901,7 +827,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 counter++;
                 if (counter > 1000)
                 {
-                    // Prevenir loop infinito
                     return $"{baseName}_{Guid.NewGuid().ToString().Substring(0, 8)}";
                 }
             }
@@ -913,6 +838,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         /// <summary>
         /// Revierte un Collider a su ubicación original.
+        /// Bug 2 fix: Restaura rootTransform original en vez de limpiar incondicionalmente.
+        /// Bug 3 fix: Copia el estado enabled.
         /// </summary>
         private bool RevertCollider(ColliderEntry entry, OrganizationResult result)
         {
@@ -930,8 +857,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     return false;
                 }
 
-                Debug.Log($"[PhysBoneRelocator] Revirtiendo collider: {entry.GeneratedName}");
-
                 // Crear el componente de vuelta en el GameObject original
                 var newComponent = CopyComponentSimple(entry.RelocatedComponent, entry.OriginalTransform.gameObject);
                 if (newComponent == null)
@@ -940,8 +865,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     return false;
                 }
 
-                // Limpiar rootTransform ya que ahora está en el hueso original
-                ClearRootTransform(newComponent, _scanner.PhysBoneColliderType);
+                // Bug 2 fix: Restaurar rootTransform original
+                RestoreRootTransform(newComponent, entry, _scanner.PhysBoneColliderType);
 
                 // Destruir el GameObject del contenedor
                 if (entry.RelocatedGameObject != null)
@@ -968,6 +893,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         /// <summary>
         /// Revierte un PhysBone a su ubicación original.
+        /// Bug 2 fix: Restaura rootTransform original en vez de limpiar incondicionalmente.
+        /// Bug 3 fix: Copia el estado enabled.
         /// </summary>
         private bool RevertPhysBone(PhysBoneEntry entry, OrganizationResult result)
         {
@@ -985,8 +912,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     return false;
                 }
 
-                Debug.Log($"[PhysBoneRelocator] Revirtiendo PhysBone: {entry.GeneratedName}");
-
                 // Crear el componente de vuelta en el GameObject original
                 var newComponent = CopyComponentSimple(entry.RelocatedComponent, entry.OriginalTransform.gameObject);
                 if (newComponent == null)
@@ -995,8 +920,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     return false;
                 }
 
-                // Limpiar rootTransform ya que ahora está en el hueso original
-                ClearRootTransform(newComponent, _scanner.PhysBoneType);
+                // Bug 2 fix: Restaurar rootTransform original
+                RestoreRootTransform(newComponent, entry, _scanner.PhysBoneType);
 
                 // Destruir el GameObject del contenedor
                 if (entry.RelocatedGameObject != null)
@@ -1023,6 +948,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         /// <summary>
         /// Copia un componente de forma simple (sin establecer rootTransform).
+        /// Bug 3 fix: Copia el estado enabled.
+        /// Bug 4 fix: Itera la cadena de herencia con DeclaredOnly.
         /// </summary>
         private Component CopyComponentSimple(Component source, GameObject target)
         {
@@ -1039,7 +966,15 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 var components = target.GetComponents(sourceType);
                 if (components.Length > 0)
                 {
-                    return components[components.Length - 1];
+                    var newComponent = components[components.Length - 1];
+
+                    // Bug 3 fix: Copiar estado enabled
+                    if (source is Behaviour srcBehaviour && newComponent is Behaviour newBehaviour)
+                    {
+                        newBehaviour.enabled = srcBehaviour.enabled;
+                    }
+
+                    return newComponent;
                 }
             }
             catch (Exception e)
@@ -1048,23 +983,38 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             }
 #endif
 
-            // Fallback: reflexión
+            // Fallback: reflexión (Bug 4 fix: iterar cadena de herencia)
             try
             {
                 var newComponent = target.AddComponent(sourceType);
                 if (newComponent != null)
                 {
-                    var fields = sourceType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    foreach (var field in fields)
+                    var currentType = sourceType;
+                    while (currentType != null && currentType != typeof(Component))
                     {
-                        if (field.IsLiteral || field.IsInitOnly) continue;
-                        try
+                        var fields = currentType.GetFields(
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+                        foreach (var field in fields)
                         {
-                            var value = field.GetValue(source);
-                            field.SetValue(newComponent, value);
+                            if (field.IsLiteral || field.IsInitOnly) continue;
+                            try
+                            {
+                                var value = field.GetValue(source);
+                                field.SetValue(newComponent, value);
+                            }
+                            catch { }
                         }
-                        catch { }
+
+                        currentType = currentType.BaseType;
                     }
+
+                    // Bug 3 fix: Copiar estado enabled
+                    if (source is Behaviour srcBehaviour && newComponent is Behaviour newBehaviour)
+                    {
+                        newBehaviour.enabled = srcBehaviour.enabled;
+                    }
+
                     return newComponent;
                 }
             }
@@ -1074,9 +1024,11 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         }
 
         /// <summary>
-        /// Limpia el campo rootTransform de un componente (lo pone a null).
+        /// Bug 2 fix: Restaura el rootTransform original de un componente.
+        /// Si RootTransform == OriginalTransform, el componente estaba en su propio hueso → poner null.
+        /// Si son diferentes, el componente tenía un rootTransform explícito → restaurar ese valor.
         /// </summary>
-        private void ClearRootTransform(Component component, Type componentType)
+        private void RestoreRootTransform(Component component, ComponentEntry entry, Type componentType)
         {
             if (component == null || componentType == null) return;
 
@@ -1085,17 +1037,27 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 var rootTransformField = componentType.GetField("rootTransform",
                     BindingFlags.Public | BindingFlags.Instance);
 
-                if (rootTransformField != null)
+                if (rootTransformField == null) return;
+
+                // Si RootTransform y OriginalTransform son iguales, el componente no tenía
+                // rootTransform explícito → poner null (el componente está de vuelta en su hueso)
+                if (entry.RootTransform == entry.OriginalTransform)
                 {
                     rootTransformField.SetValue(component, null);
-#if UNITY_EDITOR
-                    UnityEditor.EditorUtility.SetDirty(component);
-#endif
                 }
+                else
+                {
+                    // Tenía un rootTransform diferente → restaurar el valor original
+                    rootTransformField.SetValue(component, entry.RootTransform);
+                }
+
+#if UNITY_EDITOR
+                UnityEditor.EditorUtility.SetDirty(component);
+#endif
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[PhysBoneRelocator] Error limpiando rootTransform: {e.Message}");
+                Debug.LogWarning($"[PhysBoneRelocator] Error restaurando rootTransform: {e.Message}");
             }
         }
 

@@ -5,6 +5,25 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.26] - 2026-02-11
+
+### Corregido
+- **MROrganizaPB Revert**: El revert ahora restaura correctamente las referencias de colliders en PhysBones (antes se perdían al revertir porque los PhysBones se revertían primero)
+- **MROrganizaPB Revert**: El rootTransform original ahora se restaura correctamente al revertir (antes se ponía a null incondicionalmente, perdiendo rootTransforms explícitos)
+- **MROrganizaPB**: La copia de componentes ahora preserva el estado `enabled` del Behaviour (antes componentes desactivados se reactivaban al organizar)
+- **MROrganizaPB**: La copia por reflexión ahora itera toda la cadena de herencia de clases (antes solo copiaba campos del tipo más derivado, perdiendo campos de clases base del SDK)
+
+### Mejorado
+- **MROrganizaPB Editor**: Confirmación antes de organizar con diálogo mostrando cantidad de PhysBones y Colliders que serán movidos
+- **MROrganizaPB Editor**: Undo funciona correctamente para GameObjects creados durante la organización (contenedores e hijos)
+- **MROrganizaPB UI**: Renombrado "Todos/Ninguno" a "Incluir todos/Excluir todos" y "habilitados" a "incluidos" para evitar confusión con el estado `enabled` del componente
+
+### Eliminado
+- **PhysBoneRelocator**: Eliminados métodos muertos `CopyFieldsViaReflection()`, `SetRootTransform()` y `SafeGetName()`
+- **PhysBoneRelocator**: Eliminados ~40 logs de diagnóstico intermedios (mantenidos solo logs de inicio, éxito y error)
+- **ContextDetector**: Eliminadas entradas duplicadas en minúscula de `ArmatureNames` (la comparación ya usa `OrdinalIgnoreCase`)
+- **PhysBoneEntry/ColliderEntry**: Extraída clase base `ComponentEntry` eliminando ~160 líneas de código duplicado
+
 ## [0.8.25] - 2026-02-10
 
 ### Eliminado
