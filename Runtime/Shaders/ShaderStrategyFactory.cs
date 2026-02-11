@@ -72,16 +72,6 @@ namespace Bender_Dios.MenuRadial.Shaders
         }
         
         /// <summary>
-        /// Obtiene una estrategia por tipo de shader
-        /// </summary>
-        /// <param name="shaderType">Tipo de shader</param>
-        /// <returns>Estrategia del tipo especificado o null</returns>
-        public IShaderStrategy GetStrategy(ShaderType shaderType)
-        {
-            return _strategies.TryGetValue(shaderType, out var strategy) ? strategy : null;
-        }
-        
-        /// <summary>
         /// Verifica si un material es compatible con alguna estrategia
         /// </summary>
         /// <param name="material">Material a verificar</param>
@@ -89,17 +79,6 @@ namespace Bender_Dios.MenuRadial.Shaders
         public bool IsCompatible(Material material)
         {
             return GetStrategyForMaterial(material) != null;
-        }
-        
-        /// <summary>
-        /// Obtiene todas las estrategias registradas
-        /// </summary>
-        /// <returns>Lista de estrategias disponibles</returns>
-        public IShaderStrategy[] GetAllStrategies()
-        {
-            var strategies = new IShaderStrategy[_strategies.Count];
-            _strategies.Values.CopyTo(strategies, 0);
-            return strategies;
         }
         
     }

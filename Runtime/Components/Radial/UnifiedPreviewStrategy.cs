@@ -11,7 +11,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
     public class UnifiedPreviewStrategy
     {
         // Tipos de preview soportados
-        public enum PreviewType
+        public enum StrategyMode
         {
             None,
             Toggle,
@@ -22,7 +22,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         // Campos privados
         
         private readonly string _componentName;
-        private PreviewType _currentType;
+        private StrategyMode _currentType;
         private bool _isActive;
         
         // Estados guardados para restauración
@@ -44,7 +44,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         public UnifiedPreviewStrategy(string componentName)
         {
             _componentName = componentName ?? "Unknown";
-            _currentType = PreviewType.Toggle;
+            _currentType = StrategyMode.Toggle;
         }
         
         // Propiedades públicas
@@ -57,7 +57,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// <summary>
         /// Tipo de preview actual
         /// </summary>
-        public PreviewType CurrentType => _currentType;
+        public StrategyMode CurrentType => _currentType;
         
         /// <summary>
         /// Número de estados guardados
@@ -74,7 +74,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// <returns>Esta instancia para fluent API</returns>
         public UnifiedPreviewStrategy AsToggle(System.Action onActivate = null, System.Action onDeactivate = null)
         {
-            _currentType = PreviewType.Toggle;
+            _currentType = StrategyMode.Toggle;
             _onActivateCallback = onActivate;
             _onDeactivateCallback = onDeactivate;
             return this;
@@ -87,7 +87,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// <returns>Esta instancia para fluent API</returns>
         public UnifiedPreviewStrategy AsSlider(System.Action onApply = null)
         {
-            _currentType = PreviewType.Slider;
+            _currentType = StrategyMode.Slider;
             _onApplyCallback = onApply;
             return this;
         }
@@ -101,7 +101,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// <returns>Esta instancia para fluent API</returns>
         public UnifiedPreviewStrategy AsCustom(System.Action onActivate = null, System.Action onDeactivate = null, System.Action onApply = null)
         {
-            _currentType = PreviewType.Custom;
+            _currentType = StrategyMode.Custom;
             _onActivateCallback = onActivate;
             _onDeactivateCallback = onDeactivate;
             _onApplyCallback = onApply;
@@ -165,7 +165,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// <param name="applyAction">Acción que aplica el valor</param>
         public void ApplyNormalizedValue(float normalizedValue, System.Action<float> applyAction)
         {
-            if (!_isActive || _currentType != PreviewType.Slider) return;
+            if (!_isActive || _currentType != StrategyMode.Slider) return;
             
             normalizedValue = Mathf.Clamp01(normalizedValue);
             applyAction?.Invoke(normalizedValue);

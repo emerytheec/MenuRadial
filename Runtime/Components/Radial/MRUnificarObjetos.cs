@@ -283,7 +283,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 return;
                 
             _frames.Add(frameObject);
-            _menuState?.UpdateFrames(_frames);
+
             InvalidateValidation();
         }
         
@@ -301,7 +301,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 if (_activeFrameIndex >= FrameCount)
                     _activeFrameIndex = Mathf.Max(0, FrameCount - 1);
                     
-                _menuState?.UpdateFrames(_frames);
+    
                 InvalidateValidation();
             }
         }
@@ -336,7 +336,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
 
             // Añadir a la lista de frames
             _frames.Add(frameObject);
-            _menuState?.UpdateFrames(_frames);
+
             InvalidateValidation();
 
 #if UNITY_EDITOR
@@ -394,7 +394,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 if (_activeFrameIndex >= FrameCount)
                     _activeFrameIndex = Mathf.Max(0, FrameCount - 1);
                     
-                _menuState?.UpdateFrames(_frames);
+    
                 InvalidateValidation();
             }
         }
@@ -606,7 +606,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
             }
             
             // Actualizar estado agregado si existe
-            _menuState?.UpdateFrames(_frames);
+
             _menuState?.UpdateProperties(_animationName, _animationPath, _autoUpdatePaths);
         }
         

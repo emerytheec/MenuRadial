@@ -279,11 +279,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// <summary>
         /// Validez del slot
         /// </summary>
-        public bool isValid 
-        { 
-            get => !string.IsNullOrEmpty(slotName);
-            set { }
-        }
+        public bool isValid => !string.IsNullOrEmpty(slotName);
         
         /// <summary>
         /// Tipo de animación basado en el componente IAnimationProvider del targetObject

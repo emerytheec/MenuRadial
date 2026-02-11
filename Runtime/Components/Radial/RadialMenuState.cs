@@ -40,11 +40,6 @@ namespace Bender_Dios.MenuRadial.Components.Radial
 
         public bool IsInitialized => _isInitialized;
 
-        public void UpdateFrames(List<MRAgruparObjetos> frames)
-        {
-            // RadialFrameManager trabaja por referencia, no necesita actualización explícita
-        }
-
         public void UpdateProperties(string animationName = null, string animationPath = null, bool? autoUpdatePaths = null)
         {
             if (!_isInitialized) return;

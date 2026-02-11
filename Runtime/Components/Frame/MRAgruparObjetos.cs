@@ -77,10 +77,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         
         public int ActiveFrameIndex { get; set; } = 0;
         
-        public void SelectNextFrame() { }
-        public void SelectPreviousFrame() { }
-        public void SelectFrameByIndex(int index) { }
-        
         public void ApplyCurrentFrame()
         {
             if (_frameData == null)

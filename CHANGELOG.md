@@ -5,6 +5,20 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.27] - 2026-02-11
+
+### Eliminado
+- **FrameManager.cs**: Eliminada clase muerta (247 líneas) — nunca instanciada, puro wrapper delegando a FrameData
+- **RadialMenuState**: Eliminado método vacío `UpdateFrames()` y 5 callers en MRUnificarObjetos
+- **MRAgruparObjetos**: Eliminados 3 stubs vacíos (`SelectNextFrame`, `SelectPreviousFrame`, `SelectFrameByIndex`) — no son de interfaz
+- **IlluminationAnimationController**: Eliminados 2 bloques if vacíos sin lógica
+- **MRAnimationSlot**: Eliminado setter vacío de `isValid` — convertido a expression-bodied property
+- **ShaderStrategyFactory**: Eliminados métodos muertos `GetStrategy(ShaderType)` y `GetAllStrategies()`
+
+### Mejorado
+- **IFramePreviewStrategy.cs** → **FramePreviewStrategy.cs**: Renombrado archivo para coincidir con la clase que contiene
+- **UnifiedPreviewStrategy**: Renombrado enum anidado `PreviewType` → `StrategyMode` para evitar conflicto con el enum global `PreviewType`
+
 ## [0.8.26] - 2026-02-11
 
 ### Corregido

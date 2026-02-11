@@ -121,13 +121,6 @@ namespace Bender_Dios.MenuRadial.Components.Illumination.Controllers
                 RootObject  // CRÍTICO: Esto es lo que faltaba
             );
             
-            if (clip != null)
-            {
-            }
-            else
-            {
-            }
-            
             return clip;
         }
         
@@ -153,10 +146,6 @@ namespace Bender_Dios.MenuRadial.Components.Illumination.Controllers
                 savePath,
                 RootObject  // CRÍTICO: Esto es lo que faltaba
             );
-            
-            if (clip != null)
-            {
-            }
             
             return clip;
         }
