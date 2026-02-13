@@ -66,7 +66,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             string typeIndicator = GetTypeIndicator(targetObjectProp.objectReferenceValue as GameObject);
             if (!string.IsNullOrEmpty(typeIndicator))
             {
-                displayName = $"{displayName} [{typeIndicator}]";
+                displayName = $"{displayName} ({typeIndicator})";
             }
 
             property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, displayName, true);

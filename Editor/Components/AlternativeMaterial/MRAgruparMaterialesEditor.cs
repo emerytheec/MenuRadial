@@ -472,7 +472,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             EditorGUI.EndDisabledGroup();
 
             // Material actual (clickeable para hacer ping en Project)
-            string materialName = slot.CurrentMaterial != null ? slot.CurrentMaterial.name : "[None]";
+            string materialName = slot.CurrentMaterial != null ? slot.CurrentMaterial.name : "(Ninguno)";
 
             var materialButtonStyle = new GUIStyle(EditorStyles.textField)
             {
@@ -877,7 +877,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
             string slotName = slotResult.Slot.TargetRenderer != null
                 ? slotResult.Slot.TargetRenderer.name
-                : "[Missing]";
+                : "(Sin Renderer)";
 
             // Obtener el porcentaje más alto
             string bestConfidenceStr = "";
@@ -888,7 +888,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
             _slotSuggestionFoldouts[slotResult.Slot] = EditorGUILayout.Foldout(
                 _slotSuggestionFoldouts[slotResult.Slot],
-                $"{slotName} [{slotResult.Slot.MaterialIndex}] - {slotResult.SuggestionCount} sugerencias{bestConfidenceStr}",
+                $"{slotName} #{slotResult.Slot.MaterialIndex} - {slotResult.SuggestionCount} sugerencias{bestConfidenceStr}",
                 true);
 
             // Botón crear grupo para este slot

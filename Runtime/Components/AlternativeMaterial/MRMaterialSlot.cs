@@ -101,9 +101,9 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
         {
             get
             {
-                if (_targetRenderer == null) return "[Missing Renderer]";
+                if (_targetRenderer == null) return "(Sin Renderer)";
                 string rendererType = _targetRenderer is SkinnedMeshRenderer ? "SMR" : "MR";
-                return $"{_targetRenderer.name} ({rendererType}) [{_materialIndex}]";
+                return $"{_targetRenderer.name} ({rendererType}) #{_materialIndex}";
             }
         }
 

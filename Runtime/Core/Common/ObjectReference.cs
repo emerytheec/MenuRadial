@@ -124,7 +124,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// <returns>String descriptivo del objeto</returns>
         public override string ToString()
         {
-            var targetName = Target != null ? Target.name : "[Missing]";
+            var targetName = Target != null ? Target.name : "(Perdido)";
             return $"ObjectRef: {targetName} ({(_isActive ? "Active" : "Inactive")}) - {(IsValid ? "Valid" : "Invalid")}";
         }
     }

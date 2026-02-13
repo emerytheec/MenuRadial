@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.31] - 2026-02-13
+
+### Mejorado
+- **UI**: Eliminados corchetes `[]` de nombres y etiquetas en 12 archivos de 7+ componentes
+  - Tipos de animación: `[Radial]` → `(Radial)`, `[Illumination]` → `(Illumination)`
+  - Índices de material: `[0]` → `#0`
+  - Fallbacks: `[Missing]` → `(Sin Renderer)`, `[None]` → `(Ninguno)`
+  - Prefijos de estado: `[MA]` → `MA:`, `[MR]` → `MR:`
+  - Paths: `[Missing Transform]` → `(Sin Transform)`
+  - Referencias: `[Missing Reference]` → `(Sin Referencia)`
+
 ## [0.8.30] - 2026-02-13
 
 ### Corregido

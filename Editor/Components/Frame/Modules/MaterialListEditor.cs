@@ -206,7 +206,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             EditorGUILayout.BeginHorizontal();
             
             // Campo de renderer (solo lectura, mostramos el nombre)
-            string rendererName = matRef.TargetRenderer != null ? matRef.TargetRenderer.name : "[Missing]";
+            string rendererName = matRef.TargetRenderer != null ? matRef.TargetRenderer.name : "(Sin Renderer)";
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField(rendererName, GUILayout.Width(120));
             EditorGUI.EndDisabledGroup();
@@ -217,7 +217,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             EditorGUI.EndDisabledGroup();
             
             // Material base (CLICKEABLE para seleccionar en Project)
-            string originalMatName = matRef.OriginalMaterial != null ? matRef.OriginalMaterial.name : "[None]";
+            string originalMatName = matRef.OriginalMaterial != null ? matRef.OriginalMaterial.name : "(Ninguno)";
             
             // Crear estilo para botón que parece campo de texto
             var materialButtonStyle = new GUIStyle(EditorStyles.textField)

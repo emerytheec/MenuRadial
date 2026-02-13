@@ -19,7 +19,7 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         public static string GetHierarchyPath(Transform transform, Transform root = null)
         {
             if (transform == null)
-                return "[Missing Transform]";
+                return "(Sin Transform)";
                 
             // ✅ CRÍTICO: Si el transform ES el root, retornar cadena vacía (requerido por Unity)
             if (transform == root)
@@ -50,7 +50,7 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         public static string GetHierarchyPath(GameObject gameObject, Transform root = null)
         {
             if (gameObject == null)
-                return "[Missing GameObject]";
+                return "(Sin GameObject)";
                 
             return GetHierarchyPath(gameObject.transform, root);
         }
@@ -64,7 +64,7 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         public static string GetHierarchyPath(Component component, Transform root = null)
         {
             if (component == null)
-                return "[Missing Component]";
+                return "(Sin Componente)";
                 
             return GetHierarchyPath(component.transform, root);
         }
@@ -76,9 +76,9 @@ namespace Bender_Dios.MenuRadial.Core.Utils
         /// <returns>True si la ruta es válida</returns>
         public static bool IsValidPath(string path)
         {
-            return !string.IsNullOrEmpty(path) && 
-                   !path.StartsWith("[Missing") && 
-                   !path.Equals("[Missing Reference]");
+            return !string.IsNullOrEmpty(path) &&
+                   !path.StartsWith("(Sin ") &&
+                   !path.Equals("(Sin Referencia)");
         }
         
     }

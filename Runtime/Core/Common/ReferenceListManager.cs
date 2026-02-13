@@ -120,7 +120,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
             bool removed = _references.Remove(reference);
             if (removed)
             {
-                var targetName = reference.Target != null ? reference.Target.name : "[Unknown]";
+                var targetName = reference.Target != null ? reference.Target.name : "(Desconocido)";
             }
             
             return removed;
@@ -269,7 +269,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
             var invalidRefs = GetInvalidReferences();
             foreach (var invalidRef in invalidRefs)
             {
-                var targetName = invalidRef.Target != null ? invalidRef.Target.name : "[Missing]";
+                var targetName = invalidRef.Target != null ? invalidRef.Target.name : "(Perdido)";
                 result.AddChild(ValidationResult.Error("Referencia inválida: " + targetName));
             }
             

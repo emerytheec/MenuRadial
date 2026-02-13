@@ -295,7 +295,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 var cols = CalcCols(total);
 
                 // Renderer
-                string rendererName = blendRef.TargetRenderer != null ? blendRef.TargetRenderer.name : "[Missing]";
+                string rendererName = blendRef.TargetRenderer != null ? blendRef.TargetRenderer.name : "(Sin Renderer)";
                 var rendererButtonStyle = new GUIStyle(EditorStyles.textField)
                 {
                     normal = { textColor = blendRef.TargetRenderer != null ? Color.white : Color.red }

@@ -186,7 +186,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// <returns>Representación textual</returns>
         public override string ToString()
         {
-            string rendererName = Target != null ? Target.name : "[Missing]";
+            string rendererName = Target != null ? Target.name : "(Perdido)";
             return "BlendshapeRef: " + rendererName + "." + _blendshapeName + " = " + _value + " (" + (IsValid ? "Valid" : "Invalid") + ")"; 
         }
     }

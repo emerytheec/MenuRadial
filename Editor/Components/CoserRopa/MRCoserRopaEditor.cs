@@ -808,7 +808,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = ModularAvatarColor;
-                EditorGUILayout.LabelField($"[MA] {maCount} ropa(s) con Modular Avatar", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"MA: {maCount} ropa(s) con Modular Avatar", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
@@ -832,7 +832,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = EnabledColor;
-                EditorGUILayout.LabelField($"[MR] {enabledCount} ropa(s) lista(s) - {totalBones} huesos", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"MR: {enabledCount} ropa(s) lista(s) - {totalBones} huesos", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(

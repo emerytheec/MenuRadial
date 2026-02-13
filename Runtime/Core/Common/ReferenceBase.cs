@@ -80,7 +80,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
             }
             else
             {
-                _hierarchyPath = "[Missing Reference]";
+                _hierarchyPath = "(Sin Referencia)";
             }
         }
         
@@ -102,7 +102,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// <returns>String descriptivo de la referencia</returns>
         public override string ToString()
         {
-            var targetName = _target != null ? _target.name : "[Missing]";
+            var targetName = _target != null ? _target.name : "(Perdido)";
             var type = GetType().Name;
             return $"{type}: {targetName} ({(_target != null ? "Valid" : "Invalid")})";
         }

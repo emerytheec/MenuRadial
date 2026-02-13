@@ -192,11 +192,11 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// <returns>String descriptivo del material reference</returns>
         public override string ToString()
         {
-            var rendererName = Target != null ? Target.name : "[Missing]";
-            var altMaterialName = _alternativeMaterial != null ? _alternativeMaterial.name : "[None]";
-            var origMaterialName = _originalMaterial != null ? _originalMaterial.name : "[None]";
-            
-            return "MaterialRef: " + rendererName + "[" + _materialIndex + "] - " + origMaterialName + " → " + altMaterialName + " (" + (IsValid ? "Valid" : "Invalid") + ")";
+            var rendererName = Target != null ? Target.name : "(Perdido)";
+            var altMaterialName = _alternativeMaterial != null ? _alternativeMaterial.name : "(Ninguno)";
+            var origMaterialName = _originalMaterial != null ? _originalMaterial.name : "(Ninguno)";
+
+            return $"MaterialRef: {rendererName} #{_materialIndex} - {origMaterialName} → {altMaterialName} ({(IsValid ? "Valid" : "Invalid")})";
         }
     }
 }
