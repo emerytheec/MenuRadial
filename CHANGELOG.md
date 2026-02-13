@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.33] - 2026-02-13
+
+### Agregado
+- **Localización completa**: Sistema de 6 idiomas (es, en, zh, ja, ko, ru)
+  - 5 archivos JSON de idioma nuevos en `Localization/Resources/Locales/`
+  - ~680 líneas por archivo, ~300 keys organizadas en 16 secciones
+  - MRLocalization.cs: 6 nuevas secciones (menuRadial, organizaPB, analisisColision, pesoTexturas, localizationWindow, circularMenu)
+  - MRLocalizationKeys.cs: 6 nuevas clases de keys + keys adicionales en clases existentes
+- **13 editores localizados**: ~206 llamadas `MRLocalization.Get()` reemplazando strings hardcoded
+  - MRMenuRadialEditor (84), MRPesoTexturasEditor (64), MRAnalisisColisionEditor (58)
+  - MRCoserRopaEditor, MROrganizaPBEditor, MRLocalizationWindow
+  - ObjectListEditor, MaterialListEditor, BlendshapeListEditor, BlendshapeSelectionWindow
+  - MRUnificarObjetosUIRenderer, MRUnificarObjetosReorderableController, CircularLinearMenuWindow
+
+### Mejorado
+- **es.json**: Reescrito con todas las secciones nuevas y correcciones de valores para coserRopa y organizaPB
+
 ## [0.8.32] - 2026-02-13
 
 ### Eliminado

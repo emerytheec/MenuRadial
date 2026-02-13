@@ -3,6 +3,8 @@ using UnityEditor;
 using System.Collections.Generic;
 using System.Linq;
 using Bender_Dios.MenuRadial.Components.Frame;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.Frame
 {
@@ -60,7 +62,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
         /// <param name="frameObject">MRAgruparObjetos donde añadir los blendshapes</param>
         public static void ShowWindow(SkinnedMeshRenderer renderer, MRAgruparObjetos frameObject)
         {
-            var window = GetWindow<BlendshapeSelectionWindow>(true, "Seleccionar Blendshapes", true);
+            var window = GetWindow<BlendshapeSelectionWindow>(true, MRLocalization.Get(L.FrameModules.BSW_TITLE), true);
             window.Initialize(renderer, frameObject);
             
             // Centrar ventana
@@ -126,7 +128,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             
             if (_targetRenderer == null || _frameObject == null)
             {
-                EditorGUILayout.HelpBox("Error: Referencias inválidas. Cerrando ventana.", MessageType.Error);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.FrameModules.BSW_ERROR_REFS), MessageType.Error);
                 Close();
                 return;
             }
@@ -159,16 +161,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
         {
             EditorGUILayout.Space(10);
             
-            EditorGUILayout.LabelField("Seleccionar Blendshapes", _headerStyle);
-            EditorGUILayout.LabelField("Renderer: " + _targetRenderer.name, EditorStyles.centeredGreyMiniLabel);
-            
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_TITLE), _headerStyle);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_RENDERER_LABEL, _targetRenderer.name), EditorStyles.centeredGreyMiniLabel);
+
             EditorGUILayout.Space(10);
-            
-            EditorGUILayout.HelpBox(
-                "Selecciona los blendshapes que quieres añadir al frame. " +
-                "Los valores se inicializarán con los valores actuales de la escena.",
-                MessageType.Info
-            );
+
+            EditorGUILayout.HelpBox(MRLocalization.Get(L.FrameModules.BSW_HELP_TEXT), MessageType.Info);
             
             EditorGUILayout.Space(5);
         }
@@ -177,7 +175,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
         {
             EditorGUILayout.BeginHorizontal();
             
-            var newSelectAll = EditorGUILayout.Toggle("Seleccionar Todos", _selectAll);
+            var newSelectAll = EditorGUILayout.Toggle(MRLocalization.Get(L.FrameModules.BSW_SELECT_ALL), _selectAll);
             if (newSelectAll != _selectAll)
             {
                 _selectAll = newSelectAll;
@@ -199,19 +197,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
         {
             if (_blendshapeOptions.Count == 0)
             {
-                EditorGUILayout.HelpBox("No se encontraron blendshapes en este renderer.", MessageType.Warning);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.FrameModules.BSW_NO_BLENDSHAPES), MessageType.Warning);
                 return;
             }
             
             // Headers
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("✓", EditorStyles.boldLabel, GUILayout.Width(20));
-            EditorGUILayout.LabelField("Nombre", EditorStyles.boldLabel, GUILayout.Width(150));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_COL_CHECK), EditorStyles.boldLabel, GUILayout.Width(20));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_COL_NAME), EditorStyles.boldLabel, GUILayout.Width(150));
             // Columna "Base": valor actual leído del renderer
-            EditorGUILayout.LabelField("Base", EditorStyles.boldLabel, GUILayout.Width(50));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_COL_BASE), EditorStyles.boldLabel, GUILayout.Width(50));
             // Columna "Activo": valor que se guardará en el frame
-            EditorGUILayout.LabelField("Activo", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("Estado", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_COL_ACTIVE), EditorStyles.boldLabel, GUILayout.Width(60));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.BSW_COL_STATUS), EditorStyles.boldLabel);
             EditorGUILayout.EndHorizontal();
             
             // Separador
@@ -264,7 +262,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             EditorGUI.EndDisabledGroup();
             
             // Estado
-            string statusText = option.AlreadyExists ? "Ya existe" : "Nuevo";
+            string statusText = option.AlreadyExists ? MRLocalization.Get(L.FrameModules.BSW_ALREADY_EXISTS) : MRLocalization.Get(L.FrameModules.BSW_NEW);
             var statusStyle = option.AlreadyExists ? EditorStyles.helpBox : EditorStyles.miniLabel;
             EditorGUILayout.LabelField(statusText, statusStyle);
             
@@ -278,7 +276,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             EditorGUILayout.BeginHorizontal();
             
             // Botón Capturar Valores Actuales
-            if (GUILayout.Button("Capturar Valores Actuales", _buttonStyle))
+            if (GUILayout.Button(MRLocalization.Get(L.FrameModules.BSW_CAPTURE_VALUES), _buttonStyle))
             {
                 CaptureCurrentValues();
             }
@@ -286,7 +284,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             EditorGUILayout.Space(10);
             
             // Botón Cancelar
-            if (GUILayout.Button("Cancelar", _buttonStyle))
+            if (GUILayout.Button(MRLocalization.Get(L.Common.CANCEL), _buttonStyle))
             {
                 Close();
             }
@@ -294,7 +292,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             // Botón Aplicar
             GUI.backgroundColor = Color.green;
             var selectedCount = _blendshapeOptions.Count(o => o.IsSelected);
-            var buttonText = selectedCount > 0 ? $"Añadir ({selectedCount})" : "Añadir";
+            var buttonText = selectedCount > 0 ? MRLocalization.Get(L.FrameModules.BSW_ADD_COUNT, selectedCount) : MRLocalization.Get(L.FrameModules.BSW_ADD);
             
             EditorGUI.BeginDisabledGroup(selectedCount == 0);
             if (GUILayout.Button(buttonText, _buttonStyle))
@@ -364,11 +362,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             {
                 string failedList = string.Join(", ", failedBlendshapes);
                 EditorUtility.DisplayDialog(
-                    "Blendshapes - Resultado",
-                    $"Se añadieron {successCount} de {selectedOptions.Count} blendshapes.\n\n" +
-                    $"No se pudieron añadir:\n{failedList}\n\n" +
-                    "Revisa la consola para más detalles.",
-                    "OK"
+                    MRLocalization.Get(L.FrameModules.BSW_RESULT_TITLE),
+                    MRLocalization.Get(L.FrameModules.BSW_RESULT_MSG, successCount, selectedOptions.Count, failedList),
+                    MRLocalization.Get(L.Common.OK)
                 );
             }
         }

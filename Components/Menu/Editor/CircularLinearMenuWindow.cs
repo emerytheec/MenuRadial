@@ -3,6 +3,8 @@ using UnityEditor;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.Menu;
 using Bender_Dios.MenuRadial.Core.Common;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Components.Menu.Editor
 {
@@ -48,7 +50,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             }
             
             // Crear o enfocar la ventana
-            CircularLinearMenuWindow window = GetWindow<CircularLinearMenuWindow>(true, $"Menú Circular: {slotName}", true);
+            CircularLinearMenuWindow window = GetWindow<CircularLinearMenuWindow>(true, MRLocalization.Get(L.CircularMenu.WINDOW_TITLE, slotName), true);
             
             // Configurar la ventana
             window.position = new Rect(
@@ -64,7 +66,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             // Configurar datos
             window._targetRadialMenu = targetRadialMenu;
             window._parentControlMenu = parentControlMenu;
-            window._slotName = slotName ?? "Animación Linear";
+            window._slotName = slotName ?? MRLocalization.Get(L.CircularMenu.LINEAR_ANIMATION);
             
             // Inicializar renderizador circular
             Vector2 center = new Vector2(WINDOW_WIDTH * 0.5f, CIRCLE_AREA_HEIGHT * 0.5f + 30f);
@@ -79,26 +81,26 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
         private void OnEnable()
         {
             // Configurar título de la ventana
-            titleContent = new GUIContent($"🎯 {_slotName}", "Menú Circular para Animación Linear");
+            titleContent = new GUIContent($"🎯 {_slotName}", MRLocalization.Get(L.CircularMenu.WINDOW_TOOLTIP));
         }
         
         private void OnGUI()
         {
             if (_targetRadialMenu == null)
             {
-                DrawErrorMessage("Error: No hay MRUnificarObjetos asignado");
+                DrawErrorMessage(MRLocalization.Get(L.CircularMenu.ERROR_NO_TARGET));
                 return;
             }
             
             if (_targetRadialMenu.AnimationType != AnimationType.Linear)
             {
-                DrawErrorMessage($"Error: El tipo de animación no es Linear ({_targetRadialMenu.AnimationType})");
+                DrawErrorMessage(MRLocalization.Get(L.CircularMenu.ERROR_NOT_LINEAR, _targetRadialMenu.AnimationType));
                 return;
             }
             
             if (_targetRadialMenu.FrameCount < 3)
             {
-                DrawErrorMessage($"Error: Se requieren al menos 3 frames para animación Linear (actual: {_targetRadialMenu.FrameCount})");
+                DrawErrorMessage(MRLocalization.Get(L.CircularMenu.ERROR_MIN_FRAMES, _targetRadialMenu.FrameCount));
                 return;
             }
             
@@ -121,7 +123,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             EditorGUILayout.HelpBox(message, MessageType.Error);
             
             EditorGUILayout.Space(10f);
-            if (GUILayout.Button("Cerrar Ventana"))
+            if (GUILayout.Button(MRLocalization.Get(L.CircularMenu.CLOSE_WINDOW)))
             {
                 Close();
             }
@@ -139,10 +141,10 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             };
             
             EditorGUILayout.LabelField($"🎯 {_slotName}", titleStyle);
-            
+
             // Información básica
             GUIStyle infoStyle = new GUIStyle(EditorStyles.centeredGreyMiniLabel);
-            EditorGUILayout.LabelField($"Animación Linear • {_targetRadialMenu.FrameCount} frames • {_targetRadialMenu.AnimationName}", infoStyle);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CircularMenu.HEADER_INFO, _targetRadialMenu.FrameCount, _targetRadialMenu.AnimationName), infoStyle);
             
             EditorGUILayout.Space(10f);
         }
@@ -184,7 +186,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             // Control de preview
             EditorGUILayout.BeginHorizontal();
             
-            bool newPreviewEnabled = EditorGUILayout.Toggle("Preview en Tiempo Real", _previewEnabled);
+            bool newPreviewEnabled = EditorGUILayout.Toggle(MRLocalization.Get(L.CircularMenu.REALTIME_PREVIEW), _previewEnabled);
             if (newPreviewEnabled != _previewEnabled)
             {
                 _previewEnabled = newPreviewEnabled;
@@ -205,7 +207,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             EditorGUILayout.BeginHorizontal();
             
             GUI.enabled = _targetRadialMenu.ActiveFrame != null;
-            if (GUILayout.Button("🎨 Aplicar Frame Actual", GUILayout.Height(20f)))
+            if (GUILayout.Button($"🎨 {MRLocalization.Get(L.CircularMenu.APPLY_FRAME)}", GUILayout.Height(20f)))
             {
                 ApplyFramePreview();
             }
@@ -218,7 +220,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             // Información del frame actual
             if (_targetRadialMenu.ActiveFrame != null)
             {
-                string frameInfo = $"Frame Activo: {_targetRadialMenu.ActiveFrameIndex + 1}/{_targetRadialMenu.FrameCount} - {_targetRadialMenu.ActiveFrame.FrameName}";
+                string frameInfo = MRLocalization.Get(L.CircularMenu.ACTIVE_FRAME_INFO, _targetRadialMenu.ActiveFrameIndex + 1, _targetRadialMenu.FrameCount, _targetRadialMenu.ActiveFrame.FrameName);
                 EditorGUILayout.LabelField(frameInfo, EditorStyles.miniLabel);
             }
             
@@ -233,7 +235,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             EditorGUILayout.BeginHorizontal();
             
             // Botón volver al MRMenuControl
-            if (GUILayout.Button("← Volver al Menú", GUILayout.Height(25f)))
+            if (GUILayout.Button(MRLocalization.Get(L.CircularMenu.BACK_TO_MENU), GUILayout.Height(25f)))
             {
                 Close();
                 
@@ -247,7 +249,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
             GUILayout.FlexibleSpace();
             
             // Botón abrir MRUnificarObjetos completo
-            if (GUILayout.Button("Abrir Editor Completo", GUILayout.Height(25f)))
+            if (GUILayout.Button(MRLocalization.Get(L.CircularMenu.OPEN_FULL_EDITOR), GUILayout.Height(25f)))
             {
                 // Seleccionar el MRUnificarObjetos para abrir su editor completo
                 Selection.activeGameObject = _targetRadialMenu.gameObject;

@@ -8,6 +8,8 @@ using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.AlternativeMaterial;
 using Bender_Dios.MenuRadial.Components.UnifyMaterial;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 {
@@ -89,7 +91,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             {
                 EditorGUILayout.Space(5);
                 EditorGUILayout.HelpBox(
-                    "Arrastra tu avatar aqui para escanear sus texturas y calcular el peso estimado en VRAM.",
+                    MRLocalization.Get(L.PesoTexturas.DROP_AVATAR_HINT),
                     MessageType.Info);
             }
 
@@ -100,9 +102,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         private void DrawHeader()
         {
-            EditorGUILayout.LabelField("MR Peso Texturas", EditorStyleManager.HeaderStyle);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.TITLE), EditorStyleManager.HeaderStyle);
             EditorGUILayout.LabelField(
-                "Analiza el peso de texturas (VRAM) del avatar",
+                MRLocalization.Get(L.PesoTexturas.SUBTITLE),
                 EditorStyles.centeredGreyMiniLabel);
         }
 
@@ -126,14 +128,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         private void DrawScanOptions()
         {
-            EditorGUILayout.LabelField("Opciones de Escaneo", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.SCAN_OPTIONS), EditorStyles.boldLabel);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             // Incluir avatar base
             EditorGUI.BeginChangeCheck();
             bool newIncludeBase = EditorGUILayout.Toggle(
-                new GUIContent("Incluir Avatar Base", "Texturas del body, head, etc."),
+                new GUIContent(MRLocalization.Get(L.PesoTexturas.INCLUDE_AVATAR_BASE), MRLocalization.Get(L.PesoTexturas.INCLUDE_AVATAR_BASE_TOOLTIP)),
                 _target.IncludeAvatarBase);
             if (EditorGUI.EndChangeCheck())
             {
@@ -145,7 +147,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Incluir ropas
             EditorGUI.BeginChangeCheck();
             bool newIncludeClothing = EditorGUILayout.Toggle(
-                new GUIContent("Incluir Ropas", "Texturas de ropas detectadas por MRCoserRopa"),
+                new GUIContent(MRLocalization.Get(L.PesoTexturas.INCLUDE_CLOTHING), MRLocalization.Get(L.PesoTexturas.INCLUDE_CLOTHING_TOOLTIP)),
                 _target.IncludeClothing);
             if (EditorGUI.EndChangeCheck())
             {
@@ -157,7 +159,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Incluir materiales alternativos
             EditorGUI.BeginChangeCheck();
             bool newIncludeAltMaterials = EditorGUILayout.Toggle(
-                new GUIContent("Incluir Mat. Alternativos", "Texturas de MRUnificarMateriales y MRAgruparMateriales"),
+                new GUIContent(MRLocalization.Get(L.PesoTexturas.INCLUDE_ALT_MATERIALS), MRLocalization.Get(L.PesoTexturas.INCLUDE_ALT_MATERIALS_TOOLTIP)),
                 _target.IncludeAlternativeMaterials);
             if (EditorGUI.EndChangeCheck())
             {
@@ -179,7 +181,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             GUI.backgroundColor = HighlightColor;
             if (GUILayout.Button(
-                new GUIContent("Escanear Texturas", "Analiza todas las texturas del avatar y ropas"),
+                new GUIContent(MRLocalization.Get(L.PesoTexturas.SCAN_BUTTON), MRLocalization.Get(L.PesoTexturas.SCAN_BUTTON_TOOLTIP)),
                 GUILayout.Height(30)))
             {
                 ScanTextures();
@@ -190,7 +192,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             if (_target.IsScanned)
             {
                 if (GUILayout.Button(
-                    new GUIContent("Limpiar", "Limpiar resultados del escaneo"),
+                    new GUIContent(MRLocalization.Get(L.PesoTexturas.CLEAR_BUTTON), MRLocalization.Get(L.PesoTexturas.CLEAR_BUTTON_TOOLTIP)),
                     GUILayout.Height(30),
                     GUILayout.Width(80)))
                 {
@@ -209,7 +211,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         private void DrawSummarySection()
         {
-            EditorGUILayout.LabelField("Resumen", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.SUMMARY), EditorStyles.boldLabel);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -217,39 +219,39 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             bool exceedsLimit = _target.ExceedsVRChatLimit;
 
             // === DESGLOSE ===
-            EditorGUILayout.LabelField("Desglose de VRAM:", EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.VRAM_BREAKDOWN), EditorStyles.miniBoldLabel);
 
             // Texturas
-            DrawAssetRow("Texturas", _target.TotalEstimatedVRAM, $"{_target.TotalTextureCount} texturas");
+            DrawAssetRow(MRLocalization.Get(L.PesoTexturas.TEXTURES), _target.TotalEstimatedVRAM, $"{_target.TotalTextureCount} texturas");
 
             // Meshes
             if (_target.MeshVRAM > 0)
             {
-                DrawAssetRow("Meshes", _target.MeshVRAM, $"{_target.MeshCount} meshes");
+                DrawAssetRow(MRLocalization.Get(L.PesoTexturas.MESHES), _target.MeshVRAM, $"{_target.MeshCount} meshes");
             }
 
             // Blend Shapes
             if (_target.BlendShapeVRAM > 0)
             {
-                DrawAssetRow("Blend Shapes", _target.BlendShapeVRAM, $"{_target.BlendShapeCount} shapes");
+                DrawAssetRow(MRLocalization.Get(L.PesoTexturas.BLEND_SHAPES), _target.BlendShapeVRAM, $"{_target.BlendShapeCount} shapes");
             }
 
             // Animaciones
             if (_target.AnimationSize > 0)
             {
-                DrawAssetRow("Animaciones", _target.AnimationSize, $"{_target.AnimationClipCount} clips");
+                DrawAssetRow(MRLocalization.Get(L.PesoTexturas.ANIMATIONS), _target.AnimationSize, $"{_target.AnimationClipCount} clips");
             }
 
             // Materiales
             if (_target.MaterialSize > 0)
             {
-                DrawAssetRow("Materiales", _target.MaterialSize, null);
+                DrawAssetRow(MRLocalization.Get(L.PesoTexturas.MATERIALS), _target.MaterialSize, null);
             }
 
             // Audio
             if (_target.AudioSize > 0)
             {
-                DrawAssetRow("Audio", _target.AudioSize, null);
+                DrawAssetRow(MRLocalization.Get(L.PesoTexturas.AUDIO), _target.AudioSize, null);
             }
 
             EditorGUILayout.Space(5);
@@ -262,7 +264,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             // === TOTAL DEL BUNDLE ===
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Total Bundle:", EditorStyles.boldLabel, GUILayout.Width(100));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.TOTAL_BUNDLE), EditorStyles.boldLabel, GUILayout.Width(100));
             GUI.contentColor = exceedsLimit ? ErrorColor : Color.white;
             EditorGUILayout.LabelField(_target.TotalBundleSizeLabel, EditorStyles.boldLabel);
             GUI.contentColor = Color.white;
@@ -273,7 +275,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             {
                 EditorGUILayout.Space(2);
                 GUI.contentColor = ErrorColor;
-                EditorGUILayout.LabelField("Excede el limite de 500 MB de VRChat", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.EXCEEDS_LIMIT), EditorStyles.miniLabel);
                 GUI.contentColor = Color.white;
             }
 
@@ -327,18 +329,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             EditorGUILayout.LabelField(
                 EditorGUIUtility.IconContent("console.erroricon.sml"),
                 GUILayout.Width(20));
-            EditorGUILayout.LabelField("Mip Streaming Desactivado", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.MIP_STREAMING_DISABLED), EditorStyles.boldLabel);
             EditorGUILayout.EndHorizontal();
             GUI.contentColor = Color.white;
 
             EditorGUILayout.Space(3);
 
             EditorGUILayout.LabelField(
-                $"{missingCount} textura(s) no tienen Mip Streaming habilitado.",
+                MRLocalization.Get(L.PesoTexturas.MIP_STREAMING_COUNT, missingCount),
                 EditorStyles.miniLabel);
 
             EditorGUILayout.LabelField(
-                "VRChat requiere Mip Streaming para subir el avatar.",
+                MRLocalization.Get(L.PesoTexturas.MIP_STREAMING_REQUIRED),
                 EditorStyles.miniLabel);
 
             EditorGUILayout.Space(5);
@@ -346,8 +348,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Boton para habilitar Mip Streaming
             GUI.backgroundColor = ErrorColor;
             if (GUILayout.Button(
-                new GUIContent($"Habilitar Mip Streaming en {missingCount} textura(s)",
-                    "Activa Mip Streaming en todas las texturas que lo requieren"),
+                new GUIContent(MRLocalization.Get(L.PesoTexturas.ENABLE_MIP_STREAMING, missingCount),
+                    MRLocalization.Get(L.PesoTexturas.ENABLE_MIP_STREAMING_TOOLTIP)),
                 GUILayout.Height(25)))
             {
                 EnableMipStreamingInAllTextures();
@@ -375,10 +377,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             {
                 Debug.Log($"[MRPesoTexturas] Se habilito Mip Streaming en {fixedCount} textura(s).");
                 EditorUtility.DisplayDialog(
-                    "Mip Streaming Habilitado",
-                    $"Se habilito Mip Streaming en {fixedCount} textura(s).\n\n" +
-                    "Las texturas han sido reimportadas.",
-                    "OK");
+                    MRLocalization.Get(L.PesoTexturas.MIP_STREAMING_ENABLED),
+                    MRLocalization.Get(L.PesoTexturas.MIP_STREAMING_RESULT, fixedCount),
+                    MRLocalization.Get(L.Common.OK));
             }
             else
             {
@@ -399,7 +400,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             if (!canStepDown && historyCount == 0)
                 return;
 
-            EditorGUILayout.LabelField("Optimizacion de Texturas", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.OPTIMIZATION), EditorStyles.boldLabel);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -414,12 +415,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 // Preview visual
                 GUI.contentColor = SavingsColor;
                 EditorGUILayout.LabelField(
-                    $"Si reduces un paso: {VRChatTextureWeightCalculator.FormatBytes(currentTotal)} -> {VRChatTextureWeightCalculator.FormatBytes(afterStepDown)}",
+                    MRLocalization.Get(L.PesoTexturas.STEP_DOWN_PREVIEW, VRChatTextureWeightCalculator.FormatBytes(currentTotal), VRChatTextureWeightCalculator.FormatBytes(afterStepDown)),
                     EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
-                    $"Ahorro: {VRChatTextureWeightCalculator.FormatBytes(savings)} (-{savingsPercent:F1}%)",
+                    MRLocalization.Get(L.PesoTexturas.SAVINGS, VRChatTextureWeightCalculator.FormatBytes(savings), savingsPercent),
                     EditorStyles.miniLabel);
             }
 
@@ -430,14 +431,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     EditorGUILayout.Space(3);
 
                 GUI.contentColor = WarningColor;
-                EditorGUILayout.LabelField($"{historyCount} textura(s) modificadas (pueden restaurarse)", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.MODIFIED_TEXTURES, historyCount), EditorStyles.miniLabel);
                 GUI.contentColor = Color.white;
             }
 
             EditorGUILayout.Space(5);
 
             // Foldout para mostrar botones
-            _showReduceOptions = EditorGUILayout.Foldout(_showReduceOptions, "Opciones", true);
+            _showReduceOptions = EditorGUILayout.Foldout(_showReduceOptions, MRLocalization.Get(L.PesoTexturas.OPTIONS), true);
 
             if (_showReduceOptions)
             {
@@ -448,15 +449,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 {
                     GUI.backgroundColor = SavingsColor;
                     if (GUILayout.Button(
-                        new GUIContent("Reducir Todas (1 paso)", "Reduce la resolucion de las texturas mas grandes un paso"),
+                        new GUIContent(MRLocalization.Get(L.PesoTexturas.REDUCE_ALL), MRLocalization.Get(L.PesoTexturas.REDUCE_ALL_TOOLTIP)),
                         GUILayout.Height(25)))
                     {
                         if (EditorUtility.DisplayDialog(
-                            "Confirmar Reduccion",
-                            $"Esto reducira la resolucion de las texturas mas grandes un paso.\n\n" +
-                            $"Ahorro estimado: {VRChatTextureWeightCalculator.FormatBytes(_target.GetPotentialSavings())}\n\n" +
-                            "Este cambio modifica los archivos de textura.",
-                            "Reducir", "Cancelar"))
+                            MRLocalization.Get(L.PesoTexturas.CONFIRM_REDUCTION),
+                            MRLocalization.Get(L.PesoTexturas.CONFIRM_REDUCTION_MSG, VRChatTextureWeightCalculator.FormatBytes(_target.GetPotentialSavings())),
+                            MRLocalization.Get(L.PesoTexturas.REDUCE), MRLocalization.Get(L.Common.CANCEL)))
                         {
                             StepDownAllTextures();
                         }
@@ -470,14 +469,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     EditorGUILayout.Space(3);
                     GUI.backgroundColor = WarningColor;
                     if (GUILayout.Button(
-                        new GUIContent($"Restaurar Todas ({historyCount})", "Restaura todas las texturas a su resolucion original"),
+                        new GUIContent(MRLocalization.Get(L.PesoTexturas.RESTORE_ALL, historyCount), MRLocalization.Get(L.PesoTexturas.RESTORE_ALL_TOOLTIP)),
                         GUILayout.Height(25)))
                     {
                         if (EditorUtility.DisplayDialog(
-                            "Confirmar Restauracion",
-                            $"Esto restaurara {historyCount} textura(s) a su resolucion original.\n\n" +
-                            "Los archivos de textura seran modificados.",
-                            "Restaurar", "Cancelar"))
+                            MRLocalization.Get(L.PesoTexturas.CONFIRM_RESTORE),
+                            MRLocalization.Get(L.PesoTexturas.CONFIRM_RESTORE_MSG, historyCount),
+                            MRLocalization.Get(L.PesoTexturas.RESTORE), MRLocalization.Get(L.Common.CANCEL)))
                         {
                             RestoreAllTextures();
                         }
@@ -495,11 +493,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
         private void DrawGroupList()
         {
-            EditorGUILayout.LabelField("Grupos de Texturas", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.TEXTURE_GROUPS), EditorStyles.boldLabel);
 
             if (_target.GroupCount == 0)
             {
-                EditorGUILayout.HelpBox("No se encontraron texturas.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.PesoTexturas.NO_TEXTURES_FOUND), MessageType.Info);
                 return;
             }
 
@@ -549,12 +547,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             int restorableCount = TextureScanner.GetRestorableCountInGroup(group);
             GUI.enabled = restorableCount > 0;
             GUI.backgroundColor = WarningColor;
-            if (GUILayout.Button(new GUIContent("↺", $"Restaurar {restorableCount} textura(s) a su resolucion original"), GUILayout.Width(25)))
+            if (GUILayout.Button(new GUIContent("↺", MRLocalization.Get(L.PesoTexturas.RESTORE_GROUP_TOOLTIP, restorableCount)), GUILayout.Width(25)))
             {
                 if (EditorUtility.DisplayDialog(
-                    "Confirmar Restauracion",
-                    $"Restaurar {restorableCount} textura(s) del grupo '{group.SourceName}' a su resolucion original?",
-                    "Restaurar", "Cancelar"))
+                    MRLocalization.Get(L.PesoTexturas.CONFIRM_RESTORE),
+                    MRLocalization.Get(L.PesoTexturas.CONFIRM_RESTORE_GROUP, restorableCount, group.SourceName),
+                    MRLocalization.Get(L.PesoTexturas.RESTORE), MRLocalization.Get(L.Common.CANCEL)))
                 {
                     RestoreGroup(group);
                 }
@@ -565,13 +563,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Boton step-down individual
             GUI.enabled = group.IsEnabled && group.CanStepDown();
             GUI.backgroundColor = SavingsColor;
-            if (GUILayout.Button(new GUIContent("↓", "Reducir resolucion un paso"), GUILayout.Width(25)))
+            if (GUILayout.Button(new GUIContent("↓", MRLocalization.Get(L.PesoTexturas.STEP_DOWN_TOOLTIP)), GUILayout.Width(25)))
             {
                 if (EditorUtility.DisplayDialog(
-                    "Confirmar Reduccion",
-                    $"Reducir las texturas del grupo '{group.SourceName}'?\n\n" +
-                    $"Ahorro estimado: {VRChatTextureWeightCalculator.FormatBytes(group.GetPotentialSavings())}",
-                    "Reducir", "Cancelar"))
+                    MRLocalization.Get(L.PesoTexturas.CONFIRM_REDUCTION),
+                    MRLocalization.Get(L.PesoTexturas.CONFIRM_REDUCE_GROUP, group.SourceName, VRChatTextureWeightCalculator.FormatBytes(group.GetPotentialSavings())),
+                    MRLocalization.Get(L.PesoTexturas.REDUCE), MRLocalization.Get(L.Common.CANCEL)))
                 {
                     StepDownGroup(group);
                 }
@@ -599,17 +596,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Info del grupo
             string typeLabel = group.GroupType switch
             {
-                TextureGroupType.AvatarBase => "Avatar Base",
-                TextureGroupType.Clothing => "Ropa",
-                TextureGroupType.AlternativeMaterials => "Materiales Alternativos",
-                _ => "Desconocido"
+                TextureGroupType.AvatarBase => MRLocalization.Get(L.PesoTexturas.AVATAR_BASE),
+                TextureGroupType.Clothing => MRLocalization.Get(L.PesoTexturas.CLOTHING),
+                TextureGroupType.AlternativeMaterials => MRLocalization.Get(L.PesoTexturas.ALT_MATERIALS),
+                _ => MRLocalization.Get(L.MenuRadialEditor.UNKNOWN)
             };
-            EditorGUILayout.LabelField($"Tipo: {typeLabel}", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.TYPE_LABEL, typeLabel), EditorStyles.miniLabel);
 
             if (group.SourceObject != null)
             {
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("Fuente:", EditorStyles.miniLabel, GUILayout.Width(50));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.SOURCE), EditorStyles.miniLabel, GUILayout.Width(50));
                 EditorGUI.BeginDisabledGroup(true);
                 EditorGUILayout.ObjectField(group.SourceObject, typeof(GameObject), true);
                 EditorGUI.EndDisabledGroup();
@@ -626,11 +623,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Header de tabla
             var headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 20f };
             EditorGUILayout.BeginHorizontal(headerStyle);
-            EditorGUILayout.LabelField("Textura", EditorStyles.miniBoldLabel, GUILayout.Width(nameWidth));
-            EditorGUILayout.LabelField("Resolucion", EditorStyles.miniBoldLabel, GUILayout.Width(110));
-            EditorGUILayout.LabelField("Peso", EditorStyles.miniBoldLabel, GUILayout.Width(55));
-            EditorGUILayout.LabelField("Alpha", EditorStyles.miniBoldLabel, GUILayout.Width(45));
-            EditorGUILayout.LabelField("Mips", EditorStyles.miniBoldLabel, GUILayout.Width(38));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.COL_TEXTURE), EditorStyles.miniBoldLabel, GUILayout.Width(nameWidth));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.COL_RESOLUTION), EditorStyles.miniBoldLabel, GUILayout.Width(110));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.COL_WEIGHT), EditorStyles.miniBoldLabel, GUILayout.Width(55));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.COL_ALPHA), EditorStyles.miniBoldLabel, GUILayout.Width(45));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.COL_MIPS), EditorStyles.miniBoldLabel, GUILayout.Width(38));
             EditorGUILayout.EndHorizontal();
 
             // Lista de texturas
@@ -1157,9 +1154,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             Debug.Log($"[MRPesoTexturas] Se restauraron {restored} texturas a su resolucion original.");
 
             EditorUtility.DisplayDialog(
-                "Restauracion Completada",
-                $"Se restauraron {restored} textura(s) a su resolucion original.",
-                "OK");
+                MRLocalization.Get(L.PesoTexturas.RESTORE_COMPLETED),
+                MRLocalization.Get(L.PesoTexturas.RESTORE_RESULT, restored),
+                MRLocalization.Get(L.Common.OK));
         }
 
         private void RestoreGroup(TextureGroupEntry group)

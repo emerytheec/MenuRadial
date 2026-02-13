@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEditor;
 using System.Linq;
 using Bender_Dios.MenuRadial.Components.Frame;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
 {
@@ -30,7 +32,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             if (_target == null) return;
             
             var materialCount = _target.GetCounts().Materials;
-            var foldoutText = $"Materiales del Frame ({materialCount})";
+            var foldoutText = MRLocalization.Get(L.FrameModules.MATERIALS_FOLDOUT, materialCount);
             
             _target.ShowMaterialList = EditorGUILayout.Foldout(_target.ShowMaterialList, foldoutText, EditorStyleManager.FoldoutStyle);
             
@@ -55,13 +57,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             if (_target.MaterialReferences.Count == 0)
             {
-                mainText = "Arrastra GameObjects aquí";
-                subText = "Objetos con Renderer o SkinnedMeshRenderer";
+                mainText = MRLocalization.Get(L.FrameModules.DROP_MATERIALS_MAIN);
+                subText = MRLocalization.Get(L.FrameModules.DROP_MATERIALS_SUB);
             }
             else
             {
-                mainText = "Arrastra más objetos";
-                subText = "Añadir materiales al frame";
+                mainText = MRLocalization.Get(L.FrameModules.DROP_MORE_MATERIALS_MAIN);
+                subText = MRLocalization.Get(L.FrameModules.DROP_MORE_MATERIALS_SUB);
             }
             
             // Crear rect para el área de drop
@@ -132,15 +134,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             // Botones normales
             EditorStyleManager.DrawManagementButtons(
-                ("Actualizar Originales", () => {
+                (MRLocalization.Get(L.FrameModules.UPDATE_ORIGINALS), () => {
                     _target.UpdateAllOriginalMaterials();
                     EditorUtility.SetDirty(_target);
                 }),
-                ("Recalcular Rutas", () => {
+                (MRLocalization.Get(L.FrameModules.RECALCULATE_PATHS), () => {
                     _target.UpdateAllMaterialRendererPaths();
                     EditorUtility.SetDirty(_target);
                 }),
-                ("Limpiar Inválidos", () => {
+                (MRLocalization.Get(L.FrameModules.CLEAN_INVALIDS), () => {
                     _target.RemoveInvalidMaterialReferences();
                     EditorUtility.SetDirty(_target);
                 })
@@ -148,11 +150,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             // Botón de limpiar todos (con color rojo)
             EditorStyleManager.WithColor(Color.red, () => {
-                if (GUILayout.Button("Limpiar Todos", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.CLEAN_ALL), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
                 {
-                    if (EditorUtility.DisplayDialog("Confirmar", 
-                        "¿Estás seguro de que quieres eliminar todos los materiales del frame?", 
-                        "Sí", "Cancelar"))
+                    if (EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.CONFIRM),
+                        MRLocalization.Get(L.FrameModules.CLEAN_ALL_MATERIALS_CONFIRM),
+                        MRLocalization.Get(L.Common.YES), MRLocalization.Get(L.Common.CANCEL)))
                     {
                         _target.ClearMaterials();
                         EditorUtility.SetDirty(_target);
@@ -170,17 +172,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         {
             if (_target.MaterialReferences.Count == 0)
             {
-                EditorGUILayout.HelpBox("No hay materiales en este frame. Arrastra GameObjects con Renderer al área superior para añadirlos.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.FrameModules.NO_MATERIALS_HINT), MessageType.Info);
                 return;
             }
             
             // Headers de tabla
             EditorStyleManager.DrawTableHeader(
-                ("Renderer", 120),
-                ("Idx", 30),
-                ("Base", 80),
-                ("Activo", 0),
-                ("", 60) // Espacio para botones
+                (MRLocalization.Get(L.FrameModules.COL_RENDERER), 120),
+                (MRLocalization.Get(L.FrameModules.COL_IDX), 30),
+                (MRLocalization.Get(L.FrameModules.COL_BASE), 80),
+                (MRLocalization.Get(L.FrameModules.COL_ACTIVE_MAT), 0),
+                ("", 60)
             );
             
             // Lista de materiales
@@ -206,7 +208,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             EditorGUILayout.BeginHorizontal();
             
             // Campo de renderer (solo lectura, mostramos el nombre)
-            string rendererName = matRef.TargetRenderer != null ? matRef.TargetRenderer.name : "(Sin Renderer)";
+            string rendererName = matRef.TargetRenderer != null ? matRef.TargetRenderer.name : MRLocalization.Get(L.FrameModules.NO_RENDERER);
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField(rendererName, GUILayout.Width(120));
             EditorGUI.EndDisabledGroup();
@@ -217,7 +219,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             EditorGUI.EndDisabledGroup();
             
             // Material base (CLICKEABLE para seleccionar en Project)
-            string originalMatName = matRef.OriginalMaterial != null ? matRef.OriginalMaterial.name : "(Ninguno)";
+            string originalMatName = matRef.OriginalMaterial != null ? matRef.OriginalMaterial.name : MRLocalization.Get(L.FrameModules.NO_NONE);
             
             // Crear estilo para botón que parece campo de texto
             var materialButtonStyle = new GUIStyle(EditorStyles.textField)
@@ -250,7 +252,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             }
             
             // Botón de seleccionar renderer en hierarchy
-            if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", "Seleccionar Renderer"))
+            if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", MRLocalization.Get(L.FrameModules.SELECT_RENDERER)))
             {
                 if (matRef.TargetRenderer != null)
                 {
@@ -275,7 +277,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.Space(125); // Alinear con el campo de renderer
-                EditorGUILayout.LabelField($"Última ruta conocida: {matRef.RendererPath}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.LAST_KNOWN_PATH, matRef.RendererPath), EditorStyles.miniLabel);
                 EditorGUILayout.EndHorizontal();
             }
             

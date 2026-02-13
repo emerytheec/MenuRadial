@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Localization.Editor
 {
@@ -59,37 +60,37 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
 
         private void DrawHeader()
         {
-            EditorGUILayout.LabelField("MR Localization", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Sistema de internacionalizacion para Menu Radial",
+            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.TITLE), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.SUBTITLE),
                 EditorStyles.miniLabel);
         }
 
         private void DrawCurrentLocaleSection()
         {
-            EditorGUILayout.LabelField("Idioma Actual", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.CURRENT_LANGUAGE), EditorStyles.boldLabel);
 
             using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.LabelField("Codigo:", GUILayout.Width(60));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.CODE_LABEL), GUILayout.Width(60));
                 EditorGUILayout.LabelField(MRLocalization.CurrentLocale, EditorStyles.boldLabel);
 
-                EditorGUILayout.LabelField("Nombre:", GUILayout.Width(60));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.NAME_LABEL), GUILayout.Width(60));
                 EditorGUILayout.LabelField(MRLocalization.GetLocaleName(MRLocalization.CurrentLocale));
             }
 
-            EditorGUILayout.LabelField($"Estado: {(MRLocalization.IsInitialized ? "Inicializado" : "No inicializado")}",
-                EditorStyles.miniLabel);
+            var statusText = MRLocalization.IsInitialized ? MRLocalization.Get(L.LocalizationWindow.STATUS_INITIALIZED) : MRLocalization.Get(L.LocalizationWindow.STATUS_NOT_INITIALIZED);
+            EditorGUILayout.LabelField($"Estado: {statusText}", EditorStyles.miniLabel);
         }
 
         private void DrawAvailableLocalesSection()
         {
-            EditorGUILayout.LabelField("Idiomas Disponibles", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.AVAILABLE_LANGUAGES), EditorStyles.boldLabel);
 
             var locales = MRLocalization.GetAvailableLocales();
 
             if (locales == null || locales.Length == 0)
             {
-                EditorGUILayout.HelpBox("No se encontraron archivos de idioma en Resources/Locales/",
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.LocalizationWindow.NO_LOCALE_FILES),
                     MessageType.Warning);
                 return;
             }
@@ -116,12 +117,12 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
                         if (isCurrent)
                         {
                             GUILayout.FlexibleSpace();
-                            EditorGUILayout.LabelField("< Actual", EditorStyles.miniLabel, GUILayout.Width(60));
+                            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.CURRENT_MARKER), EditorStyles.miniLabel, GUILayout.Width(60));
                         }
                         else
                         {
                             GUILayout.FlexibleSpace();
-                            if (GUILayout.Button("Seleccionar", GUILayout.Width(80)))
+                            if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.SELECT_BUTTON), GUILayout.Width(80)))
                             {
                                 MRLocalization.SetLocale(locale);
                             }
@@ -133,20 +134,20 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
 
         private void DrawTestSection()
         {
-            EditorGUILayout.LabelField("Probar Traduccion", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.TEST_TRANSLATION), EditorStyles.boldLabel);
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                _testKey = EditorGUILayout.TextField("Key:", _testKey);
+                _testKey = EditorGUILayout.TextField(MRLocalization.Get(L.LocalizationWindow.KEY_LABEL), _testKey);
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Obtener", GUILayout.Width(80)))
+                    if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.GET_BUTTON), GUILayout.Width(80)))
                     {
                         _testResult = MRLocalization.Get(_testKey);
                     }
 
-                    if (GUILayout.Button("Con Param", GUILayout.Width(80)))
+                    if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.WITH_PARAM), GUILayout.Width(80)))
                     {
                         _testResult = MRLocalization.Get(_testKey, 5, "test");
                     }
@@ -155,7 +156,7 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
                 if (!string.IsNullOrEmpty(_testResult))
                 {
                     EditorGUILayout.Space(5);
-                    EditorGUILayout.LabelField("Resultado:", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.RESULT_LABEL), EditorStyles.miniLabel);
                     EditorGUILayout.TextArea(_testResult, EditorStyles.wordWrappedLabel);
                 }
             }
@@ -163,11 +164,11 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
 
         private void DrawActionsSection()
         {
-            EditorGUILayout.LabelField("Acciones", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.ACTIONS), EditorStyles.boldLabel);
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                if (GUILayout.Button("Recargar Traducciones"))
+                if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.RELOAD_TRANSLATIONS)))
                 {
                     MRLocalization.ReloadTranslations();
                     Debug.Log("[MRLocalization] Traducciones recargadas");
@@ -175,7 +176,7 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
 
                 EditorGUILayout.Space(5);
 
-                if (GUILayout.Button("Abrir Carpeta de Locales"))
+                if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.OPEN_LOCALES_FOLDER)))
                 {
                     // Buscar la carpeta Locales en cualquier ubicación (Assets o Packages)
                     string[] guids = AssetDatabase.FindAssets("Locales", new[] { "Assets", "Packages" });
@@ -203,7 +204,7 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
 
                 EditorGUILayout.Space(5);
 
-                if (GUILayout.Button("Resetear a Idioma de Unity"))
+                if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.RESET_TO_UNITY)))
                 {
                     EditorPrefs.DeleteKey("MRLocalization_Locale");
                     MRLocalization.ReloadTranslations();

@@ -3,6 +3,8 @@ using UnityEditor;
 using System.Collections.Generic;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 {
@@ -99,7 +101,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             else
             {
                 EditorGUILayout.Space(5);
-                EditorGUILayout.HelpBox("Arrastra tu avatar aquí para comenzar.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.OrganizaPB.DROP_AVATAR_HINT), MessageType.Info);
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -111,8 +113,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
         private void DrawHeader()
         {
-            EditorGUILayout.LabelField("MR Organiza PhysBones", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Reorganiza PhysBones para control desde MRAgruparObjetos",
+            EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.TITLE), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.SUBTITLE),
                 EditorStyles.centeredGreyMiniLabel);
         }
 
@@ -120,7 +122,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
         {
             EditorGUI.BeginChangeCheck();
             var newAvatar = (GameObject)EditorGUILayout.ObjectField(
-                "Avatar", _target.AvatarRoot, typeof(GameObject), true);
+                MRLocalization.Get(L.OrganizaPB.AVATAR_CONTEXT), _target.AvatarRoot, typeof(GameObject), true);
 
             if (EditorGUI.EndChangeCheck() && newAvatar != _target.AvatarRoot)
             {
@@ -134,17 +136,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField("VRChat SDK:", GUILayout.Width(80));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.SDK_LABEL), GUILayout.Width(80));
 
                 if (_target.IsSDKAvailable)
                 {
                     GUI.contentColor = EnabledColor;
-                    EditorGUILayout.LabelField("Disponible", EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.AVAILABLE), EditorStyles.boldLabel);
                 }
                 else
                 {
                     GUI.contentColor = WarningColor;
-                    EditorGUILayout.LabelField("No disponible", EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.NOT_AVAILABLE), EditorStyles.boldLabel);
                 }
                 GUI.contentColor = Color.white;
             }
@@ -156,7 +158,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Escanear Avatar", GUILayout.Height(25)))
+                    if (GUILayout.Button(MRLocalization.Get(L.OrganizaPB.SCAN_BUTTON), GUILayout.Height(25)))
                     {
                         Undo.RecordObject(_target, "Escanear PhysBones");
                         _target.ScanAvatar();
@@ -165,7 +167,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
                     if (_target.HasDetectedComponents && !_target.IsOrganized)
                     {
-                        if (GUILayout.Button("Limpiar", GUILayout.Width(60), GUILayout.Height(25)))
+                        if (GUILayout.Button(MRLocalization.Get(L.OrganizaPB.CLEAR_BUTTON), GUILayout.Width(60), GUILayout.Height(25)))
                         {
                             Undo.RecordObject(_target, "Limpiar detecciones");
                             _target.ClearDetection();
@@ -179,7 +181,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             {
                 EditorGUILayout.Space(3);
                 EditorGUILayout.LabelField(
-                    $"Detectados: {_target.DetectedPhysBones.Count} PhysBones, {_target.DetectedColliders.Count} Colliders",
+                    MRLocalization.Get(L.OrganizaPB.DETECTED_COUNT, _target.DetectedPhysBones.Count, _target.DetectedColliders.Count),
                     EditorStyles.centeredGreyMiniLabel);
             }
         }
@@ -191,21 +193,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             // Estado actual
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField("Estado:", GUILayout.Width(50));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.STATE_LABEL), GUILayout.Width(50));
 
                 switch (_target.State)
                 {
                     case OrganizationState.NotScanned:
                         GUI.contentColor = WarningColor;
-                        EditorGUILayout.LabelField("No escaneado", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.NOT_SCANNED), EditorStyles.boldLabel);
                         break;
                     case OrganizationState.Scanned:
                         GUI.contentColor = new Color(1f, 0.8f, 0.4f);
-                        EditorGUILayout.LabelField("Escaneado (no organizado)", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.SCANNED), EditorStyles.boldLabel);
                         break;
                     case OrganizationState.Organized:
                         GUI.contentColor = EnabledColor;
-                        EditorGUILayout.LabelField("Organizado", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.ORGANIZED), EditorStyles.boldLabel);
                         break;
                 }
                 GUI.contentColor = Color.white;
@@ -220,16 +222,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 {
                     var organizeStyle = new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
 
-                    if (GUILayout.Button("Organizar PhysBones", organizeStyle, GUILayout.Height(30)))
+                    if (GUILayout.Button(MRLocalization.Get(L.OrganizaPB.ORGANIZE_BUTTON), organizeStyle, GUILayout.Height(30)))
                     {
                         int pbCount = _target.IncludedPhysBonesCount;
                         int colCount = _target.IncludedCollidersCount;
 
                         bool confirmed = EditorUtility.DisplayDialog(
-                            "Organizar PhysBones",
-                            $"Esta operación moverá {pbCount} PhysBones y {colCount} Colliders a contenedores organizados. La escena será modificada.\n\n¿Continuar?",
-                            "Organizar",
-                            "Cancelar");
+                            MRLocalization.Get(L.OrganizaPB.ORGANIZE_BUTTON),
+                            MRLocalization.Get(L.OrganizaPB.ORGANIZE_CONFIRM, pbCount, colCount),
+                            MRLocalization.Get(L.Common.CONFIRM),
+                            MRLocalization.Get(L.Common.CANCEL));
 
                         if (confirmed)
                         {
@@ -247,7 +249,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
                 using (new EditorGUI.DisabledGroupScope(!_target.CanRevert))
                 {
-                    if (GUILayout.Button("Revertir", GUILayout.Width(80), GUILayout.Height(30)))
+                    if (GUILayout.Button(MRLocalization.Get(L.OrganizaPB.REVERT_BUTTON), GUILayout.Width(80), GUILayout.Height(30)))
                     {
                         Undo.RecordObject(_target, "Revertir PhysBones");
                         var result = _target.Revert();
@@ -265,15 +267,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             {
                 EditorGUILayout.Space(3);
                 EditorGUILayout.HelpBox(
-                    "Los PhysBones han sido organizados en contenedores.\n" +
-                    "Ahora puedes usar MRAgruparObjetos para controlarlos.",
+                    MRLocalization.Get(L.OrganizaPB.ORGANIZED_HINT),
                     MessageType.Info);
             }
             else if (_target.CanOrganize)
             {
                 EditorGUILayout.Space(3);
                 EditorGUILayout.HelpBox(
-                    "Presiona 'Organizar PhysBones' para mover los componentes a contenedores organizados.",
+                    MRLocalization.Get(L.OrganizaPB.CAN_ORGANIZE_HINT),
                     MessageType.Info);
             }
         }
@@ -301,7 +302,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
             foreach (var pb in _target.DetectedPhysBones)
             {
-                var key = pb.Context?.ContextName ?? "Desconocido";
+                var key = pb.Context?.ContextName ?? MRLocalization.Get(L.OrganizaPB.UNKNOWN);
                 if (!groupMap.TryGetValue(key, out var group))
                 {
                     group = new ContextGroup { Context = pb.Context };
@@ -317,7 +318,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
             foreach (var col in _target.DetectedColliders)
             {
-                var key = col.Context?.ContextName ?? "Desconocido";
+                var key = col.Context?.ContextName ?? MRLocalization.Get(L.OrganizaPB.UNKNOWN);
                 if (!groupMap.TryGetValue(key, out var group))
                 {
                     group = new ContextGroup { Context = col.Context };
@@ -353,7 +354,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             var groups = BuildContextGroups();
 
             // Resumen global
-            EditorGUILayout.LabelField("Componentes por contexto", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.CONTEXT_GROUPS), EditorStyles.boldLabel);
             EditorGUILayout.Space(2);
 
             foreach (var group in groups)
@@ -365,7 +366,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
         private void DrawContextCard(ContextGroup group)
         {
-            var contextName = group.Context?.ContextName ?? "Desconocido";
+            var contextName = group.Context?.ContextName ?? MRLocalization.Get(L.OrganizaPB.UNKNOWN);
             bool isAvatar = group.Context?.IsAvatarContext == true;
 
             // Obtener/inicializar estado del foldout
@@ -391,7 +392,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 {
                     using (new EditorGUI.DisabledGroupScope(true))
                     {
-                        EditorGUILayout.ObjectField("Origen", group.Context.ContextRoot, typeof(GameObject), true);
+                        EditorGUILayout.ObjectField(MRLocalization.Get(L.OrganizaPB.ORIGIN), group.Context.ContextRoot, typeof(GameObject), true);
                     }
                 }
 
@@ -420,7 +421,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
             // Foldout con nombre de contexto
             GUI.contentColor = isAvatar ? AvatarContextColor : ClothingContextColor;
-            var contextLabel = isAvatar ? "Avatar" : contextName;
+            var contextLabel = isAvatar ? MRLocalization.Get(L.OrganizaPB.AVATAR_CONTEXT) : contextName;
             isExpanded = EditorGUILayout.Foldout(isExpanded, contextLabel, true, EditorStyles.foldoutHeader);
             GUI.contentColor = Color.white;
 
@@ -488,11 +489,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 GUILayout.Space(TOGGLE_WIDTH + 4);
 
                 GUI.contentColor = DisabledColor;
-                EditorGUILayout.LabelField("Tipo", EditorStyles.miniLabel, GUILayout.Width(TYPE_LABEL_WIDTH));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.COL_TYPE), EditorStyles.miniLabel, GUILayout.Width(TYPE_LABEL_WIDTH));
 
-                EditorGUILayout.LabelField("Nombre", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.COL_NAME), EditorStyles.miniLabel);
 
-                EditorGUILayout.LabelField("Root", EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.COL_ROOT), EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
                 GUI.contentColor = Color.white;
 
                 // Espacio para el toggle
@@ -564,7 +565,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             GUI.contentColor = DisabledColor;
             if (isOrganized)
             {
-                EditorGUILayout.LabelField("ya organizado", EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.OrganizaPB.ALREADY_ORGANIZED), EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
             }
             else
             {

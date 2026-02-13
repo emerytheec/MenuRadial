@@ -10,6 +10,8 @@ using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using VRC.SDK3.Avatars.ScriptableObjects;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 {
@@ -132,18 +134,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawHeader()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("MR Menu Radial", _headerStyle);
-            EditorGUILayout.LabelField("Contenedor principal del sistema Menu Radial", EditorStyles.centeredGreyMiniLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.TITLE), _headerStyle);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.SUBTITLE), EditorStyles.centeredGreyMiniLabel);
             EditorGUILayout.EndVertical();
         }
 
         private void DrawAvatarField()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Avatar", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.AVATAR_LABEL), EditorStyles.boldLabel);
 
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(_avatarRootProperty, new GUIContent("Avatar Root", "Arrastra aquí tu avatar con VRC_AvatarDescriptor"));
+            EditorGUILayout.PropertyField(_avatarRootProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.AVATAR_LABEL), MRLocalization.Get(L.MenuRadialEditor.AVATAR_ROOT_TOOLTIP)));
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -155,14 +157,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 EditorUtility.SetDirty(_target);
             }
 
-            EditorGUILayout.PropertyField(_autoDetectProperty, new GUIContent("Auto-detectar", "Detectar ropas y escanear automáticamente al asignar avatar"));
+            EditorGUILayout.PropertyField(_autoDetectProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.AUTO_DETECT), MRLocalization.Get(L.MenuRadialEditor.AUTO_DETECT_TOOLTIP)));
 
-            EditorGUILayout.PropertyField(_autoGenerateMenuProperty, new GUIContent("Auto-generar Menú", "Generar automáticamente la estructura de menú basada en las ropas detectadas"));
+            EditorGUILayout.PropertyField(_autoGenerateMenuProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.AUTO_GENERATE_MENU), MRLocalization.Get(L.MenuRadialEditor.AUTO_GENERATE_MENU_TOOLTIP)));
 
             // Mostrar estado del avatar
             if (_avatarRootProperty.objectReferenceValue == null)
             {
-                EditorGUILayout.HelpBox("Arrastra tu avatar aquí para comenzar.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.DROP_AVATAR_HINT), MessageType.Info);
             }
             else
             {
@@ -174,11 +176,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
                     if (descriptor != null)
                     {
-                        EditorGUILayout.HelpBox($"Avatar: {avatarGO.name}", MessageType.None);
+                        EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.AVATAR_DETECTED, avatarGO.name), MessageType.None);
                     }
                     else
                     {
-                        EditorGUILayout.HelpBox("El GameObject no tiene VRC_AvatarDescriptor.", MessageType.Warning);
+                        EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NO_DESCRIPTOR), MessageType.Warning);
                     }
                 }
             }
@@ -189,11 +191,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawOutputPathField()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Ruta de Salida", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH), EditorStyles.boldLabel);
 
-            EditorGUILayout.PropertyField(_outputPathProperty, new GUIContent("Output Path", "Ruta donde se guardarán animaciones y archivos VRChat"));
+            EditorGUILayout.PropertyField(_outputPathProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH), MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH_TOOLTIP)));
 
-            EditorGUILayout.HelpBox("Esta ruta se usa para generar animaciones y archivos VRChat.", MessageType.Info);
+            EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH_HINT), MessageType.Info);
 
             EditorGUILayout.EndVertical();
 
@@ -201,17 +203,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             // Sección de Namespace del Avatar (Configuración VRChat)
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Namespace del Avatar", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.NAMESPACE), EditorStyles.boldLabel);
 
-            EditorGUILayout.PropertyField(_outputPrefixProperty, new GUIContent("Output Prefix", "Prefijo único para este avatar. Crea subcarpeta y prefija nombres de archivo. Dejar vacío para comportamiento legacy."));
+            EditorGUILayout.PropertyField(_outputPrefixProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PREFIX), MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PREFIX_TOOLTIP)));
 
             // Preview de la ruta de salida completa
             string outputDir = _target.GetVRChatOutputDirectory();
-            EditorGUILayout.HelpBox($"Ruta de salida: {outputDir}", MessageType.None);
+            EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PREVIEW, outputDir), MessageType.None);
 
             EditorGUILayout.Space(5);
 
-            EditorGUILayout.PropertyField(_writeDefaultValuesProperty, new GUIContent("Write Default Values", "writeDefaultValues para las capas del controlador FX"));
+            EditorGUILayout.PropertyField(_writeDefaultValuesProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.WRITE_DEFAULTS), MRLocalization.Get(L.MenuRadialEditor.WRITE_DEFAULTS_TOOLTIP)));
 
             EditorGUILayout.EndVertical();
         }
@@ -219,34 +221,34 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawMenuIntegrationSection()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Integración del Menú VRChat", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.MENU_INTEGRATION), EditorStyles.boldLabel);
 
-            EditorGUILayout.HelpBox("Configura cómo y dónde se integrará el menú MR en el avatar.", MessageType.Info);
+            EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.MENU_INTEGRATION_HINT), MessageType.Info);
 
             EditorGUILayout.Space(5);
 
             // Nombre del menú
             EditorGUILayout.PropertyField(_menuNameProperty, new GUIContent(
-                "Nombre",
-                "Nombre que aparecerá en el menú VRChat. Si está vacío, usa el prefijo o 'Menu Radial'."));
+                MRLocalization.Get(L.MenuRadialEditor.MENU_NAME),
+                MRLocalization.Get(L.MenuRadialEditor.MENU_NAME_TOOLTIP)));
 
             // Preview del nombre efectivo
             string effectiveName = _target.EffectiveMenuName;
-            EditorGUILayout.LabelField("Nombre efectivo:", effectiveName, EditorStyles.miniLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.EFFECTIVE_NAME), effectiveName, EditorStyles.miniLabel);
 
             EditorGUILayout.Space(5);
 
             // Icono del menú
             EditorGUILayout.PropertyField(_menuIconProperty, new GUIContent(
-                "Icono",
-                "Icono que aparecerá junto al nombre en el menú VRChat."));
+                MRLocalization.Get(L.MenuRadialEditor.MENU_ICON),
+                MRLocalization.Get(L.MenuRadialEditor.MENU_ICON_TOOLTIP)));
 
             EditorGUILayout.Space(10);
 
             // Modo de integración
             EditorGUILayout.PropertyField(_menuIntegrationModeProperty, new GUIContent(
-                "Ubicación",
-                "Define dónde se ubicará el menú MR dentro del menú del avatar."));
+                MRLocalization.Get(L.MenuRadialEditor.LOCATION),
+                MRLocalization.Get(L.MenuRadialEditor.LOCATION_TOOLTIP)));
 
             EditorGUILayout.Space(5);
 
@@ -256,7 +258,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             switch (integrationMode)
             {
                 case MenuIntegrationMode.RootMenu:
-                    EditorGUILayout.HelpBox("El menú se añadirá directamente al menú raíz del avatar.", MessageType.None);
+                    EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.ROOT_MENU_HINT), MessageType.None);
                     break;
 
                 case MenuIntegrationMode.ExistingSubMenu:
@@ -265,16 +267,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
                 case MenuIntegrationMode.CustomPath:
                     EditorGUILayout.PropertyField(_customMenuPathProperty, new GUIContent(
-                        "Ruta",
-                        "Ruta de carpetas separadas por '/' (ej: 'Outfits/Casual'). Si no existen, se crearán."));
+                        MRLocalization.Get(L.MenuRadialEditor.CUSTOM_PATH),
+                        MRLocalization.Get(L.MenuRadialEditor.CUSTOM_PATH_TOOLTIP)));
 
                     if (!string.IsNullOrEmpty(_customMenuPathProperty.stringValue))
                     {
-                        EditorGUILayout.HelpBox($"Se creará la ruta: {_customMenuPathProperty.stringValue}/{effectiveName}", MessageType.None);
+                        EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.CUSTOM_PATH_PREVIEW, _customMenuPathProperty.stringValue, effectiveName), MessageType.None);
                     }
                     else
                     {
-                        EditorGUILayout.HelpBox("Ingresa una ruta para crear menús anidados.", MessageType.Warning);
+                        EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.ENTER_PATH), MessageType.Warning);
                     }
                     break;
             }
@@ -288,7 +290,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             var avatarGO = _avatarRootProperty.objectReferenceValue as GameObject;
             if (avatarGO == null)
             {
-                EditorGUILayout.HelpBox("Primero asigna un avatar para ver los submenús disponibles.", MessageType.Warning);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.ASSIGN_AVATAR_FIRST), MessageType.Warning);
                 return;
             }
 
@@ -296,14 +298,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             var descriptor = avatarGO.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             if (descriptor == null)
             {
-                EditorGUILayout.HelpBox("El avatar no tiene VRCAvatarDescriptor.", MessageType.Warning);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NO_DESCRIPTOR_MENU), MessageType.Warning);
                 return;
             }
 
             var expressionsMenu = descriptor.expressionsMenu;
             if (expressionsMenu == null || expressionsMenu.controls == null || expressionsMenu.controls.Count == 0)
             {
-                EditorGUILayout.HelpBox("El avatar no tiene un menú de expresiones configurado o está vacío.", MessageType.Warning);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NO_EXPRESSIONS_MENU), MessageType.Warning);
                 return;
             }
 
@@ -323,7 +325,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             if (subMenuOptions.Count == 0)
             {
-                EditorGUILayout.HelpBox("El menú del avatar no tiene submenús. Usa 'Menú Raíz' o 'Ruta personalizada'.", MessageType.Warning);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NO_SUBMENUS), MessageType.Warning);
                 return;
             }
 
@@ -333,7 +335,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             // Dropdown para seleccionar
             int newIndex = EditorGUILayout.Popup(
-                new GUIContent("Submenú destino", "Selecciona un submenú existente donde añadir el menú MR."),
+                new GUIContent(MRLocalization.Get(L.MenuRadialEditor.TARGET_SUBMENU), MRLocalization.Get(L.MenuRadialEditor.TARGET_SUBMENU_TOOLTIP)),
                 currentIndex,
                 subMenuOptions.ToArray());
 
@@ -347,52 +349,46 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             {
                 var selectedControl = expressionsMenu.controls[_targetSubMenuIndexProperty.intValue];
                 int controlCount = selectedControl.subMenu?.controls?.Count ?? 0;
-                EditorGUILayout.HelpBox($"Submenú '{selectedControl.name}' tiene {controlCount}/8 controles.", MessageType.None);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.SUBMENU_INFO, selectedControl.name, controlCount), MessageType.None);
             }
         }
 
         private void DrawNDMFControlPanel()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("NDMF - Control de Procesos", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.NDMF_CONTROL), EditorStyles.boldLabel);
 
-            EditorGUILayout.HelpBox("Controla qué procesos se ejecutan automáticamente durante Play Mode o al subir el avatar.", MessageType.Info);
+            EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NDMF_CONTROL_HINT), MessageType.Info);
 
             EditorGUILayout.Space(5);
 
             // Checkbox para desactivar cosido de huesos
             EditorGUILayout.PropertyField(_disableBoneStitchingProperty, new GUIContent(
-                "Desactivar Cosido de Huesos",
-                "Si está activado, NDMF NO cosera automáticamente los armatures de ropa al avatar durante el build."));
+                MRLocalization.Get(L.MenuRadialEditor.DISABLE_BONE_STITCHING),
+                MRLocalization.Get(L.MenuRadialEditor.DISABLE_BONE_STITCHING_TOOLTIP)));
 
             // Checkbox para desactivar merge de VRChat
             EditorGUILayout.PropertyField(_disableVRChatMergeProperty, new GUIContent(
-                "Desactivar Merge VRChat",
-                "Si está activado, NDMF NO mezclará automáticamente los archivos VRChat (FX, Parameters, Menu) durante el build."));
+                MRLocalization.Get(L.MenuRadialEditor.DISABLE_VRCHAT_MERGE),
+                MRLocalization.Get(L.MenuRadialEditor.DISABLE_VRCHAT_MERGE_TOOLTIP)));
 
             EditorGUILayout.Space(10);
 
             // Separador visual
-            EditorGUILayout.LabelField("Integración con Otros Plugins", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.OTHER_PLUGINS), EditorStyles.boldLabel);
 
             // Checkbox para desactivar Modular Avatar
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(_disableModularAvatarProperty, new GUIContent(
-                "Desactivar Modular Avatar",
-                "Si está activado, TODOS los componentes de Modular Avatar serán desactivados durante el build. " +
-                "Útil cuando hay conflictos entre MR Menu Radial y Modular Avatar. " +
-                "Solo afecta al build (clon del avatar), NO modifica la escena original."));
+                MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA),
+                MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA_TOOLTIP)));
 
             if (EditorGUI.EndChangeCheck() && _disableModularAvatarProperty.boolValue)
             {
                 // Mostrar advertencia al activar
-                EditorUtility.DisplayDialog("Advertencia",
-                    "Al activar esta opción, Modular Avatar NO procesará este avatar durante el build.\n\n" +
-                    "Esto significa que:\n" +
-                    "• Los componentes de MA (MergeArmature, MenuInstaller, etc.) serán ignorados\n" +
-                    "• Las ropas con MA deberán ser procesadas por MR Coser Ropa\n\n" +
-                    "Esta opción es segura y solo afecta al build, no modifica tu escena.",
-                    "Entendido");
+                EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.WARNING),
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA_WARNING),
+                    MRLocalization.Get(L.AnalisisColision.UNDERSTOOD));
             }
 
             // Mostrar advertencia si alguno está activado
@@ -403,14 +399,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             if (anyDisabled)
             {
                 EditorGUILayout.Space(5);
-                string warning = "Procesos desactivados durante el build:\n";
+                string warning = MRLocalization.Get(L.MenuRadialEditor.DISABLED_PROCESSES) + "\n";
                 if (_disableBoneStitchingProperty.boolValue)
-                    warning += "• Cosido de huesos (MR)\n";
+                    warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_BONE_STITCHING) + "\n";
                 if (_disableVRChatMergeProperty.boolValue)
-                    warning += "• Merge de archivos VRChat (MR)\n";
+                    warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_VRCHAT_MERGE) + "\n";
                 if (_disableModularAvatarProperty.boolValue)
-                    warning += "• Modular Avatar (TODOS sus componentes)\n";
-                warning += "\nEl avatar en Play Mode/Upload NO tendrá estos cambios aplicados.";
+                    warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_MA) + "\n";
+                warning += "\n" + MRLocalization.Get(L.MenuRadialEditor.NOT_APPLIED);
 
                 EditorGUILayout.HelpBox(warning, MessageType.Warning);
             }
@@ -421,21 +417,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawStatusPanel()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Estado", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.STATUS), EditorStyles.boldLabel);
 
             // Ropas
             DrawStatusLine(
-                "Ropas detectadas",
+                MRLocalization.Get(L.MenuRadialEditor.CLOTHING_DETECTED),
                 _target.DetectedClothingCount > 0,
                 $"{_target.EnabledClothingCount}/{_target.DetectedClothingCount}",
-                _target.DetectedClothingCount == 0 ? "Sin ropas" : null
+                _target.DetectedClothingCount == 0 ? MRLocalization.Get(L.MenuRadialEditor.NO_CLOTHING) : null
             );
 
             // PhysBones
             string pbStatus = GetPhysBonesStatusText();
             bool pbOk = _target.IsPhysBonesOrganized || _target.DetectedPhysBonesCount == 0;
             DrawStatusLine(
-                "PhysBones",
+                MRLocalization.Get(L.MenuRadialEditor.PHYS_BONES),
                 pbOk,
                 pbStatus,
                 null
@@ -443,18 +439,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             // Bounds
             DrawStatusLine(
-                "Bounds",
+                MRLocalization.Get(L.MenuRadialEditor.BOUNDS),
                 _target.IsBoundsApplied,
-                _target.IsBoundsApplied ? $"Aplicados ({_target.DetectedMeshesCount} meshes)" : "Pendiente",
+                _target.IsBoundsApplied ? MRLocalization.Get(L.MenuRadialEditor.BOUNDS_APPLIED, _target.DetectedMeshesCount) : MRLocalization.Get(L.MenuRadialEditor.PENDING),
                 _target.DetectedMeshesCount == 0 ? "Sin meshes" : null
             );
 
             // Menú
             DrawStatusLine(
-                "Menú configurado",
+                MRLocalization.Get(L.MenuRadialEditor.MENU_CONFIGURED),
                 _target.MenuSlotCount > 0,
                 $"{_target.MenuSlotCount} slots",
-                _target.MenuSlotCount == 0 ? "Sin slots" : null
+                _target.MenuSlotCount == 0 ? MRLocalization.Get(L.MenuRadialEditor.NO_SLOTS) : null
             );
 
             EditorGUILayout.EndVertical();
@@ -465,13 +461,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             switch (_target.PhysBonesState)
             {
                 case OrganizationState.NotScanned:
-                    return "No escaneado";
+                    return MRLocalization.Get(L.MenuRadialEditor.PB_NOT_SCANNED);
                 case OrganizationState.Scanned:
-                    return $"Detectados ({_target.DetectedPhysBonesCount})";
+                    return MRLocalization.Get(L.MenuRadialEditor.PB_DETECTED, _target.DetectedPhysBonesCount);
                 case OrganizationState.Organized:
-                    return $"Organizados ({_target.DetectedPhysBonesCount})";
+                    return MRLocalization.Get(L.MenuRadialEditor.PB_ORGANIZED, _target.DetectedPhysBonesCount);
                 default:
-                    return "Desconocido";
+                    return MRLocalization.Get(L.MenuRadialEditor.UNKNOWN);
             }
         }
 
@@ -498,7 +494,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawActionButtons()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Acciones", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.ACTIONS), EditorStyles.boldLabel);
 
             bool hasAvatar = _avatarRootProperty.objectReferenceValue != null;
 
@@ -506,7 +502,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             // Botón Preparar Todo
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(new GUIContent("Preparar Todo", "Detectar ropas, organizar PhysBones y aplicar bounds"), GUILayout.Height(30)))
+            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.PREPARE_ALL), MRLocalization.Get(L.MenuRadialEditor.PREPARE_ALL_TOOLTIP)), GUILayout.Height(30)))
             {
                 Undo.RecordObject(_target, "Prepare All");
                 _target.PrepareAll();
@@ -523,16 +519,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             bool hasExistingStructure = _target.MenuSlotCount > 0;
 
             EditorGUI.BeginDisabledGroup(hasExistingStructure || _target.DetectedClothingCount == 0);
-            if (GUILayout.Button(new GUIContent("Generar Estructura", "Crea MRUnificarObjetos y MRAgruparObjetos para cada ropa"), GUILayout.Height(25)))
+            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.GENERATE_STRUCTURE), MRLocalization.Get(L.MenuRadialEditor.GENERATE_STRUCTURE_TOOLTIP)), GUILayout.Height(25)))
             {
                 Undo.RecordObject(_target, "Generate Menu Structure");
                 var result = _target.GenerateMenuStructure();
                 if (result.Success)
                 {
-                    EditorUtility.DisplayDialog("Estructura Generada",
-                        $"Se crearon {result.ClothingFramesCreated} frames de ropa.\n" +
-                        $"Avatar: {result.AvatarMeshesIncluded} meshes incluidos, {result.AvatarMeshesExcluded} excluidos.",
-                        "OK");
+                    EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED),
+                        MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded),
+                        MRLocalization.Get(L.Common.OK));
                 }
                 RefreshMenuControlCache();
                 EditorUtility.SetDirty(_target);
@@ -541,20 +536,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             // Botón Regenerar (solo si existe estructura)
             EditorGUI.BeginDisabledGroup(!hasExistingStructure || _target.DetectedClothingCount == 0);
-            if (GUILayout.Button(new GUIContent("Regenerar", "Elimina y regenera la estructura"), GUILayout.Height(25)))
+            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.REGENERATE), MRLocalization.Get(L.MenuRadialEditor.REGENERATE_TOOLTIP)), GUILayout.Height(25)))
             {
-                if (EditorUtility.DisplayDialog("Regenerar Estructura",
-                    "Esto eliminará la estructura existente y la recreará.\n¿Continuar?",
-                    "Sí", "Cancelar"))
+                if (EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.REGENERATE_TITLE),
+                    MRLocalization.Get(L.MenuRadialEditor.REGENERATE_CONFIRM),
+                    MRLocalization.Get(L.Common.YES), MRLocalization.Get(L.Common.CANCEL)))
                 {
                     Undo.RecordObject(_target, "Regenerate Menu Structure");
                     var result = _target.RegenerateMenuStructure();
                     if (result.Success)
                     {
-                        EditorUtility.DisplayDialog("Estructura Regenerada",
-                            $"Se crearon {result.ClothingFramesCreated} frames de ropa.\n" +
-                            $"Avatar: {result.AvatarMeshesIncluded} meshes incluidos, {result.AvatarMeshesExcluded} excluidos.",
-                            "OK");
+                        EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_REGENERATED),
+                            MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded),
+                            MRLocalization.Get(L.Common.OK));
                     }
                     RefreshMenuControlCache();
                     EditorUtility.SetDirty(_target);
@@ -566,7 +560,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             if (_target.DetectedClothingCount == 0 && hasAvatar)
             {
-                EditorGUILayout.HelpBox("Primero detecta ropas con 'Preparar Todo' o asigna un avatar.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.DETECT_CLOTHING_FIRST), MessageType.Info);
             }
 
             EditorGUILayout.Space(5);
@@ -575,7 +569,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.BeginHorizontal();
             bool canGenerate = hasAvatar && _target.MenuSlotCount > 0;
             EditorGUI.BeginDisabledGroup(!canGenerate);
-            if (GUILayout.Button(new GUIContent("Generar Archivos VRChat", "Genera FX Controller, Parameters y Menu"), GUILayout.Height(30)))
+            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT), MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT_TOOLTIP)), GUILayout.Height(30)))
             {
                 _target.GenerateVRChatFiles();
             }
@@ -584,7 +578,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             if (!canGenerate && hasAvatar)
             {
-                EditorGUILayout.HelpBox("Configura al menos un slot en el menú antes de generar.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.CONFIGURE_SLOT_FIRST), MessageType.Info);
             }
 
             EditorGUI.EndDisabledGroup();
@@ -595,7 +589,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawChildComponentsPanel()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField("Componentes Hijos", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.CHILD_COMPONENTS), EditorStyles.boldLabel);
 
             // Analisis Colision con indicador especial si hay conflictos
             bool hasColisionComponent = _target.AnalisisColision != null;
@@ -607,7 +601,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Space(25);
                 GUI.contentColor = new Color(1f, 0.6f, 0.2f);
-                EditorGUILayout.LabelField($"⚠ {_target.AnalisisColision.ProblematicCount} conflicto(s) detectado(s)", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.CONFLICTS_DETECTED, _target.AnalisisColision.ProblematicCount), EditorStyles.miniLabel);
                 GUI.contentColor = Color.white;
                 EditorGUILayout.EndHorizontal();
             }
@@ -629,7 +623,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             if (missingComponents)
             {
                 EditorGUILayout.Space(5);
-                if (GUILayout.Button("Recrear Componentes Faltantes"))
+                if (GUILayout.Button(MRLocalization.Get(L.MenuRadialEditor.RECREATE_COMPONENTS)))
                 {
                     RecreateChildComponents();
                 }

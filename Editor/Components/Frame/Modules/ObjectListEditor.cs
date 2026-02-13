@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEditor;
 using System.Linq;
 using Bender_Dios.MenuRadial.Components.Frame;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
 {
@@ -30,7 +32,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             if (_target == null) return;
             
             var objectCount = _target.GetCounts().Objects;
-            var foldoutText = $"Objetos en el Frame ({objectCount})";
+            var foldoutText = MRLocalization.Get(L.FrameModules.OBJECTS_FOLDOUT, objectCount);
             
             _target.ShowObjectList = EditorGUILayout.Foldout(_target.ShowObjectList, foldoutText, EditorStyleManager.FoldoutStyle);
             
@@ -55,13 +57,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             if (_target.ObjectReferences.Count == 0)
             {
-                mainText = "Arrastra GameObjects aquí";
-                subText = "Captura sus estados para el frame";
+                mainText = MRLocalization.Get(L.FrameModules.DROP_OBJECTS_MAIN);
+                subText = MRLocalization.Get(L.FrameModules.DROP_OBJECTS_SUB);
             }
             else
             {
-                mainText = "Arrastra más objetos";
-                subText = "Añadir al frame actual";
+                mainText = MRLocalization.Get(L.FrameModules.DROP_MORE_OBJECTS_MAIN);
+                subText = MRLocalization.Get(L.FrameModules.DROP_MORE_OBJECTS_SUB);
             }
             
             // Crear rect para el área de drop
@@ -123,21 +125,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             EditorGUILayout.BeginHorizontal();
             
             // Botones normales
-            if (GUILayout.Button("Seleccionar Todo", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+            if (GUILayout.Button(MRLocalization.Get(L.FrameModules.SELECT_ALL_BTN), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
             {
                 _target.SelectAllObjects();
                 EditorUtility.SetDirty(_target);
                 if (_target.IsPreviewActive) _target.RefreshPreview();
             }
 
-            if (GUILayout.Button("Deseleccionar Todo", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+            if (GUILayout.Button(MRLocalization.Get(L.FrameModules.DESELECT_ALL_BTN), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
             {
                 _target.DeselectAllObjects();
                 EditorUtility.SetDirty(_target);
                 if (_target.IsPreviewActive) _target.RefreshPreview();
             }
             
-            if (GUILayout.Button("Recalcular Rutas", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+            if (GUILayout.Button(MRLocalization.Get(L.FrameModules.RECALCULATE_PATHS), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
             {
                 _target.UpdateAllPaths();
                 EditorUtility.SetDirty(_target);
@@ -145,11 +147,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             // Botón de eliminar todos (con color rojo)
             EditorStyleManager.WithColor(Color.red, () => {
-                if (GUILayout.Button("Eliminar Todos", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.REMOVE_ALL_BTN), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
                 {
-                    if (EditorUtility.DisplayDialog("Confirmar", 
-                        "¿Estás seguro de que quieres eliminar todos los objetos del frame?", 
-                        "Sí", "Cancelar"))
+                    if (EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.CONFIRM),
+                        MRLocalization.Get(L.FrameModules.REMOVE_ALL_OBJECTS_CONFIRM),
+                        MRLocalization.Get(L.Common.YES), MRLocalization.Get(L.Common.CANCEL)))
                     {
                         _target.ClearObjects();
                         EditorUtility.SetDirty(_target);
@@ -167,15 +169,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         {
             if (_target.ObjectReferences.Count == 0)
             {
-                EditorGUILayout.HelpBox("No hay objetos en este frame. Arrastra objetos al área superior para añadirlos.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.FrameModules.NO_OBJECTS_HINT), MessageType.Info);
                 return;
             }
             
             // Headers de tabla
             EditorStyleManager.DrawTableHeader(
-                ("Activo", 50),
-                ("Objeto", 0),
-                ("", 60) // Espacio para botones
+                (MRLocalization.Get(L.FrameModules.COL_ACTIVE), 50),
+                (MRLocalization.Get(L.FrameModules.COL_OBJECT), 0),
+                ("", 60)
             );
             
             // Lista de objetos
@@ -222,7 +224,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             }
             
             // Botón de seleccionar en hierarchy
-            if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", "Seleccionar en Hierarchy"))
+            if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", MRLocalization.Get(L.FrameModules.SELECT_IN_HIERARCHY)))
             {
                 if (objRef.GameObject != null)
                 {
@@ -247,7 +249,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.Space(55); // Alinear con el campo de objeto
-                EditorGUILayout.LabelField($"Última ruta conocida: {objRef.HierarchyPath}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.LAST_KNOWN_PATH, objRef.HierarchyPath), EditorStyles.miniLabel);
                 EditorGUILayout.EndHorizontal();
             }
             

@@ -9,6 +9,8 @@ using Bender_Dios.MenuRadial.Editor.Components.AnalisisColision.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 {
@@ -210,7 +212,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             {
                 EditorGUILayout.Space(5);
                 EditorGUILayout.HelpBox(
-                    "Arrastra tu avatar aqui para escanear componentes de Modular Avatar.",
+                    MRLocalization.Get(L.AnalisisColision.DROP_AVATAR_HINT),
                     MessageType.Info);
             }
 
@@ -221,9 +223,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         private void DrawHeader()
         {
-            EditorGUILayout.LabelField("MR Analisis Colision", EditorStyleManager.HeaderStyle);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.TITLE), EditorStyleManager.HeaderStyle);
             EditorGUILayout.LabelField(
-                "Detecta componentes de MA que pueden interferir con MR",
+                MRLocalization.Get(L.AnalisisColision.SUBTITLE),
                 EditorStyles.centeredGreyMiniLabel);
         }
 
@@ -249,12 +251,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 if (_target.IsMAAvailable)
                 {
                     GUI.contentColor = MABlueColor;
-                    EditorGUILayout.LabelField("Modular Avatar detectado", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.MA_DETECTED), EditorStyles.miniLabel);
                 }
                 else
                 {
                     GUI.contentColor = Color.gray;
-                    EditorGUILayout.LabelField("Modular Avatar no instalado", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.MA_NOT_INSTALLED), EditorStyles.miniLabel);
                 }
                 GUI.contentColor = Color.white;
 
@@ -267,8 +269,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
                     EditorGUI.BeginChangeCheck();
                     bool newValue = EditorGUILayout.Toggle(
-                        new GUIContent("MA Preview Edit Mode",
-                            "Activa/desactiva la previsualizacion de ShapeChanger y MeshDeleter de MA en Edit Mode"),
+                        new GUIContent(MRLocalization.Get(L.AnalisisColision.MA_PREVIEW_EDIT_MODE),
+                            MRLocalization.Get(L.AnalisisColision.MA_PREVIEW_TOOLTIP)),
                         previewsEnabled);
 
                     if (EditorGUI.EndChangeCheck() && newValue != previewsEnabled)
@@ -292,20 +294,20 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             if (!_target.IsMAAvailable)
             {
-                EditorGUILayout.LabelField("Modular Avatar no esta instalado", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField("No hay componentes de MA que analizar.", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.MA_NOT_INSTALLED_TITLE), EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.NO_COMPONENTS_TO_ANALYZE), EditorStyles.miniLabel);
             }
             else if (!_target.IsScanned)
             {
-                EditorGUILayout.LabelField("Sin escanear", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField("El escaneo se realiza automaticamente al detectar ropas.", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.NOT_SCANNED), EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.AUTO_SCAN_HINT), EditorStyles.miniLabel);
             }
             else if (!_target.HasAnyColision)
             {
                 GUI.contentColor = CompatibleColor;
-                EditorGUILayout.LabelField("Sin colisiones detectadas", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.NO_COLLISIONS), EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
-                EditorGUILayout.LabelField("No hay componentes de MA que puedan interferir.", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.NO_COLLISIONS_HINT), EditorStyles.miniLabel);
             }
             else
             {
@@ -353,16 +355,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                     EditorGUILayout.Space(3);
                     GUI.contentColor = ProblematicColor;
                     EditorGUILayout.LabelField(
-                        $"{_target.ProblematicOnRootCount} en raiz de ropa (se desactivaran)",
+                        MRLocalization.Get(L.AnalisisColision.ON_ROOT_COUNT, _target.ProblematicOnRootCount),
                         EditorStyles.miniLabel);
                     GUI.contentColor = Color.white;
 
                     // Nota sobre ubicación correcta de componentes
                     EditorGUILayout.Space(5);
                     EditorGUILayout.HelpBox(
-                        "Estos componentes (Vertex Filter, Mesh Cutter, Shape Changer) estan en la raiz de la prenda, " +
-                        "pero deberian estar en el GameObject del mesh que modifican.\n\n" +
-                        "Muevelos al mesh correcto para que funcionen sin conflictos con MR.",
+                        MRLocalization.Get(L.AnalisisColision.ON_ROOT_WARNING),
                         MessageType.Info);
                 }
             }
@@ -398,7 +398,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             GUI.contentColor = MeshOnRootColor;
             _gameObjectFoldouts[foldoutKey] = EditorGUILayout.Foldout(
                 _gameObjectFoldouts[foldoutKey],
-                $"⚠ Meshes en Raíz de Ropa ({meshEntries.Count})",
+                MRLocalization.Get(L.AnalisisColision.MESH_ON_ROOT_TITLE, meshEntries.Count),
                 true,
                 EditorStyles.foldoutHeader);
             GUI.contentColor = Color.white;
@@ -417,21 +417,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 };
 
                 EditorGUILayout.LabelField(
-                    "<b>Problema:</b> Se detectaron meshes (Renderers) directamente en el GameObject raíz de una ropa. " +
-                    "Esto es un error del autor de la ropa - los meshes deberían estar en GameObjects hijos.",
+                    MRLocalization.Get(L.AnalisisColision.MESH_ON_ROOT_PROBLEM),
                     infoStyle);
 
                 EditorGUILayout.Space(2);
 
                 EditorGUILayout.LabelField(
-                    "<b>Consecuencia:</b> El sistema de auto-generación de menú puede confundir estos meshes " +
-                    "con meshes del avatar base, causando que se apaguen incorrectamente.",
+                    MRLocalization.Get(L.AnalisisColision.MESH_ON_ROOT_CONSEQUENCE),
                     infoStyle);
 
                 EditorGUILayout.Space(2);
 
                 EditorGUILayout.LabelField(
-                    "<b>Solución:</b> Mueve el componente Renderer a un GameObject hijo, o elimina el mesh si no es necesario.",
+                    MRLocalization.Get(L.AnalisisColision.MESH_ON_ROOT_SOLUTION),
                     infoStyle);
 
                 EditorGUILayout.Space(5);
@@ -454,11 +452,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                     GUILayout.FlexibleSpace();
 
                     // Nombre de la ropa
-                    EditorGUILayout.LabelField($"en '{entry.ClothingRootName}'", EditorStyles.miniLabel, GUILayout.Width(150));
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.IN_CLOTHING, entry.ClothingRootName), EditorStyles.miniLabel, GUILayout.Width(150));
 
                     // Botón para seleccionar en jerarquía
                     if (GUILayout.Button(
-                        new GUIContent(EditorGUIUtility.IconContent("d_SceneViewFx").image, "Seleccionar en jerarquía"),
+                        new GUIContent(EditorGUIUtility.IconContent("d_SceneViewFx").image, MRLocalization.Get(L.AnalisisColision.SELECT_IN_HIERARCHY)),
                         GUILayout.Width(25), GUILayout.Height(18)))
                     {
                         entry.SelectInHierarchy();
@@ -508,7 +506,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             }
 
             EditorGUILayout.LabelField(
-                "Checkbox marcado = se mantiene activo. Desmarca para desactivar durante build.",
+                MRLocalization.Get(L.AnalisisColision.CHECKBOX_HINT),
                 EditorStyles.miniLabel);
             EditorGUILayout.Space(5);
 
@@ -682,7 +680,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             GUI.contentColor = Color.gray;
             _gameObjectFoldouts[foldoutKey] = EditorGUILayout.Foldout(
                 _gameObjectFoldouts[foldoutKey],
-                "Otros (sin prenda)",
+                MRLocalization.Get(L.AnalisisColision.OTHERS_NO_CLOTHING),
                 true,
                 EditorStyles.foldoutHeader);
             GUI.contentColor = Color.white;
@@ -814,7 +812,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             {
                 // BlendshapeSync tiene color especial
                 GUI.contentColor = isSyncStopped ? Color.gray : BlendshapeSyncColor;
-                string syncStatus = isSyncStopped ? " [DETENIDO]" : "";
+                string syncStatus = isSyncStopped ? MRLocalization.Get(L.AnalisisColision.SYNC_STOPPED) : "";
                 GUILayout.Label(entry.ShortTypeName + syncStatus, EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
             }
@@ -839,7 +837,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 {
                     GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f);
                     if (GUILayout.Button(
-                        new GUIContent("▶", "Restaurar sincronización"),
+                        new GUIContent("▶", MRLocalization.Get(L.AnalisisColision.RESTORE_SYNC_BTN_TOOLTIP)),
                         GUILayout.Width(22), GUILayout.Height(18)))
                     {
                         Undo.RecordObject(_target, "Restaurar BlendshapeSync");
@@ -852,7 +850,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 {
                     GUI.backgroundColor = new Color(0.9f, 0.5f, 0.3f);
                     if (GUILayout.Button(
-                        new GUIContent("■", "Detener sincronización"),
+                        new GUIContent("■", MRLocalization.Get(L.AnalisisColision.STOP_SYNC_BTN_TOOLTIP)),
                         GUILayout.Width(22), GUILayout.Height(18)))
                     {
                         Undo.RecordObject(_target, "Detener BlendshapeSync");
@@ -1001,10 +999,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         {
             return category switch
             {
-                ColisionCategory.Problematic => "Problematic",
-                ColisionCategory.UserDecision => "Decision",
-                ColisionCategory.Compatible => "Compatible",
-                _ => "Unknown"
+                ColisionCategory.Problematic => MRLocalization.Get(L.AnalisisColision.CATEGORY_PROBLEMATIC),
+                ColisionCategory.UserDecision => MRLocalization.Get(L.AnalisisColision.CATEGORY_DECISION),
+                ColisionCategory.Compatible => MRLocalization.Get(L.AnalisisColision.CATEGORY_COMPATIBLE),
+                _ => MRLocalization.Get(L.AnalisisColision.CATEGORY_UNKNOWN)
             };
         }
 
@@ -1049,10 +1047,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             // Estilo del botón según estado
             var buttonColor = isMenuDisabled ? MenuDisabledColor : MenuActiveColor;
-            var buttonText = isMenuDisabled ? "Menú ✗" : "Menú ✓";
+            var buttonText = isMenuDisabled ? MRLocalization.Get(L.AnalisisColision.MENU_TOGGLE_OFF) : MRLocalization.Get(L.AnalisisColision.MENU_TOGGLE_ON);
             var tooltip = isMenuDisabled
-                ? $"Menú DESACTIVADO ({menuComponentCount} componentes). Clic para activar."
-                : $"Menú ACTIVO ({menuComponentCount} componentes). Clic para desactivar.";
+                ? MRLocalization.Get(L.AnalisisColision.MENU_DISABLED_TOOLTIP, menuComponentCount)
+                : MRLocalization.Get(L.AnalisisColision.MENU_ACTIVE_TOOLTIP, menuComponentCount);
 
             GUI.backgroundColor = buttonColor;
             if (GUILayout.Button(new GUIContent(buttonText, tooltip), EditorStyles.miniButton, GUILayout.Width(60), GUILayout.Height(18)))
@@ -1124,14 +1122,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             // Header
             EditorGUILayout.BeginHorizontal();
             GUI.contentColor = BlendshapeSyncColor;
-            EditorGUILayout.LabelField("BlendshapeSync", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_TITLE), EditorStyles.boldLabel);
             GUI.contentColor = Color.white;
 
             // Badge de cantidad
             GUILayout.FlexibleSpace();
             int total = _target.BlendshapeSyncCount;
             int stopped = _target.BlendshapeSyncStoppedCount;
-            string statusText = stopped > 0 ? $"{stopped}/{total} detenidos" : $"{total} activos";
+            string statusText = stopped > 0 ? MRLocalization.Get(L.AnalisisColision.STOPPED_COUNT, stopped, total) : MRLocalization.Get(L.AnalisisColision.ACTIVE_COUNT, total);
             EditorGUILayout.LabelField(statusText, EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
 
@@ -1144,23 +1142,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             };
 
             EditorGUILayout.LabelField(
-                "<b>Problema:</b> BlendshapeSync sincroniza blendshapes del cuerpo del avatar " +
-                "en tiempo real, incluso fuera de Play Mode. Si está en la raíz de la ropa, " +
-                "afecta al body constantemente.",
+                MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_PROBLEM),
                 infoStyle);
 
             EditorGUILayout.Space(2);
 
             EditorGUILayout.LabelField(
-                "<b>Solución correcta:</b> Mover el componente al mesh que realmente necesita " +
-                "sincronización (no la raíz de la prenda).",
+                MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_SOLUTION),
                 infoStyle);
 
             EditorGUILayout.Space(2);
 
             EditorGUILayout.LabelField(
-                "<b>Solución temporal:</b> Usa los botones para detener/restaurar la " +
-                "sincronización en Edit Mode sin mover el componente.",
+                MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_TEMP_SOLUTION),
                 infoStyle);
 
             EditorGUILayout.Space(5);
@@ -1168,8 +1162,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             // Advertencia sobre reflexión
             GUI.contentColor = new Color(1f, 0.8f, 0.4f);
             EditorGUILayout.LabelField(
-                "⚠ Esta funcionalidad usa reflexión y podría dejar de funcionar con " +
-                "actualizaciones de Modular Avatar.",
+                MRLocalization.Get(L.AnalisisColision.REFLECTION_WARNING),
                 EditorStyles.wordWrappedMiniLabel);
             GUI.contentColor = Color.white;
 
@@ -1179,12 +1172,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             if (!_target.IsBlendshapeSyncControlAvailable)
             {
                 EditorGUILayout.HelpBox(
-                    "El controlador de BlendshapeSync no está disponible. " +
-                    "La reflexión a los tipos internos de MA falló.",
+                    MRLocalization.Get(L.AnalisisColision.CONTROL_NOT_AVAILABLE),
                     MessageType.Warning);
 
                 // Botón de diagnóstico
-                if (GUILayout.Button("Mostrar diagnóstico", EditorStyles.miniButton))
+                if (GUILayout.Button(MRLocalization.Get(L.AnalisisColision.SHOW_DIAGNOSTIC), EditorStyles.miniButton))
                 {
                     Debug.Log(_target.GetBlendshapeSyncControllerStatus());
                 }
@@ -1198,20 +1190,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 GUI.enabled = _target.HasActiveBlendshapeSyncs;
                 GUI.backgroundColor = new Color(0.9f, 0.5f, 0.3f);
                 if (GUILayout.Button(
-                    new GUIContent("Detener Sincronización",
-                        "Desregistra del loop de actualización y limpia bindings. " +
-                        "El componente permanece pero no sincroniza."),
+                    new GUIContent(MRLocalization.Get(L.AnalisisColision.STOP_SYNC),
+                        MRLocalization.Get(L.AnalisisColision.STOP_SYNC_TOOLTIP)),
                     GUILayout.Height(25)))
                 {
                     Undo.RecordObject(_target, "Detener BlendshapeSyncs");
                     int count = _target.StopAllBlendshapeSyncs();
                     if (count > 0)
                     {
-                        EditorUtility.DisplayDialog("BlendshapeSync",
-                            $"Se detuvo la sincronización de {count} componente(s).\n\n" +
-                            "Los blendshapes del body ya no se verán afectados en Edit Mode.\n\n" +
-                            "Nota: El componente sigue existiendo, solo se desactivó su efecto.",
-                            "Entendido");
+                        EditorUtility.DisplayDialog(MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_TITLE),
+                            MRLocalization.Get(L.AnalisisColision.STOP_SYNC_RESULT, count),
+                            MRLocalization.Get(L.AnalisisColision.UNDERSTOOD));
                     }
                     EditorUtility.SetDirty(_target);
                 }
@@ -1221,19 +1210,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 GUI.enabled = _target.HasStoppedBlendshapeSyncs;
                 GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f);
                 if (GUILayout.Button(
-                    new GUIContent("Restaurar Sincronización",
-                        "Re-registra en el loop y fuerza rebind. " +
-                        "Los blendshapes volverán a sincronizarse."),
+                    new GUIContent(MRLocalization.Get(L.AnalisisColision.RESTORE_SYNC),
+                        MRLocalization.Get(L.AnalisisColision.RESTORE_SYNC_TOOLTIP)),
                     GUILayout.Height(25)))
                 {
                     Undo.RecordObject(_target, "Restaurar BlendshapeSyncs");
                     int count = _target.RestoreAllBlendshapeSyncs();
                     if (count > 0)
                     {
-                        EditorUtility.DisplayDialog("BlendshapeSync",
-                            $"Se restauró la sincronización de {count} componente(s).\n\n" +
-                            "Los blendshapes volverán a sincronizarse en Edit Mode.",
-                            "Entendido");
+                        EditorUtility.DisplayDialog(MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_TITLE),
+                            MRLocalization.Get(L.AnalisisColision.RESTORE_SYNC_RESULT, count),
+                            MRLocalization.Get(L.AnalisisColision.UNDERSTOOD));
                     }
                     EditorUtility.SetDirty(_target);
                 }
@@ -1245,11 +1232,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 // Botón de diagnóstico (pequeño)
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Diagnóstico", EditorStyles.miniButton, GUILayout.Width(80)))
+                if (GUILayout.Button(MRLocalization.Get(L.AnalisisColision.DIAGNOSTIC), EditorStyles.miniButton, GUILayout.Width(80)))
                 {
                     string status = _target.GetBlendshapeSyncControllerStatus();
                     Debug.Log(status);
-                    EditorUtility.DisplayDialog("Estado BlendshapeSyncController", status, "OK");
+                    EditorUtility.DisplayDialog(MRLocalization.Get(L.AnalisisColision.BLENDSHAPE_SYNC_STATUS), status, "OK");
                 }
                 EditorGUILayout.EndHorizontal();
             }
@@ -1274,16 +1261,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            EditorGUILayout.LabelField("Comportamiento NDMF", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.NDMF_BEHAVIOR), EditorStyles.boldLabel);
 
             EditorGUILayout.LabelField(
-                "Durante Play Mode o Upload:",
+                MRLocalization.Get(L.AnalisisColision.NDMF_DURING_BUILD),
                 EditorStyles.wordWrappedMiniLabel);
 
-            var infoText = "• Componentes PROBLEMATICOS: Desmarcados por defecto (se desactivaran). Marca para mantener.\n" +
-                          "• Componentes DECISION USUARIO: Marcados por defecto (se mantienen). Desmarca para desactivar.\n" +
-                          "• Componentes COMPATIBLES: No modificados (MR los respeta)\n" +
-                          "• Botón MENÚ: Desactiva/activa Animator, Parameters, MenuInstaller, etc. por prenda.";
+            var infoText = MRLocalization.Get(L.AnalisisColision.NDMF_INFO);
 
             EditorGUILayout.LabelField(infoText, EditorStyles.wordWrappedMiniLabel);
 
@@ -1294,8 +1278,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             {
                 GUI.contentColor = BlendshapeSyncColor;
                 EditorGUILayout.LabelField(
-                    "• BlendshapeSync: Se desactiva en NDMF pero sigue activo en Edit Mode. " +
-                    "Usa 'Detener Sincronización' para evitar efectos en el body mientras editas.",
+                    MRLocalization.Get(L.AnalisisColision.NDMF_BLENDSHAPE_SYNC_INFO),
                     EditorStyles.wordWrappedMiniLabel);
                 GUI.contentColor = Color.white;
                 EditorGUILayout.Space(3);
@@ -1303,7 +1286,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             GUI.contentColor = Color.gray;
             EditorGUILayout.LabelField(
-                "El componente MRAnalisisColision se destruye despues de procesar.",
+                MRLocalization.Get(L.AnalisisColision.NDMF_DESTROYED),
                 EditorStyles.miniLabel);
             GUI.contentColor = Color.white;
 

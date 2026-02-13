@@ -5,6 +5,8 @@ using UnityEditor;
 using UnityEditorInternal;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.Frame;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.Radial
 {
@@ -119,7 +121,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         /// </summary>
         private void DrawReorderableListHeader(Rect rect)
         {
-            EditorGUI.LabelField(rect, $"Frames ({_target.FrameCount}) - Arrastra para reordenar", EditorStyles.boldLabel);
+            EditorGUI.LabelField(rect, MRLocalization.Get(L.RadialExtra.FRAMES_HEADER, _target.FrameCount), EditorStyles.boldLabel);
         }
         
         /// <summary>
@@ -151,7 +153,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             }
 
             // Etiqueta del frame
-            EditorGUI.LabelField(labelRect, $"Frame {index + 1}");
+            EditorGUI.LabelField(labelRect, MRLocalization.Get(L.RadialExtra.FRAME_LABEL, index + 1));
 
             GUI.color = originalColor;
 
@@ -166,7 +168,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             // Botón Duplicar
             GUI.enabled = frame != null;
             GUI.color = new Color(0.5f, 0.8f, 1f);
-            if (GUI.Button(duplicateButtonRect, new GUIContent("+", "Duplicar frame")))
+            if (GUI.Button(duplicateButtonRect, new GUIContent("+", MRLocalization.Get(L.RadialExtra.DUPLICATE_FRAME))))
             {
                 DuplicateFrame(index, frame);
             }
@@ -177,9 +179,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             GUI.color = Color.red;
             if (GUI.Button(deleteButtonRect, "X"))
             {
-                if (EditorUtility.DisplayDialog("Eliminar Frame",
-                    $"¿Estás seguro de que deseas eliminar el Frame {index + 1}?",
-                    "Eliminar", "Cancelar"))
+                if (EditorUtility.DisplayDialog(MRLocalization.Get(L.RadialExtra.DELETE_FRAME_TITLE),
+                    MRLocalization.Get(L.RadialExtra.DELETE_FRAME_CONFIRM, index + 1),
+                    MRLocalization.Get(L.Common.DELETE), MRLocalization.Get(L.Common.CANCEL)))
                 {
                     _framesProp.DeleteArrayElementAtIndex(index);
                     _serializedObject.ApplyModifiedProperties();
@@ -302,9 +304,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 var element = _framesProp.GetArrayElementAtIndex(list.index);
                 var frame = element.objectReferenceValue as MRAgruparObjetos;
                 
-                if (EditorUtility.DisplayDialog("Eliminar Frame", 
-                    $"¿Estás seguro de que deseas eliminar el Frame {list.index + 1}?", 
-                    "Eliminar", "Cancelar"))
+                if (EditorUtility.DisplayDialog(MRLocalization.Get(L.RadialExtra.DELETE_FRAME_TITLE),
+                    MRLocalization.Get(L.RadialExtra.DELETE_FRAME_CONFIRM, list.index + 1),
+                    MRLocalization.Get(L.Common.DELETE), MRLocalization.Get(L.Common.CANCEL)))
                 {
                     _framesProp.DeleteArrayElementAtIndex(list.index);
                     _serializedObject.ApplyModifiedProperties();

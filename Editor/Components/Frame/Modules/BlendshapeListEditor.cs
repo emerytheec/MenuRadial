@@ -3,6 +3,8 @@ using UnityEditor;
 using System.Linq;
 using Bender_Dios.MenuRadial.Components.Frame;
 using Bender_Dios.MenuRadial.Editor.Components.Frame;
+using Bender_Dios.MenuRadial.Localization;
+using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
 namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
 {
@@ -97,7 +99,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             if (_target == null) return;
             
             var blendshapeCount = _target.GetCounts().Blendshapes;
-            var foldoutText = $"Blendshapes del Frame ({blendshapeCount})";
+            var foldoutText = MRLocalization.Get(L.FrameModules.BLENDSHAPES_FOLDOUT, blendshapeCount);
             
             _target.ShowBlendshapeList = EditorGUILayout.Foldout(_target.ShowBlendshapeList, foldoutText, EditorStyleManager.FoldoutStyle);
             
@@ -122,13 +124,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             if (_target.BlendshapeReferences.Count == 0)
             {
-                mainText = "Arrastra GameObjects aquí";
-                subText = "Objetos con SkinnedMeshRenderer y blendshapes";
+                mainText = MRLocalization.Get(L.FrameModules.DROP_BS_MAIN);
+                subText = MRLocalization.Get(L.FrameModules.DROP_BS_SUB);
             }
             else
             {
-                mainText = "Arrastra más objetos";
-                subText = "Añadir blendshapes al frame";
+                mainText = MRLocalization.Get(L.FrameModules.DROP_MORE_BS_MAIN);
+                subText = MRLocalization.Get(L.FrameModules.DROP_MORE_BS_SUB);
             }
             
             // Crear rect para el área de drop
@@ -208,15 +210,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             // Botones normales
             EditorStyleManager.DrawManagementButtons(
-                ("Capturar Valores", () => {
+                (MRLocalization.Get(L.FrameModules.CAPTURE_VALUES), () => {
                     _target.CaptureAllBlendshapeValues();
                     EditorUtility.SetDirty(_target);
                 }),
-                ("Recalcular Rutas", () => {
+                (MRLocalization.Get(L.FrameModules.RECALCULATE_PATHS), () => {
                     _target.UpdateAllBlendshapeRendererPaths();
                     EditorUtility.SetDirty(_target);
                 }),
-                ("Limpiar Inválidos", () => {
+                (MRLocalization.Get(L.FrameModules.CLEAN_INVALIDS), () => {
                     _target.RemoveInvalidBlendshapeReferences();
                     EditorUtility.SetDirty(_target);
                 })
@@ -224,11 +226,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             // Botón de limpiar todos (con color rojo)
             EditorStyleManager.WithColor(Color.red, () => {
-                if (GUILayout.Button("Limpiar Todos", GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.CLEAN_ALL), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
                 {
-                    if (EditorUtility.DisplayDialog("Confirmar", 
-                        "¿Estás seguro de que quieres eliminar todos los blendshapes del frame?", 
-                        "Sí", "Cancelar"))
+                    if (EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.CONFIRM),
+                        MRLocalization.Get(L.FrameModules.CLEAN_ALL_BS_CONFIRM),
+                        MRLocalization.Get(L.Common.YES), MRLocalization.Get(L.Common.CANCEL)))
                     {
                         _target.ClearBlendshapes();
                         EditorUtility.SetDirty(_target);
@@ -246,7 +248,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         {
             if (_target.BlendshapeReferences.Count == 0)
             {
-                EditorGUILayout.HelpBox("No hay blendshapes en este frame. Arrastra GameObjects con SkinnedMeshRenderer al área superior para añadirlos.", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.FrameModules.NO_BLENDSHAPES_HINT), MessageType.Info);
                 return;
             }
             
@@ -257,11 +259,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 var cols = CalcCols(total);
 
                 GUILayout.Space(0);
-                EditorGUILayout.LabelField("Renderer", EditorStyles.boldLabel, GUILayout.Width(cols.rend));
-                EditorGUILayout.LabelField("Blendshape", EditorStyles.boldLabel, GUILayout.Width(cols.blend)); // flexible
-                EditorGUILayout.LabelField("Base", EditorStyles.boldLabel, GUILayout.Width(cols.baseW));       // solo lectura
-                EditorGUILayout.LabelField("Activo", EditorStyles.boldLabel, GUILayout.Width(cols.active));    // 0 | campo | 100
-                EditorGUILayout.LabelField("", EditorStyles.boldLabel, GUILayout.Width(cols.actions));         // acciones
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_RENDERER), EditorStyles.boldLabel, GUILayout.Width(cols.rend));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_BLENDSHAPE), EditorStyles.boldLabel, GUILayout.Width(cols.blend));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_BASE), EditorStyles.boldLabel, GUILayout.Width(cols.baseW));
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_ACTIVE_MAT), EditorStyles.boldLabel, GUILayout.Width(cols.active));
+                EditorGUILayout.LabelField("", EditorStyles.boldLabel, GUILayout.Width(cols.actions));
             }
             
             // Línea separadora
@@ -295,7 +297,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 var cols = CalcCols(total);
 
                 // Renderer
-                string rendererName = blendRef.TargetRenderer != null ? blendRef.TargetRenderer.name : "(Sin Renderer)";
+                string rendererName = blendRef.TargetRenderer != null ? blendRef.TargetRenderer.name : MRLocalization.Get(L.FrameModules.NO_RENDERER);
                 var rendererButtonStyle = new GUIStyle(EditorStyles.textField)
                 {
                     normal = { textColor = blendRef.TargetRenderer != null ? Color.white : Color.red }
@@ -350,7 +352,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 GUILayout.FlexibleSpace();
                 
                 // Botón de seleccionar renderer en hierarchy
-                if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", "Seleccionar Renderer"))
+                if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", MRLocalization.Get(L.FrameModules.SELECT_RENDERER)))
                 {
                     if (blendRef.TargetRenderer != null)
                     {
@@ -374,7 +376,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.Space(25); // Menos espacio ya que no hay ancho fijo
-                EditorGUILayout.LabelField($"Última ruta conocida: {blendRef.RendererPath}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.LAST_KNOWN_PATH, blendRef.RendererPath), EditorStyles.miniLabel);
                 EditorGUILayout.EndHorizontal();
             }
             

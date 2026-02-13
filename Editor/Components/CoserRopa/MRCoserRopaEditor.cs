@@ -168,7 +168,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             if (_target.AvatarReference != null && _target.AvatarRoot != null)
             {
                 var color = _target.IsAvatarHumanoid ? EnabledColor : WarningColor;
-                var label = _target.IsAvatarHumanoid ? "Humanoid" : "Generic (fallback por nombre)";
+                var label = _target.IsAvatarHumanoid ? MRLocalization.Get(L.CoserRopaExtra.HUMANOID) : MRLocalization.Get(L.CoserRopaExtra.GENERIC_FALLBACK);
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(EditorGUIUtility.labelWidth + 2);
@@ -231,7 +231,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
         private void DrawListHeader(Rect rect)
         {
-            EditorGUI.LabelField(rect, $"Ropas ({_target.EnabledClothingCount}/{_target.DetectedClothingCount} habilitadas)");
+            EditorGUI.LabelField(rect, MRLocalization.Get(L.CoserRopaExtra.CLOTHING_LIST_HEADER, _target.EnabledClothingCount, _target.DetectedClothingCount));
         }
 
         private void DrawElementBackground(Rect rect, int index, bool isActive, bool isFocused)
@@ -287,7 +287,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Label "Ropa N"
             var labelRect = new Rect(x, rect.y, LABEL_WIDTH, rect.height);
-            EditorGUI.LabelField(labelRect, $"Ropa {index + 1}");
+            EditorGUI.LabelField(labelRect, MRLocalization.Get(L.CoserRopaExtra.CLOTHING_LABEL, index + 1));
             x += LABEL_WIDTH;
 
             GUI.contentColor = originalColor;
@@ -335,7 +335,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 GUI.contentColor = clothing.Enabled
                     ? (clothing.HasValidMappings ? EnabledColor : WarningColor)
                     : DisabledColor;
-                EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} huesos", EditorStyles.miniLabel);
+                EditorGUI.LabelField(bonesRect, MRLocalization.Get(L.CoserRopaExtra.BONE_COUNT, clothing.MappedBoneCount), EditorStyles.miniLabel);
             }
             GUI.contentColor = originalColor;
 
@@ -397,24 +397,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             // Titulo
-            EditorGUILayout.LabelField($"Detalles: {selected.Name}", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.DETAILS_TITLE, selected.Name), EditorStyles.boldLabel);
 
             // Mostrar si tiene Modular Avatar
             if (selected.HasModularAvatar)
             {
                 EditorGUILayout.BeginHorizontal();
                 GUI.contentColor = ModularAvatarColor;
-                EditorGUILayout.LabelField("Modular Avatar detectado", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.MA_DETECTED), EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
                 EditorGUILayout.EndHorizontal();
 
-                string maMessage = $"Esta ropa tiene {selected.ModularAvatarComponentType} configurado.\n" +
-                    "Modular Avatar se encargará del cosido de huesos.\n" +
-                    "MRCoserRopa no procesará esta prenda.";
+                string maMessage = MRLocalization.Get(L.CoserRopaExtra.MA_WILL_PROCESS, selected.ModularAvatarComponentType);
 
                 if (selected.HasMAShapeChanger)
                 {
-                    maMessage += "\n\nTambién tiene MA Shape Changer: los blendshapes son controlados por MA.";
+                    maMessage += "\n\n" + MRLocalization.Get(L.CoserRopaExtra.MA_MERGE_ARMATURE);
                 }
 
                 EditorGUILayout.HelpBox(maMessage, MessageType.Info);
@@ -428,19 +426,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             {
                 EditorGUILayout.BeginHorizontal();
                 GUI.contentColor = ModularAvatarColor;
-                EditorGUILayout.LabelField("MA Shape Changer detectado", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.MA_NO_MERGE_ARMATURE), EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
                 EditorGUILayout.EndHorizontal();
 
                 EditorGUILayout.HelpBox(
-                    "Esta ropa tiene MA Shape Changer configurado.\n" +
-                    "Los blendshapes son controlados por Modular Avatar.\n" +
-                    "MRCoserRopa procesará los huesos, pero evita configurar blendshapes en MRAgruparObjetos para esta prenda.",
+                    MRLocalization.Get(L.CoserRopaExtra.MA_MANUAL_NEEDED),
                     MessageType.Warning);
             }
 
             // Info (solo para prendas sin MA)
-            EditorGUILayout.LabelField($"Huesos: {selected.MappedBoneCount} mapeados de {selected.TotalBoneCount}", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.BONE_STATS, selected.MappedBoneCount, selected.TotalBoneCount), EditorStyles.miniLabel);
 
             // Detectar y mostrar prefijos/sufijos
             DrawBoneNamingInfo(selected);
@@ -473,9 +469,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                                !string.IsNullOrEmpty(detectedPrefix) ||
                                !string.IsNullOrEmpty(detectedSuffix);
 
-            string foldoutLabel = clothing.HasCustomNaming
-                ? "Prefijo/Sufijo de huesos (configurado)"
-                : (showSection ? "Prefijo/Sufijo de huesos (detectado)" : "Prefijo/Sufijo de huesos");
+            string foldoutLabel = MRLocalization.Get(L.CoserRopaExtra.PREFIX_SECTION);
+            if (clothing.HasCustomNaming)
+                foldoutLabel += " (configurado)";
+            else if (showSection)
+                foldoutLabel += " (detectado)";
 
             _showNamingFoldout = EditorGUILayout.Foldout(_showNamingFoldout, foldoutLabel, true);
 
@@ -486,7 +484,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Campo Prefijo
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Prefijo:", GUILayout.Width(50));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.PREFIX_REMOVE), GUILayout.Width(50));
 
             EditorGUI.BeginChangeCheck();
             string newPrefix = EditorGUILayout.TextField(clothing.BonePrefix);
@@ -511,7 +509,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Campo Sufijo
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Sufijo:", GUILayout.Width(50));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.SUFFIX_SECTION), GUILayout.Width(50));
 
             EditorGUI.BeginChangeCheck();
             string newSuffix = EditorGUILayout.TextField(clothing.BoneSuffix);
@@ -536,7 +534,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Botón para re-detectar con los nuevos valores
             EditorGUILayout.Space(3);
-            if (GUILayout.Button("Re-detectar huesos con estos valores", EditorStyles.miniButton))
+            if (GUILayout.Button(MRLocalization.Get(L.CoserRopaExtra.SUFFIX_REMOVE), EditorStyles.miniButton))
             {
                 Undo.RecordObject(_target, "Re-detectar huesos");
                 _target.DetectBoneMappingsForClothing(clothing);
@@ -547,13 +545,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             if (clothing.HasCustomNaming)
             {
                 GUI.contentColor = EnabledColor;
-                EditorGUILayout.LabelField("Se eliminará el prefijo/sufijo para mejor matching.", EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.PREFIX_KEEP), EditorStyles.wordWrappedMiniLabel);
                 GUI.contentColor = Color.white;
             }
             else
             {
                 GUI.contentColor = new Color(0.6f, 0.6f, 0.6f);
-                EditorGUILayout.LabelField("Opcional: Si los huesos tienen prefijo/sufijo, escríbelo aquí.", EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.SUFFIX_KEEP), EditorStyles.wordWrappedMiniLabel);
                 GUI.contentColor = Color.white;
             }
 
@@ -663,9 +661,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         {
             // Header
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Hueso Avatar (destino)", EditorStyles.miniLabel, GUILayout.Width(140));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.MAPPING_HEADER_AVATAR), EditorStyles.miniLabel, GUILayout.Width(140));
             EditorGUILayout.LabelField("←", GUILayout.Width(20));
-            EditorGUILayout.LabelField("Hueso Ropa (clic para ver, arrastra para cambiar)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.MAPPING_HEADER_CLOTHING), EditorStyles.miniLabel);
             EditorGUILayout.LabelField("", GUILayout.Width(50)); // Espacio para indicador
             EditorGUILayout.EndHorizontal();
 
@@ -683,7 +681,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Boton para agregar mapeo manual (selecciona hueso del avatar)
             EditorGUILayout.Space(3);
-            if (GUILayout.Button("+ Agregar mapeo desde hueso del avatar", EditorStyles.miniButton))
+            if (GUILayout.Button(MRLocalization.Get(L.CoserRopaExtra.ADD_MAPPING), EditorStyles.miniButton))
             {
                 AddManualMappingFromAvatar(clothing);
             }
@@ -808,11 +806,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = ModularAvatarColor;
-                EditorGUILayout.LabelField($"MA: {maCount} ropa(s) con Modular Avatar", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.NDMF_BEHAVIOR, maCount), EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
-                    "Estas ropas serán procesadas por Modular Avatar, no por MRCoserRopa.",
+                    MRLocalization.Get(L.CoserRopaExtra.NDMF_DURING_BUILD),
                     EditorStyles.wordWrappedMiniLabel);
 
                 // Listar las ropas con MA
@@ -832,14 +830,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = EnabledColor;
-                EditorGUILayout.LabelField($"MR: {enabledCount} ropa(s) lista(s) - {totalBones} huesos", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.NDMF_ENABLED_INFO, enabledCount, totalBones), EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
-                    "El merge se ejecutará automáticamente al:",
+                    MRLocalization.Get(L.CoserRopaExtra.NDMF_DISABLED_INFO),
                     EditorStyles.wordWrappedMiniLabel);
                 EditorGUILayout.LabelField(
-                    "  • Entrar en Play Mode\n  • Subir el avatar a VRChat",
+                    MRLocalization.Get(L.CoserRopaExtra.NDMF_SCOPE),
                     EditorStyles.wordWrappedMiniLabel);
 
                 EditorGUILayout.EndVertical();
@@ -848,8 +846,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             {
                 // Ropas habilitadas pero sin mapeos
                 EditorGUILayout.HelpBox(
-                    "Las ropas habilitadas no tienen mapeos de huesos válidos.\n" +
-                    "Verifica que las ropas tengan armature con huesos humanoid.",
+                    MRLocalization.Get(L.CoserRopaExtra.NDMF_SCENE_SAFE),
                     MessageType.Warning);
             }
             else if (maCount == 0)

@@ -164,7 +164,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 string currentState = _target.ActiveFrameIndex == 0
                     ? MRLocalization.Get(L.Radial.STATE_OFF)
                     : MRLocalization.Get(L.Radial.STATE_ON);
-                labelText = $"Estado ({currentState})";
+                labelText = MRLocalization.Get(L.RadialExtra.STATE_WITH_CURRENT, currentState);
             }
             EditorGUILayout.LabelField(labelText, GUILayout.Width(100f));
 
@@ -242,9 +242,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Space(110f); // Alinear con el label
                 
-                string infoText = _target.ActiveFrameIndex == 0 ? 
-                    "🟥 Estado OFF: Todos los elementos apagados/neutrales" : 
-                    "🟢 Estado ON: Frame activo aplicado";
+                string infoText = _target.ActiveFrameIndex == 0 ?
+                    MRLocalization.Get(L.RadialExtra.STATE_OFF_INFO) :
+                    MRLocalization.Get(L.RadialExtra.STATE_ON_INFO);
                     
                 EditorGUILayout.LabelField(infoText, EditorStyles.miniLabel);
                 EditorGUILayout.EndHorizontal();
@@ -381,15 +381,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 GUILayout.Space(5f);
 
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField("Estado por Defecto en FX", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.DEFAULT_STATE_TITLE), EditorStyles.boldLabel);
 
                 EditorGUILayout.PropertyField(_defaultStateIsOnProp,
                     MRLocalization.GetContent(L.Radial.DEFAULT_STATE_IS_ON, L.Radial.DEFAULT_STATE_IS_ON_TOOLTIP));
 
                 // Mostrar información del estado actual
                 string stateInfo = _defaultStateIsOnProp.boolValue
-                    ? "El avatar iniciará con este efecto ACTIVADO"
-                    : "El avatar iniciará con este efecto DESACTIVADO";
+                    ? MRLocalization.Get(L.RadialExtra.DEFAULT_STATE_ON_DESC)
+                    : MRLocalization.Get(L.RadialExtra.DEFAULT_STATE_OFF_DESC);
                 EditorGUILayout.HelpBox(stateInfo, MessageType.Info);
 
                 EditorGUILayout.EndVertical();
@@ -400,34 +400,34 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         {
             if (_target.FrameCount == 0)
             {
-                EditorGUILayout.HelpBox("Añade frames para ver información de duración", MessageType.Info);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.RadialExtra.ADD_FRAMES_HINT), MessageType.Info);
                 return;
             }
             
             // Box de información
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             
-            EditorGUILayout.LabelField("Información de Duración", EditorStyles.boldLabel);
-            
+            EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.DURATION_TITLE), EditorStyles.boldLabel);
+
             // Información básica usando constantes estáticas
             const float TOTAL_DURATION = 4.25f;
             const int TOTAL_FRAMES = 255;
-            EditorGUILayout.LabelField($"Duración total: {TOTAL_DURATION:F2} segundos ({TOTAL_FRAMES} frames a 60 FPS)");
-            EditorGUILayout.LabelField($"División: {_target.FrameCount} segmentos");
-            
+            EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.DURATION_TOTAL, TOTAL_DURATION, TOTAL_FRAMES));
+            EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.DIVISION_COUNT, _target.FrameCount));
+
             // Cálculo de división automática
             if (_target.FrameCount > 0)
             {
                 int framesPerSegment = TOTAL_FRAMES / _target.FrameCount;
                 int remainingFrames = TOTAL_FRAMES % _target.FrameCount;
-                
+
                 if (remainingFrames > 0)
                 {
-                    EditorGUILayout.LabelField($"Segmentos estándar: {framesPerSegment} frames, último segmento: {framesPerSegment + remainingFrames} frames");
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.SEGMENTS_STANDARD, framesPerSegment, framesPerSegment + remainingFrames));
                 }
                 else
                 {
-                    EditorGUILayout.LabelField($"Todos los segmentos: {framesPerSegment} frames");
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.SEGMENTS_EQUAL, framesPerSegment));
                 }
             }
             
@@ -443,7 +443,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             // Mostrar mensaje de error si hay materiales de escena
             if (hasSceneMaterials)
             {
-                EditorGUILayout.HelpBox("Existen materiales instancia de escena. Asigna assets antes de generar.", MessageType.Error);
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.RadialExtra.SCENE_MATERIALS_ERROR), MessageType.Error);
             }
             
             EditorGUI.BeginDisabledGroup(!canGenerate);
@@ -472,14 +472,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             
             // Información sobre el sistema
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("ℹ️ Información del Sistema:", EditorStyles.boldLabel);
-            
+            EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.SYSTEM_INFO_TITLE), EditorStyles.boldLabel);
+
             string systemInfo = _target.FrameCount switch
             {
-                0 => "Configure frames para comenzar",
-                1 => "• Configurado para efectos ON/OFF",
-                2 => "• Configurado para alternar entre dos estados", 
-                _ => $"• Configurado con {_target.FrameCount} frames"
+                0 => MRLocalization.Get(L.RadialExtra.SYSTEM_INFO_NO_FRAMES),
+                1 => MRLocalization.Get(L.RadialExtra.SYSTEM_INFO_ONOFF),
+                2 => MRLocalization.Get(L.RadialExtra.SYSTEM_INFO_AB),
+                _ => MRLocalization.Get(L.RadialExtra.SYSTEM_INFO_LINEAR, _target.FrameCount)
             };
             
             EditorGUILayout.LabelField(systemInfo, EditorStyles.wordWrappedLabel);
