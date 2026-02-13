@@ -132,9 +132,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 }
             }
             
-            if (canceledCount > 0)
-            {
-            }
         }
         
         
@@ -228,9 +225,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 }
             }
             
-            if (restoredMaterials > 0)
-            {
-            }
         }
         
         
@@ -283,9 +277,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 }
             }
             
-            if (restoredBlendshapes > 0)
-            {
-            }
         }
         
     }

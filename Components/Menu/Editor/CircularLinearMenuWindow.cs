@@ -111,10 +111,6 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Editor
         
         private void OnDestroy()
         {
-            // Limpiar preview al cerrar
-            if (_previewEnabled && _targetRadialMenu != null)
-            {
-            }
         }
         
         

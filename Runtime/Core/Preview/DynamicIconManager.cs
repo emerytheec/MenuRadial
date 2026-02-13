@@ -121,14 +121,6 @@ namespace Bender_Dios.MenuRadial.Core.Preview
             var normal = LoadBSXIcon("BSX_GM_Toggle");
             var active = LoadBSXIcon("BSX_GM_Toggle_on");
             
-            if (normal == null)
-            {
-            }
-            
-            if (active == null)
-            {
-            }
-            
             return (normal, active);
         }
         

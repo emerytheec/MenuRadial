@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.32] - 2026-02-13
+
+### Eliminado
+- **FramePreviewStrategy.cs**: Archivo completo eliminado (191 líneas, 0 referencias externas)
+- **IFrameData.cs**: Interfaz eliminada (75 líneas, nunca usada como tipo polimórfico)
+- **FrameData.cs**: Eliminados 9 métodos muertos (AddObjectReference, RemoveObjectReference, ClearObjectReferences, SetAllReferencesActive, ClearMaterialReferences, RestoreAllOriginalMaterials, AddBlendshapeReference, RemoveBlendshapeReference, ClearBlendshapeReferences) — 323→227 líneas
+- **FrameBlendshapeController.cs**: Eliminados 5 métodos query muertos (FindBlendshapeReference, ContainsBlendshape, GetBlendshapesByRenderer, GetActiveBlendshapes, GetInactiveBlendshapes) — 383→208 líneas
+- **FrameMaterialController.cs**: Eliminados 4 métodos query muertos (FindMaterialReference, ContainsMaterial, GetMaterialsWithAlternatives, GetMaterialsWithoutAlternatives) — 316→175 líneas
+- **FrameObjectController.cs**: Eliminados 4 métodos query muertos (FindObjectReference, ContainsObject, GetActiveObjects, GetInactiveObjects) — 329→142 líneas
+- **PreviewManager.cs**: Eliminado RegisterComponentIfNeeded redundante (RegisterComponent ya verifica duplicados)
+- **HierarchyPathHelper.cs**: Eliminado IsValidPath() sin callers
+- **MRUnificarObjetosEditor.cs**: Eliminado ValidateSerializedProperties() vacío + su caller
+- **ReferenceListManager.cs**, **MRUnificarObjetosPreviewManager.cs**, **DynamicIconManager.cs**, **CircularLinearMenuWindow.cs**: Eliminados empty if blocks y variables contadoras sin usar
+- Simplificadas funciones RemoveInvalid usando `RemoveAll()` directo
+- **Total**: ~1000 líneas de código muerto eliminadas en 15 archivos
+
 ## [0.8.31] - 2026-02-13
 
 ### Mejorado

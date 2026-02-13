@@ -159,15 +159,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             _animationNameProp = serializedObject.FindProperty("_animationName");
             _defaultStateIsOnProp = serializedObject.FindProperty("_defaultStateIsOn");
 
-            // Validar que todas las propiedades se encontraron
-            ValidateSerializedProperties();
-        }
-        
-        /// <summary>
-        /// Valida que las propiedades serializadas se encontraron correctamente
-        /// </summary>
-        private void ValidateSerializedProperties()
-        {
         }
         
         /// <summary>

@@ -68,18 +68,6 @@ namespace Bender_Dios.MenuRadial.Core.Utils
                 
             return GetHierarchyPath(component.transform, root);
         }
-        
-        /// <summary>
-        /// Verifica si una ruta jerárquica es válida (no es null, vacía o indica missing)
-        /// </summary>
-        /// <param name="path">Ruta a verificar</param>
-        /// <returns>True si la ruta es válida</returns>
-        public static bool IsValidPath(string path)
-        {
-            return !string.IsNullOrEmpty(path) &&
-                   !path.StartsWith("(Sin ") &&
-                   !path.Equals("(Sin Referencia)");
-        }
-        
+
     }
 }

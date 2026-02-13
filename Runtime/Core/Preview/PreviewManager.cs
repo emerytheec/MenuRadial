@@ -60,7 +60,7 @@ namespace Bender_Dios.MenuRadial.Core.Preview
             _currentActivePreview = preview;
 
             // Registrar componente si no está ya registrado
-            RegisterComponentIfNeeded(preview);
+            RegisterComponent(preview);
         }
         
         /// <summary>
@@ -144,17 +144,6 @@ namespace Bender_Dios.MenuRadial.Core.Preview
         }
         
         /// <summary>
-        /// Registra un componente si no está ya registrado (compatible con WeakReference)
-        /// </summary>
-        private static void RegisterComponentIfNeeded(IPreviewable preview)
-        {
-            if (!_registeredComponents.Any(wr => wr.IsAlive && wr.Target == preview))
-            {
-                RegisterComponent(preview);
-            }
-        }
-        
-        /// <summary>
         /// Limpia automáticamente referencias a componentes destruidos
         /// NUEVO [2025-07-04]: Previene memory leaks
         /// </summary>
@@ -164,9 +153,6 @@ namespace Bender_Dios.MenuRadial.Core.Preview
             _registeredComponents.RemoveAll(wr => !wr.IsAlive);
             
             int removedCount = originalCount - _registeredComponents.Count;
-            if (removedCount > 0)
-            {
-            }
         }
         
         /// <summary>

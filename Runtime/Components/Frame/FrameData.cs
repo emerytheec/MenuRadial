@@ -6,11 +6,8 @@ using Bender_Dios.MenuRadial.Core.Common;
 
 namespace Bender_Dios.MenuRadial.Components.Frame
 {
-    /// <summary>
-    /// Implementación simplificada de IFrameData usando ReferenceListManager
-    /// </summary>
     [Serializable]
-    public class FrameData : IFrameData
+    public class FrameData
     {
         [SerializeField] private string _name = "Frame";
         
@@ -93,51 +90,14 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _blendshapeManager.ApplyAll();
             
         }
-        
-        
-        /// <summary>
-        /// Añade una referencia de objeto al frame
-        /// </summary>
-        public void AddObjectReference(GameObject gameObject, bool isActive = true)
-        {
-            if (gameObject == null) return;
-            _objectManager.Add(new ObjectReference(gameObject, isActive));
-        }
-        
-        /// <summary>
-        /// Elimina una referencia de objeto del frame
-        /// </summary>
-        public void RemoveObjectReference(GameObject gameObject)
-        {
-            if (gameObject == null) return;
-            _objectManager.RemoveByTarget(gameObject);
-        }
-        
-        /// <summary>
-        /// Limpia todas las referencias de objetos
-        /// </summary>
-        public void ClearObjectReferences()
-        {
-            _objectManager.Clear();
-        }
-        
+
+
         /// <summary>
         /// Limpia las referencias inválidas
         /// </summary>
         public void RemoveInvalidReferences()
         {
             _objectManager.RemoveInvalid();
-        }
-        
-        /// <summary>
-        /// Establece el estado activo de todas las referencias
-        /// </summary>
-        public void SetAllReferencesActive(bool isActive)
-        {
-            foreach (var objRef in _objectManager.References)
-            {
-                objRef.IsActive = isActive;
-            }
         }
         
         /// <summary>
@@ -190,14 +150,6 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         }
         
         /// <summary>
-        /// Limpia todas las referencias de materiales
-        /// </summary>
-        public void ClearMaterialReferences()
-        {
-            _materialManager.Clear();
-        }
-        
-        /// <summary>
         /// Limpia las referencias de materiales inválidas
         /// </summary>
         public void RemoveInvalidMaterialReferences()
@@ -217,60 +169,12 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         }
         
         /// <summary>
-        /// Restaura todos los materiales originales
-        /// </summary>
-        public void RestoreAllOriginalMaterials()
-        {
-            foreach (var materialRef in _materialManager.GetValidReferences())
-            {
-                materialRef.RestoreOriginalMaterial();
-            }
-        }
-        
-        
-        
-        /// <summary>
-        /// Añade una referencia de blendshape al frame
-        /// </summary>
-        public void AddBlendshapeReference(SkinnedMeshRenderer renderer, string blendshapeName, float value = 0f)
-        {
-            if (renderer == null || string.IsNullOrEmpty(blendshapeName)) return;
-            _blendshapeManager.Add(new BlendshapeReference(renderer, blendshapeName, value));
-        }
-        
-        /// <summary>
-        /// Elimina una referencia de blendshape del frame
-        /// </summary>
-        public void RemoveBlendshapeReference(SkinnedMeshRenderer renderer, string blendshapeName)
-        {
-            if (renderer == null || string.IsNullOrEmpty(blendshapeName)) return;
-            
-            // Buscar y eliminar por renderer y nombre específicos
-            var toRemove = _blendshapeManager.References
-                .Where(r => r.TargetRenderer == renderer && r.BlendshapeName == blendshapeName)
-                .ToList();
-                
-            foreach (var blendRef in toRemove)
-            {
-                _blendshapeManager.Remove(blendRef);
-            }
-        }
-        
-        /// <summary>
         /// Elimina todas las referencias de blendshapes de un renderer específico
         /// </summary>
         public void RemoveAllBlendshapeReferences(SkinnedMeshRenderer renderer)
         {
             if (renderer == null) return;
             _blendshapeManager.RemoveByTarget(renderer);
-        }
-        
-        /// <summary>
-        /// Limpia todas las referencias de blendshapes
-        /// </summary>
-        public void ClearBlendshapeReferences()
-        {
-            _blendshapeManager.Clear();
         }
         
         /// <summary>

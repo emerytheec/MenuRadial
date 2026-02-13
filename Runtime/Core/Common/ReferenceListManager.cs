@@ -117,13 +117,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         {
             if (reference == null) return false;
             
-            bool removed = _references.Remove(reference);
-            if (removed)
-            {
-                var targetName = reference.Target != null ? reference.Target.name : "(Desconocido)";
-            }
-            
-            return removed;
+            return _references.Remove(reference);
         }
         
         /// <summary>
@@ -135,12 +129,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         {
             if (target == null) return 0;
             
-            int removed = _references.RemoveAll(r => r.Target == target);
-            if (removed > 0)
-            {
-            }
-            
-            return removed;
+            return _references.RemoveAll(r => r.Target == target);
         }
         
         /// <summary>
@@ -149,12 +138,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// <returns>Número de referencias eliminadas</returns>
         public int RemoveInvalid()
         {
-            int removed = _references.RemoveAll(r => !r.IsValid);
-            if (removed > 0)
-            {
-            }
-            
-            return removed;
+            return _references.RemoveAll(r => !r.IsValid);
         }
         
         /// <summary>
@@ -162,7 +146,6 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public void Clear()
         {
-            int count = _references.Count;
             _references.Clear();
         }
         
