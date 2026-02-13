@@ -17,11 +17,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Models
 
         protected override string GenerateDefaultName()
         {
-            if (RootTransform != null)
-                return $"Col_{RootTransform.name}";
-            if (OriginalTransform != null)
-                return $"Col_{OriginalTransform.name}";
-            return "Col_Unknown";
+            var name = RootTransform?.name ?? OriginalTransform?.name ?? "Unknown";
+            return $"Col_{name}";
         }
     }
 }

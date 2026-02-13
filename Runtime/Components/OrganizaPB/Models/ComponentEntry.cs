@@ -17,6 +17,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Models
         [SerializeField] private string _generatedName;
         [SerializeField] private bool _included = true;
         [SerializeField] private bool _wasRelocated;
+        [SerializeField] private bool _hadExplicitRootTransform;
+        [SerializeField] private bool _isAlreadyOrganized;
         [SerializeField] private string _originalPath;
 
         // Campos para revertir la reorganización
@@ -125,9 +127,35 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Models
         public string OriginalPath => _originalPath;
 
         /// <summary>
+        /// Si el componente ya está fuera del armature (no necesita reorganización).
+        /// </summary>
+        public bool IsAlreadyOrganized
+        {
+            get => _isAlreadyOrganized;
+            set => _isAlreadyOrganized = value;
+        }
+
+        /// <summary>
+        /// Si el componente original tenía un rootTransform explícito (no null).
+        /// </summary>
+        public bool HadExplicitRootTransform
+        {
+            get => _hadExplicitRootTransform;
+            set => _hadExplicitRootTransform = value;
+        }
+
+        /// <summary>
         /// Nombre del transform raíz para mostrar en UI.
         /// </summary>
-        public string RootBoneName => _rootTransform != null ? _rootTransform.name : "(ninguno)";
+        public string RootBoneName
+        {
+            get
+            {
+                if (_hadExplicitRootTransform)
+                    return _rootTransform != null ? _rootTransform.name : "(perdido)";
+                return _originalTransform != null ? _originalTransform.name : "(implícito)";
+            }
+        }
 
         /// <summary>
         /// Verifica si la entrada es válida.
@@ -140,7 +168,8 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Models
         {
             _originalComponent = component;
             _originalTransform = originalTransform;
-            _rootTransform = rootTransform ?? originalTransform;
+            _hadExplicitRootTransform = rootTransform != null;
+            _rootTransform = rootTransform;
             _context = context;
             _generatedName = GenerateDefaultName();
             UpdateOriginalPath();

@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
+using Bender_Dios.MenuRadial.Core.Utils;
 
 namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 {
     /// <summary>
     /// Escanea el avatar para detectar VRCPhysBone y VRCPhysBoneCollider.
     /// Usa reflexión para evitar dependencia directa del VRChat SDK.
+    /// Solo detecta componentes que están DENTRO de armatures.
     /// </summary>
     public class PhysBoneScanner
     {
@@ -30,15 +32,28 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         private FieldInfo _pbIgnoreTransformsField;
         private FieldInfo _colliderRootTransformField;
 
-        private ContextDetector _contextDetector;
+        // Armatures pre-detectadas
+        private List<ArmatureContext> _detectedArmatures;
+
+        #endregion
+
+        #region Inner Types
+
+        /// <summary>
+        /// Información de una armature detectada y su contexto.
+        /// </summary>
+        private class ArmatureContext
+        {
+            public GameObject ContextRoot;
+            public Transform ArmatureTransform;
+            public bool IsAvatarContext;
+            public string ContextName;
+        }
 
         #endregion
 
         #region Properties
 
-        /// <summary>
-        /// Indica si el VRChat SDK está disponible.
-        /// </summary>
         public bool IsSDKAvailable
         {
             get
@@ -48,9 +63,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             }
         }
 
-        /// <summary>
-        /// Tipo de VRCPhysBone (para uso externo).
-        /// </summary>
         public Type PhysBoneType
         {
             get
@@ -60,9 +72,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             }
         }
 
-        /// <summary>
-        /// Tipo de VRCPhysBoneCollider (para uso externo).
-        /// </summary>
         public Type PhysBoneColliderType
         {
             get
@@ -76,15 +85,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         #region Constructor
 
-        public PhysBoneScanner()
-        {
-            _contextDetector = new ContextDetector();
-        }
-
-        public PhysBoneScanner(ContextDetector contextDetector)
-        {
-            _contextDetector = contextDetector ?? new ContextDetector();
-        }
+        public PhysBoneScanner() { }
 
         #endregion
 
@@ -110,7 +111,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                     break;
             }
 
-            // Cache field info para mejor rendimiento
+            // Cache field info
             if (_physBoneType != null)
             {
                 _pbRootTransformField = _physBoneType.GetField("rootTransform");
@@ -124,15 +125,125 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             }
 
             _typesResolved = true;
+        }
 
-            if (_physBoneType != null)
+        #endregion
+
+        #region Armature Detection
+
+        /// <summary>
+        /// Pre-detecta todas las armatures relevantes en el avatar.
+        /// Incluye la armature del avatar y las armatures de hijos directos (ropas).
+        /// </summary>
+        private void DetectArmatures(GameObject avatarRoot)
+        {
+            _detectedArmatures = new List<ArmatureContext>();
+
+            if (avatarRoot == null) return;
+
+            // Obtener Animator del avatar para Humanoid API
+            var animator = avatarRoot.GetComponent<Animator>();
+
+            // 1. Armature del avatar
+            var avatarResult = ArmatureFinder.FindArmature(avatarRoot.transform, animator);
+            if (avatarResult.Success)
             {
-                Debug.Log($"[PhysBoneScanner] VRChat SDK detectado: {_physBoneType.FullName}");
+                _detectedArmatures.Add(new ArmatureContext
+                {
+                    ContextRoot = avatarRoot,
+                    ArmatureTransform = avatarResult.Armature,
+                    IsAvatarContext = true,
+                    ContextName = "Avatar"
+                });
             }
-            else
+
+            // 2. Armatures de hijos directos del avatar root (ropas)
+            foreach (Transform child in avatarRoot.transform)
             {
-                Debug.LogWarning("[PhysBoneScanner] VRChat SDK no disponible");
+                // Saltar si es la propia armature del avatar
+                if (avatarResult.Success && child == avatarResult.Armature)
+                    continue;
+
+                // Saltar si no tiene hijos (no puede ser un contenedor de ropa)
+                if (child.childCount == 0)
+                    continue;
+
+                var childResult = ArmatureFinder.FindArmature(child);
+                if (childResult.Success)
+                {
+                    _detectedArmatures.Add(new ArmatureContext
+                    {
+                        ContextRoot = child.gameObject,
+                        ArmatureTransform = childResult.Armature,
+                        IsAvatarContext = false,
+                        ContextName = child.name
+                    });
+                }
             }
+
+            Debug.Log($"[PhysBoneScanner] Armatures detectadas: {_detectedArmatures.Count}");
+        }
+
+        /// <summary>
+        /// Encuentra el contexto de armature para un transform dado.
+        /// Retorna null si el transform no está dentro de ninguna armature.
+        /// </summary>
+        private ArmatureContext FindArmatureContextFor(Transform transform)
+        {
+            if (_detectedArmatures == null) return null;
+
+            foreach (var ctx in _detectedArmatures)
+            {
+                if (ctx.ArmatureTransform != null && transform.IsChildOf(ctx.ArmatureTransform))
+                {
+                    return ctx;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Crea un OrganizationContext a partir de un ArmatureContext.
+        /// </summary>
+        private OrganizationContext CreateOrganizationContext(ArmatureContext armCtx)
+        {
+            return new OrganizationContext(
+                armCtx.ContextRoot,
+                armCtx.ArmatureTransform,
+                armCtx.ContextName,
+                armCtx.IsAvatarContext
+            );
+        }
+
+        /// <summary>
+        /// Encuentra el contexto para un transform que está FUERA de cualquier armature.
+        /// Prioriza contextos más específicos (ropas antes que avatar).
+        /// </summary>
+        private ArmatureContext FindContextRootFor(Transform transform)
+        {
+            if (_detectedArmatures == null) return null;
+
+            ArmatureContext avatarCtx = null;
+
+            foreach (var ctx in _detectedArmatures)
+            {
+                if (ctx.ContextRoot == null) continue;
+
+                if (!transform.IsChildOf(ctx.ContextRoot.transform)) continue;
+
+                // Si es contexto de avatar, guardar como fallback
+                if (ctx.IsAvatarContext)
+                {
+                    avatarCtx = ctx;
+                    continue;
+                }
+
+                // Contexto de ropa (más específico) → retornar directo
+                return ctx;
+            }
+
+            return avatarCtx;
         }
 
         #endregion
@@ -140,109 +251,135 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         #region Scanning
 
         /// <summary>
-        /// Escanea el avatar y detecta todos los VRCPhysBone.
+        /// Escanea el avatar y detecta todos los VRCPhysBone que están dentro de armatures.
         /// </summary>
         public List<PhysBoneEntry> ScanPhysBones(GameObject avatarRoot)
         {
             var entries = new List<PhysBoneEntry>();
 
-            if (avatarRoot == null)
-            {
-                Debug.LogWarning("[PhysBoneScanner] Avatar root es null");
-                return entries;
-            }
+            if (avatarRoot == null) return entries;
 
             EnsureTypesResolved();
 
-            if (_physBoneType == null)
+            if (_physBoneType == null) return entries;
+
+            // Pre-detectar armatures si no se ha hecho
+            if (_detectedArmatures == null)
             {
-                Debug.LogWarning("[PhysBoneScanner] No se pueden escanear PhysBones: SDK no disponible");
-                return entries;
+                DetectArmatures(avatarRoot);
             }
 
             var components = avatarRoot.GetComponentsInChildren(_physBoneType, true);
-            Debug.Log($"[PhysBoneScanner] Encontrados {components.Length} VRCPhysBone");
+
+            int insideCount = 0;
+            int outsideCount = 0;
 
             foreach (var component in components)
             {
-                var entry = CreatePhysBoneEntry(component as Component, avatarRoot);
-                if (entry != null)
+                var comp = component as Component;
+                if (comp == null) continue;
+
+                var rootTransform = GetPhysBoneRootTransform(comp);
+
+                // Verificar si está dentro de alguna armature
+                var armCtx = FindArmatureContextFor(comp.transform);
+                if (armCtx != null)
                 {
+                    // Dentro del armature → necesita organización
+                    var context = CreateOrganizationContext(armCtx);
+                    var entry = new PhysBoneEntry(comp, comp.transform, rootTransform, context);
                     entries.Add(entry);
+                    insideCount++;
+                }
+                else
+                {
+                    // Fuera de armature → buscar a qué contexto pertenece
+                    var ctxRoot = FindContextRootFor(comp.transform);
+                    if (ctxRoot != null)
+                    {
+                        var context = CreateOrganizationContext(ctxRoot);
+                        var entry = new PhysBoneEntry(comp, comp.transform, rootTransform, context);
+                        entry.IsAlreadyOrganized = true;
+                        entry.Included = false;
+                        entries.Add(entry);
+                        outsideCount++;
+                    }
                 }
             }
+
+            Debug.Log($"[PhysBoneScanner] PhysBones: {insideCount} dentro de armatures, {outsideCount} ya organizados");
 
             return entries;
         }
 
         /// <summary>
-        /// Escanea el avatar y detecta todos los VRCPhysBoneCollider.
+        /// Escanea el avatar y detecta todos los VRCPhysBoneCollider que están dentro de armatures.
         /// </summary>
         public List<ColliderEntry> ScanColliders(GameObject avatarRoot)
         {
             var entries = new List<ColliderEntry>();
 
-            if (avatarRoot == null)
-            {
-                Debug.LogWarning("[PhysBoneScanner] Avatar root es null");
-                return entries;
-            }
+            if (avatarRoot == null) return entries;
 
             EnsureTypesResolved();
 
-            if (_physBoneColliderType == null)
+            if (_physBoneColliderType == null) return entries;
+
+            // Pre-detectar armatures si no se ha hecho
+            if (_detectedArmatures == null)
             {
-                Debug.LogWarning("[PhysBoneScanner] No se pueden escanear Colliders: SDK no disponible");
-                return entries;
+                DetectArmatures(avatarRoot);
             }
 
             var components = avatarRoot.GetComponentsInChildren(_physBoneColliderType, true);
-            Debug.Log($"[PhysBoneScanner] Encontrados {components.Length} VRCPhysBoneCollider");
+
+            int insideCount = 0;
+            int outsideCount = 0;
 
             foreach (var component in components)
             {
-                var entry = CreateColliderEntry(component as Component, avatarRoot);
-                if (entry != null)
+                var comp = component as Component;
+                if (comp == null) continue;
+
+                var rootTransform = GetColliderRootTransform(comp);
+
+                // Verificar si está dentro de alguna armature
+                var armCtx = FindArmatureContextFor(comp.transform);
+                if (armCtx != null)
                 {
+                    // Dentro del armature → necesita organización
+                    var context = CreateOrganizationContext(armCtx);
+                    var entry = new ColliderEntry(comp, comp.transform, rootTransform, context);
                     entries.Add(entry);
+                    insideCount++;
+                }
+                else
+                {
+                    // Fuera de armature → buscar a qué contexto pertenece
+                    var ctxRoot = FindContextRootFor(comp.transform);
+                    if (ctxRoot != null)
+                    {
+                        var context = CreateOrganizationContext(ctxRoot);
+                        var entry = new ColliderEntry(comp, comp.transform, rootTransform, context);
+                        entry.IsAlreadyOrganized = true;
+                        entry.Included = false;
+                        entries.Add(entry);
+                        outsideCount++;
+                    }
                 }
             }
+
+            Debug.Log($"[PhysBoneScanner] Colliders: {insideCount} dentro de armatures, {outsideCount} ya organizados");
 
             return entries;
         }
 
-        #endregion
-
-        #region Entry Creation
-
-        private PhysBoneEntry CreatePhysBoneEntry(Component component, GameObject avatarRoot)
+        /// <summary>
+        /// Invalida la cache de armatures. Llamar si la jerarquía cambia.
+        /// </summary>
+        public void InvalidateArmatureCache()
         {
-            if (component == null) return null;
-
-            var originalTransform = component.transform;
-            var rootTransform = GetPhysBoneRootTransform(component);
-            var context = _contextDetector.DetectContext(originalTransform, avatarRoot);
-
-            var entry = new PhysBoneEntry(component, originalTransform, rootTransform, context);
-
-            Debug.Log($"[PhysBoneScanner] PhysBone: {entry.GeneratedName} en contexto {context?.ContextName ?? "desconocido"}");
-
-            return entry;
-        }
-
-        private ColliderEntry CreateColliderEntry(Component component, GameObject avatarRoot)
-        {
-            if (component == null) return null;
-
-            var originalTransform = component.transform;
-            var rootTransform = GetColliderRootTransform(component);
-            var context = _contextDetector.DetectContext(originalTransform, avatarRoot);
-
-            var entry = new ColliderEntry(component, originalTransform, rootTransform, context);
-
-            Debug.Log($"[PhysBoneScanner] Collider: {entry.GeneratedName} en contexto {context?.ContextName ?? "desconocido"}");
-
-            return entry;
+            _detectedArmatures = null;
         }
 
         #endregion
@@ -251,41 +388,45 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
         /// <summary>
         /// Obtiene el rootTransform de un VRCPhysBone.
+        /// Retorna null si el campo es null (no coalescer con transform).
         /// </summary>
         public Transform GetPhysBoneRootTransform(Component physBone)
         {
             if (physBone == null || _pbRootTransformField == null)
-                return physBone?.transform;
+                return null;
 
             try
             {
-                var rootTransform = _pbRootTransformField.GetValue(physBone) as Transform;
-                return rootTransform ?? physBone.transform;
+                var value = _pbRootTransformField.GetValue(physBone) as Transform;
+                // Unity "fake null": el campo existe pero no está asignado en el inspector.
+                // 'as Transform' devuelve referencia no-null en C# pero Unity la trata como null.
+                return value != null ? value : null;
             }
             catch (Exception e)
             {
                 Debug.LogWarning($"[PhysBoneScanner] Error obteniendo rootTransform: {e.Message}");
-                return physBone.transform;
+                return null;
             }
         }
 
         /// <summary>
         /// Obtiene el rootTransform de un VRCPhysBoneCollider.
+        /// Retorna null si el campo es null (no coalescer con transform).
         /// </summary>
         public Transform GetColliderRootTransform(Component collider)
         {
             if (collider == null || _colliderRootTransformField == null)
-                return collider?.transform;
+                return null;
 
             try
             {
-                var rootTransform = _colliderRootTransformField.GetValue(collider) as Transform;
-                return rootTransform ?? collider.transform;
+                var value = _colliderRootTransformField.GetValue(collider) as Transform;
+                return value != null ? value : null;
             }
             catch (Exception e)
             {
                 Debug.LogWarning($"[PhysBoneScanner] Error obteniendo rootTransform de collider: {e.Message}");
-                return collider.transform;
+                return null;
             }
         }
 

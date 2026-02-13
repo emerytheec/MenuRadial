@@ -5,6 +5,33 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.30] - 2026-02-13
+
+### Corregido
+- **MROrganizaPB**: 13 bugs corregidos en el sistema de organización de PhysBones
+  - Filtrado por armature: solo detecta componentes dentro de armatures usando ArmatureFinder
+  - Preserva estado null de rootTransform (HadExplicitRootTransform flag)
+  - Ya no auto-organiza desde PrepareAll sin consentimiento del usuario
+  - Contenedores renombrados a VRCPB/VRCPBC (nombres cortos, claros)
+  - CopyComponentSimple usa reflexión en lugar de portapapeles (ComponentUtility)
+  - Undo integrado en PhysBoneRelocator (SafeDestroyImmediate, RegisterCreatedObjectUndo)
+  - Revert ya no destruye contenedores vacíos
+  - Referencias de colliders actualizadas para PhysBones excluidos del escaneo
+  - Reutilización segura de contenedores existentes (verifica contenido antes de reusar)
+  - Logging reducido a resúmenes (eliminados logs por componente individual)
+- **PhysBoneScanner**: Corregido fake null de Unity en rootTransform (UnassignedReferenceException)
+
+### Mejorado
+- **MROrganizaPBEditor**: UI rediseñada con cards agrupadas por contexto (avatar, ropas, pelucas)
+  - Cada contexto tiene su propia tarjeta con foldout, contadores PB/Col, y toggle grupal
+  - Click en nombre del componente hace ping en Hierarchy
+  - Componentes ya organizados (fuera del armature) se muestran con checkmark verde
+  - Grupos colapsados por defecto
+- **MROrganizaPBPlugin**: NDMF auto-organiza durante build como red de seguridad (OrganizeForBuild sin Undo)
+
+### Eliminado
+- **ContextDetector.cs**: Eliminado, lógica reemplazada por ArmatureFinder en PhysBoneScanner
+
 ## [0.8.29] - 2026-02-11
 
 ### Eliminado

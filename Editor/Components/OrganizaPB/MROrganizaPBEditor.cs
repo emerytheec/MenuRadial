@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using UnityEditorInternal;
 using System.Collections.Generic;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
@@ -9,7 +8,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 {
     /// <summary>
     /// Editor personalizado para MROrganizaPB.
-    /// Muestra listas de PhysBones y Colliders detectados con controles para incluirlos.
+    /// Muestra PhysBones y Colliders agrupados por contexto (avatar, ropas, pelucas).
     /// </summary>
     [CustomEditor(typeof(MROrganizaPB))]
     public class MROrganizaPBEditor : UnityEditor.Editor
@@ -17,31 +16,40 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
         #region Private Fields
 
         private MROrganizaPB _target;
-        private SerializedProperty _avatarRootProp;
-        private SerializedProperty _physBonesProp;
-        private SerializedProperty _collidersProp;
-
-        private ReorderableList _physBonesList;
-        private ReorderableList _collidersList;
-
-        private bool _showPhysBonesFoldout = true;
-        private bool _showCollidersFoldout = true;
-        private bool _showStatsFoldout = false;
+        private Dictionary<string, bool> _contextFoldouts = new Dictionary<string, bool>();
 
         #endregion
 
         #region Constants
 
-        private const float ITEM_HEIGHT = 22f;
+        private const float ITEM_HEIGHT = 20f;
         private const float TOGGLE_WIDTH = 18f;
-        private const float CONTEXT_WIDTH = 80f;
-        private const float ROOT_BONE_WIDTH = 100f;
+        private const float TYPE_LABEL_WIDTH = 32f;
+        private const float ROOT_BONE_WIDTH = 110f;
 
         private static readonly Color EnabledColor = new Color(0.3f, 0.8f, 0.3f);
         private static readonly Color DisabledColor = new Color(0.6f, 0.6f, 0.6f);
         private static readonly Color WarningColor = new Color(0.9f, 0.7f, 0.2f);
         private static readonly Color AvatarContextColor = new Color(0.4f, 0.7f, 1f);
         private static readonly Color ClothingContextColor = new Color(1f, 0.7f, 0.4f);
+        private static readonly Color PhysBoneTypeColor = new Color(0.5f, 0.85f, 0.5f);
+        private static readonly Color ColliderTypeColor = new Color(0.85f, 0.55f, 0.85f);
+        private static readonly Color CardBgColor = new Color(0.2f, 0.2f, 0.2f, 0.6f);
+        private static readonly Color CardHeaderBgColor = new Color(0.18f, 0.18f, 0.18f, 0.8f);
+
+        #endregion
+
+        #region Inner Types
+
+        private class ContextGroup
+        {
+            public OrganizationContext Context;
+            public List<ComponentEntry> Entries = new List<ComponentEntry>();
+            public int PhysBoneCount;
+            public int ColliderCount;
+            public int IncludedCount;
+            public int AlreadyOrganizedCount;
+        }
 
         #endregion
 
@@ -50,34 +58,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
         private void OnEnable()
         {
             _target = (MROrganizaPB)target;
-            _avatarRootProp = serializedObject.FindProperty("_avatarRoot");
-            _physBonesProp = serializedObject.FindProperty("_detectedPhysBones");
-            _collidersProp = serializedObject.FindProperty("_detectedColliders");
-
-            InitializePhysBonesList();
-            InitializeCollidersList();
-        }
-
-        private void InitializePhysBonesList()
-        {
-            _physBonesList = new ReorderableList(serializedObject, _physBonesProp, false, true, false, false)
-            {
-                drawHeaderCallback = rect => EditorGUI.LabelField(rect, $"PhysBones ({_physBonesProp.arraySize})"),
-                drawElementCallback = DrawPhysBoneElement,
-                elementHeight = ITEM_HEIGHT + 4f,
-                drawElementBackgroundCallback = DrawElementBackground
-            };
-        }
-
-        private void InitializeCollidersList()
-        {
-            _collidersList = new ReorderableList(serializedObject, _collidersProp, false, true, false, false)
-            {
-                drawHeaderCallback = rect => EditorGUI.LabelField(rect, $"Colliders ({_collidersProp.arraySize})"),
-                drawElementCallback = DrawColliderElement,
-                elementHeight = ITEM_HEIGHT + 4f,
-                drawElementBackgroundCallback = DrawElementBackground
-            };
         }
 
         #endregion
@@ -107,11 +87,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                     EditorGUILayout.Space(8);
                     DrawOrganizeSection();
                     EditorGUILayout.Space(8);
-                    DrawPhysBonesSection();
-                    EditorGUILayout.Space(5);
-                    DrawCollidersSection();
-                    EditorGUILayout.Space(8);
-                    DrawStatsSection();
+                    DrawContextGroups();
                 }
 
                 if (_target.LastResult != null)
@@ -176,7 +152,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
         private void DrawScanSection()
         {
-            // No permitir escanear si ya está organizado
             using (new EditorGUI.DisabledGroupScope(_target.IsOrganized))
             {
                 using (new EditorGUILayout.HorizontalScope())
@@ -213,7 +188,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
         {
             EditorGUILayout.Space(5);
 
-            // Mostrar estado actual
+            // Estado actual
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField("Estado:", GUILayout.Width(50));
@@ -241,15 +216,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             // Botones de acción
             using (new EditorGUILayout.HorizontalScope())
             {
-                // Botón Organizar
                 using (new EditorGUI.DisabledGroupScope(!_target.CanOrganize))
                 {
-                    var organizeStyle = new GUIStyle(GUI.skin.button);
-                    organizeStyle.fontStyle = FontStyle.Bold;
+                    var organizeStyle = new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
 
                     if (GUILayout.Button("Organizar PhysBones", organizeStyle, GUILayout.Height(30)))
                     {
-                        // Bug 6: Confirmación antes de organizar
                         int pbCount = _target.IncludedPhysBonesCount;
                         int colCount = _target.IncludedCollidersCount;
 
@@ -262,63 +234,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                         if (confirmed)
                         {
                             Undo.RecordObject(_target, "Organizar PhysBones");
-
-                            // Registrar todos los objetos que podrían ser modificados
-                            foreach (var pb in _target.DetectedPhysBones)
-                            {
-                                if (pb.OriginalComponent != null)
-                                    Undo.RecordObject(pb.OriginalComponent, "Organizar PhysBones");
-                            }
-                            foreach (var col in _target.DetectedColliders)
-                            {
-                                if (col.OriginalComponent != null)
-                                    Undo.RecordObject(col.OriginalComponent, "Organizar PhysBones");
-                            }
-
                             var result = _target.Organize();
                             EditorUtility.SetDirty(_target);
 
                             if (result.Success)
                             {
-                                // Bug 5: Registrar GameObjects creados para Undo
-                                foreach (var container in _target.CreatedContainers)
-                                {
-                                    if (container != null)
-                                    {
-                                        Undo.RegisterCreatedObjectUndo(container, "Organizar PhysBones");
-                                        // Registrar los hijos (PB_*, Col_*)
-                                        foreach (Transform child in container.transform)
-                                        {
-                                            Undo.RegisterCreatedObjectUndo(child.gameObject, "Organizar PhysBones");
-                                        }
-                                    }
-                                }
-
                                 Debug.Log($"[MROrganizaPB] Organización completada: {result.GetSummary()}");
                             }
                         }
                     }
                 }
 
-                // Botón Revertir
                 using (new EditorGUI.DisabledGroupScope(!_target.CanRevert))
                 {
                     if (GUILayout.Button("Revertir", GUILayout.Width(80), GUILayout.Height(30)))
                     {
                         Undo.RecordObject(_target, "Revertir PhysBones");
-
-                        // Bug 5: Registrar Undo para componentes que serán restaurados
-                        foreach (var pb in _target.DetectedPhysBones)
-                        {
-                            if (pb.WasRelocated && pb.OriginalTransform != null)
-                                Undo.RecordObject(pb.OriginalTransform.gameObject, "Revertir PhysBones");
-                        }
-                        foreach (var col in _target.DetectedColliders)
-                        {
-                            if (col.WasRelocated && col.OriginalTransform != null)
-                                Undo.RecordObject(col.OriginalTransform.gameObject, "Revertir PhysBones");
-                        }
-
                         var result = _target.Revert();
                         EditorUtility.SetDirty(_target);
 
@@ -330,7 +261,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 }
             }
 
-            // Info contextual
             if (_target.IsOrganized)
             {
                 EditorGUILayout.Space(3);
@@ -348,100 +278,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             }
         }
 
-        private void DrawPhysBonesSection()
-        {
-            _showPhysBonesFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_showPhysBonesFoldout,
-                $"PhysBones ({_target.DetectedPhysBones.Count})");
-
-            if (_showPhysBonesFoldout)
-            {
-                // Bug 7: Botones renombrados a Incluir/Excluir
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Incluir todos", EditorStyles.miniButtonLeft, GUILayout.Width(80)))
-                    {
-                        Undo.RecordObject(_target, "Incluir todos PhysBones");
-                        _target.SetAllPhysBonesIncluded(true);
-                        EditorUtility.SetDirty(_target);
-                    }
-                    if (GUILayout.Button("Excluir todos", EditorStyles.miniButtonRight, GUILayout.Width(80)))
-                    {
-                        Undo.RecordObject(_target, "Excluir todos PhysBones");
-                        _target.SetAllPhysBonesIncluded(false);
-                        EditorUtility.SetDirty(_target);
-                    }
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField($"{_target.IncludedPhysBonesCount} incluidos",
-                        EditorStyles.miniLabel, GUILayout.Width(80));
-                }
-
-                // Lista
-                _physBonesList.DoLayoutList();
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-
-        private void DrawCollidersSection()
-        {
-            _showCollidersFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_showCollidersFoldout,
-                $"Colliders ({_target.DetectedColliders.Count})");
-
-            if (_showCollidersFoldout)
-            {
-                // Bug 7: Botones renombrados a Incluir/Excluir
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Incluir todos", EditorStyles.miniButtonLeft, GUILayout.Width(80)))
-                    {
-                        Undo.RecordObject(_target, "Incluir todos Colliders");
-                        _target.SetAllCollidersIncluded(true);
-                        EditorUtility.SetDirty(_target);
-                    }
-                    if (GUILayout.Button("Excluir todos", EditorStyles.miniButtonRight, GUILayout.Width(80)))
-                    {
-                        Undo.RecordObject(_target, "Excluir todos Colliders");
-                        _target.SetAllCollidersIncluded(false);
-                        EditorUtility.SetDirty(_target);
-                    }
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField($"{_target.IncludedCollidersCount} incluidos",
-                        EditorStyles.miniLabel, GUILayout.Width(80));
-                }
-
-                // Lista
-                _collidersList.DoLayoutList();
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-
-        private void DrawStatsSection()
-        {
-            _showStatsFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_showStatsFoldout, "Estadísticas por contexto");
-
-            if (_showStatsFoldout)
-            {
-                var stats = _target.GetStatsByContext();
-
-                foreach (var kvp in stats)
-                {
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        var isAvatar = kvp.Key == "Avatar";
-                        GUI.contentColor = isAvatar ? AvatarContextColor : ClothingContextColor;
-                        EditorGUILayout.LabelField(kvp.Key, GUILayout.Width(120));
-                        GUI.contentColor = Color.white;
-
-                        EditorGUILayout.LabelField($"{kvp.Value.physBones} PB, {kvp.Value.colliders} Col",
-                            EditorStyles.miniLabel);
-                    }
-                }
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-
         private void DrawLastResult()
         {
             var result = _target.LastResult;
@@ -457,114 +293,290 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
 
         #endregion
 
-        #region List Element Drawing
+        #region Context Groups
 
-        private void DrawPhysBoneElement(Rect rect, int index, bool isActive, bool isFocused)
+        private List<ContextGroup> BuildContextGroups()
         {
-            if (index >= _target.DetectedPhysBones.Count) return;
+            var groupMap = new Dictionary<string, ContextGroup>();
 
-            var entry = _target.DetectedPhysBones[index] as PhysBoneEntry;
-            if (entry == null) return;
-
-            rect.y += 2;
-            rect.height = ITEM_HEIGHT;
-
-            float x = rect.x;
-
-            // Toggle
-            var toggleRect = new Rect(x, rect.y, TOGGLE_WIDTH, rect.height);
-            EditorGUI.BeginChangeCheck();
-            var newIncluded = EditorGUI.Toggle(toggleRect, entry.Included);
-            if (EditorGUI.EndChangeCheck())
+            foreach (var pb in _target.DetectedPhysBones)
             {
-                Undo.RecordObject(_target, "Toggle PhysBone");
-                entry.Included = newIncluded;
-                EditorUtility.SetDirty(_target);
+                var key = pb.Context?.ContextName ?? "Desconocido";
+                if (!groupMap.TryGetValue(key, out var group))
+                {
+                    group = new ContextGroup { Context = pb.Context };
+                    groupMap[key] = group;
+                }
+                group.Entries.Add(pb);
+                group.PhysBoneCount++;
+                if (pb.IsAlreadyOrganized)
+                    group.AlreadyOrganizedCount++;
+                else if (pb.Included && !pb.WasRelocated)
+                    group.IncludedCount++;
             }
-            x += TOGGLE_WIDTH + 5;
 
-            // Nombre
-            var nameWidth = rect.width - TOGGLE_WIDTH - CONTEXT_WIDTH - ROOT_BONE_WIDTH - 20;
-            var nameRect = new Rect(x, rect.y, nameWidth, rect.height);
+            foreach (var col in _target.DetectedColliders)
+            {
+                var key = col.Context?.ContextName ?? "Desconocido";
+                if (!groupMap.TryGetValue(key, out var group))
+                {
+                    group = new ContextGroup { Context = col.Context };
+                    groupMap[key] = group;
+                }
+                group.Entries.Add(col);
+                group.ColliderCount++;
+                if (col.IsAlreadyOrganized)
+                    group.AlreadyOrganizedCount++;
+                else if (col.Included && !col.WasRelocated)
+                    group.IncludedCount++;
+            }
 
-            GUI.contentColor = entry.Included ? Color.white : DisabledColor;
-            EditorGUI.LabelField(nameRect, entry.GeneratedName);
-            x += nameWidth + 5;
+            // Ordenar: avatar primero, luego alfabético
+            var result = new List<ContextGroup>(groupMap.Values);
+            result.Sort((a, b) =>
+            {
+                bool aIsAvatar = a.Context?.IsAvatarContext == true;
+                bool bIsAvatar = b.Context?.IsAvatarContext == true;
+                if (aIsAvatar && !bIsAvatar) return -1;
+                if (!aIsAvatar && bIsAvatar) return 1;
+                return string.Compare(
+                    a.Context?.ContextName ?? "",
+                    b.Context?.ContextName ?? "",
+                    System.StringComparison.Ordinal);
+            });
 
-            // Contexto
-            var contextRect = new Rect(x, rect.y, CONTEXT_WIDTH, rect.height);
-            GUI.contentColor = entry.Context?.IsAvatarContext == true ? AvatarContextColor : ClothingContextColor;
-            EditorGUI.LabelField(contextRect, entry.Context?.ContextName ?? "?", EditorStyles.miniLabel);
-            x += CONTEXT_WIDTH + 5;
-
-            // Root bone
-            var rootRect = new Rect(x, rect.y, ROOT_BONE_WIDTH, rect.height);
-            GUI.contentColor = DisabledColor;
-            EditorGUI.LabelField(rootRect, entry.RootBoneName, EditorStyles.miniLabel);
-
-            GUI.contentColor = Color.white;
+            return result;
         }
 
-        private void DrawColliderElement(Rect rect, int index, bool isActive, bool isFocused)
+        private void DrawContextGroups()
         {
-            if (index >= _target.DetectedColliders.Count) return;
+            var groups = BuildContextGroups();
 
-            var entry = _target.DetectedColliders[index] as ColliderEntry;
-            if (entry == null) return;
+            // Resumen global
+            EditorGUILayout.LabelField("Componentes por contexto", EditorStyles.boldLabel);
+            EditorGUILayout.Space(2);
 
-            rect.y += 2;
-            rect.height = ITEM_HEIGHT;
-
-            float x = rect.x;
-
-            // Toggle
-            var toggleRect = new Rect(x, rect.y, TOGGLE_WIDTH, rect.height);
-            EditorGUI.BeginChangeCheck();
-            var newIncluded = EditorGUI.Toggle(toggleRect, entry.Included);
-            if (EditorGUI.EndChangeCheck())
+            foreach (var group in groups)
             {
-                Undo.RecordObject(_target, "Toggle Collider");
-                entry.Included = newIncluded;
-                EditorUtility.SetDirty(_target);
+                DrawContextCard(group);
+                EditorGUILayout.Space(4);
             }
-            x += TOGGLE_WIDTH + 5;
-
-            // Nombre
-            var nameWidth = rect.width - TOGGLE_WIDTH - CONTEXT_WIDTH - ROOT_BONE_WIDTH - 20;
-            var nameRect = new Rect(x, rect.y, nameWidth, rect.height);
-
-            GUI.contentColor = entry.Included ? Color.white : DisabledColor;
-            EditorGUI.LabelField(nameRect, entry.GeneratedName);
-            x += nameWidth + 5;
-
-            // Contexto
-            var contextRect = new Rect(x, rect.y, CONTEXT_WIDTH, rect.height);
-            GUI.contentColor = entry.Context?.IsAvatarContext == true ? AvatarContextColor : ClothingContextColor;
-            EditorGUI.LabelField(contextRect, entry.Context?.ContextName ?? "?", EditorStyles.miniLabel);
-            x += CONTEXT_WIDTH + 5;
-
-            // Root bone
-            var rootRect = new Rect(x, rect.y, ROOT_BONE_WIDTH, rect.height);
-            GUI.contentColor = DisabledColor;
-            EditorGUI.LabelField(rootRect, entry.RootBoneName, EditorStyles.miniLabel);
-
-            GUI.contentColor = Color.white;
         }
 
-        private void DrawElementBackground(Rect rect, int index, bool isActive, bool isFocused)
+        private void DrawContextCard(ContextGroup group)
         {
-            if (Event.current.type != EventType.Repaint) return;
+            var contextName = group.Context?.ContextName ?? "Desconocido";
+            bool isAvatar = group.Context?.IsAvatarContext == true;
 
-            var bgColor = index % 2 == 0
-                ? new Color(0.22f, 0.22f, 0.22f)
-                : new Color(0.25f, 0.25f, 0.25f);
-
-            if (isActive || isFocused)
+            // Obtener/inicializar estado del foldout
+            if (!_contextFoldouts.TryGetValue(contextName, out bool isExpanded))
             {
-                bgColor = new Color(0.24f, 0.48f, 0.9f, 0.4f);
+                isExpanded = false;
+                _contextFoldouts[contextName] = false;
             }
 
-            EditorGUI.DrawRect(rect, bgColor);
+            // Card container
+            var cardRect = EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // --- Header ---
+            DrawCardHeader(group, contextName, isAvatar, ref isExpanded);
+
+            // --- Body (entries) ---
+            if (isExpanded)
+            {
+                EditorGUILayout.Space(2);
+
+                // Origen
+                if (group.Context?.ContextRoot != null)
+                {
+                    using (new EditorGUI.DisabledGroupScope(true))
+                    {
+                        EditorGUILayout.ObjectField("Origen", group.Context.ContextRoot, typeof(GameObject), true);
+                    }
+                }
+
+                EditorGUILayout.Space(2);
+
+                // Columna headers
+                DrawColumnHeaders();
+
+                // Entries: PhysBones primero, luego Colliders
+                int rowIndex = 0;
+                foreach (var entry in group.Entries)
+                {
+                    DrawEntryRow(entry, rowIndex);
+                    rowIndex++;
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+
+            _contextFoldouts[contextName] = isExpanded;
+        }
+
+        private void DrawCardHeader(ContextGroup group, string contextName, bool isAvatar, ref bool isExpanded)
+        {
+            var headerRect = EditorGUILayout.BeginHorizontal();
+
+            // Foldout con nombre de contexto
+            GUI.contentColor = isAvatar ? AvatarContextColor : ClothingContextColor;
+            var contextLabel = isAvatar ? "Avatar" : contextName;
+            isExpanded = EditorGUILayout.Foldout(isExpanded, contextLabel, true, EditorStyles.foldoutHeader);
+            GUI.contentColor = Color.white;
+
+            // Contadores
+            GUILayout.FlexibleSpace();
+
+            GUI.contentColor = PhysBoneTypeColor;
+            EditorGUILayout.LabelField($"{group.PhysBoneCount} PB", EditorStyles.miniLabel, GUILayout.Width(35));
+            GUI.contentColor = ColliderTypeColor;
+            EditorGUILayout.LabelField($"{group.ColliderCount} Col", EditorStyles.miniLabel, GUILayout.Width(35));
+            GUI.contentColor = Color.white;
+
+            // Conteo de entries que necesitan organización (no ya-organizados, no reubicados)
+            int totalActionable = 0;
+            int includedActionable = 0;
+            foreach (var entry in group.Entries)
+            {
+                if (!entry.IsAlreadyOrganized && !entry.WasRelocated)
+                {
+                    totalActionable++;
+                    if (entry.Included) includedActionable++;
+                }
+            }
+
+            // Si todo el grupo ya está organizado → mostrar etiqueta
+            if (totalActionable == 0)
+            {
+                GUI.contentColor = EnabledColor;
+                EditorGUILayout.LabelField("OK", EditorStyles.miniBoldLabel, GUILayout.Width(22));
+                GUI.contentColor = Color.white;
+            }
+            else
+            {
+                // Separador visual
+                EditorGUILayout.LabelField("|", EditorStyles.miniLabel, GUILayout.Width(8));
+
+                // Toggle incluir/excluir todos del grupo
+                bool allIncluded = includedActionable == totalActionable;
+                bool mixed = includedActionable > 0 && includedActionable < totalActionable;
+
+                EditorGUI.showMixedValue = mixed;
+                EditorGUI.BeginChangeCheck();
+                var newToggle = EditorGUILayout.Toggle(allIncluded, GUILayout.Width(TOGGLE_WIDTH));
+                EditorGUI.showMixedValue = false;
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(_target, "Toggle grupo");
+                    foreach (var entry in group.Entries)
+                    {
+                        if (!entry.IsAlreadyOrganized && !entry.WasRelocated)
+                            entry.Included = newToggle;
+                    }
+                    EditorUtility.SetDirty(_target);
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawColumnHeaders()
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(TOGGLE_WIDTH + 4);
+
+                GUI.contentColor = DisabledColor;
+                EditorGUILayout.LabelField("Tipo", EditorStyles.miniLabel, GUILayout.Width(TYPE_LABEL_WIDTH));
+
+                EditorGUILayout.LabelField("Nombre", EditorStyles.miniLabel);
+
+                EditorGUILayout.LabelField("Root", EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
+                GUI.contentColor = Color.white;
+
+                // Espacio para el toggle
+                GUILayout.Space(TOGGLE_WIDTH + 4);
+            }
+        }
+
+        private void DrawEntryRow(ComponentEntry entry, int rowIndex)
+        {
+            bool isPhysBone = entry is PhysBoneEntry;
+            bool isOrganized = entry.IsAlreadyOrganized;
+
+            // Fondo alternado
+            var rowRect = EditorGUILayout.BeginHorizontal(GUILayout.Height(ITEM_HEIGHT));
+
+            if (Event.current.type == EventType.Repaint)
+            {
+                var bgColor = rowIndex % 2 == 0
+                    ? new Color(0.22f, 0.22f, 0.22f, 0.4f)
+                    : new Color(0.26f, 0.26f, 0.26f, 0.4f);
+                EditorGUI.DrawRect(rowRect, bgColor);
+            }
+
+            GUILayout.Space(4);
+
+            if (isOrganized)
+            {
+                // Ya organizado: mostrar checkmark en lugar de toggle
+                GUI.contentColor = EnabledColor;
+                EditorGUILayout.LabelField("\u2714", EditorStyles.miniLabel, GUILayout.Width(TOGGLE_WIDTH));
+            }
+            else
+            {
+                // Toggle incluir
+                EditorGUI.BeginChangeCheck();
+                var newIncluded = EditorGUILayout.Toggle(entry.Included, GUILayout.Width(TOGGLE_WIDTH));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(_target, isPhysBone ? "Toggle PhysBone" : "Toggle Collider");
+                    entry.Included = newIncluded;
+                    EditorUtility.SetDirty(_target);
+                }
+            }
+
+            // Tipo con color
+            var typeColor = isOrganized
+                ? DisabledColor
+                : (entry.Included ? (isPhysBone ? PhysBoneTypeColor : ColliderTypeColor) : DisabledColor);
+            GUI.contentColor = typeColor;
+            EditorGUILayout.LabelField(isPhysBone ? "PB" : "Col", EditorStyles.miniLabel, GUILayout.Width(TYPE_LABEL_WIDTH));
+
+            // Nombre (click para hacer ping en hierarchy)
+            GUI.contentColor = isOrganized ? DisabledColor : (entry.Included ? Color.white : DisabledColor);
+            var nameStyle = new GUIStyle(EditorStyles.miniLabel);
+            if (entry.OriginalComponent != null)
+            {
+                nameStyle.normal.textColor = GUI.contentColor;
+                if (GUILayout.Button(entry.GeneratedName, nameStyle))
+                {
+                    EditorGUIUtility.PingObject(entry.OriginalComponent.gameObject);
+                }
+            }
+            else
+            {
+                EditorGUILayout.LabelField(entry.GeneratedName, nameStyle);
+            }
+
+            // Root bone o "ya organizado"
+            GUI.contentColor = DisabledColor;
+            if (isOrganized)
+            {
+                EditorGUILayout.LabelField("ya organizado", EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
+            }
+            else
+            {
+                var rootLabel = entry.HadExplicitRootTransform
+                    ? entry.RootBoneName
+                    : $"({entry.RootBoneName})";
+                EditorGUILayout.LabelField(rootLabel, EditorStyles.miniLabel, GUILayout.Width(ROOT_BONE_WIDTH));
+            }
+
+            GUI.contentColor = Color.white;
+
+            EditorGUILayout.EndHorizontal();
         }
 
         #endregion

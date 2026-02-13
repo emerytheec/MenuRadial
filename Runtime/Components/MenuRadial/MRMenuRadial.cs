@@ -570,7 +570,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 CoserRopa.DetectClothingsInAvatar();
             }
 
-            // 2. Organizar PhysBones
+            // 2. Escanear PhysBones (no organizar automáticamente - es destructivo)
             if (OrganizaPB != null)
             {
                 if (OrganizaPB.State == OrganizationState.NotScanned)
@@ -580,11 +580,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
                 if (OrganizaPB.CanOrganize)
                 {
-                    var result = OrganizaPB.Organize();
-                    if (!result.Success)
-                    {
-                        success = false;
-                    }
+                    Debug.LogWarning("[MRMenuRadial] PhysBones no organizados. Organízalos desde el inspector de MROrganizaPB.");
                 }
             }
 

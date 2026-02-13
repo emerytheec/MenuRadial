@@ -47,7 +47,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         #region Private Fields
 
         private PhysBoneScanner _scanner;
-        private ContextDetector _contextDetector;
         private PhysBoneRelocator _relocator;
 
         #endregion
@@ -147,9 +146,10 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         public bool IsOrganized => _state == OrganizationState.Organized;
 
         /// <summary>
-        /// Indica si se puede organizar (hay componentes escaneados y no están organizados).
+        /// Indica si se puede organizar (hay componentes incluidos y no están organizados).
         /// </summary>
-        public bool CanOrganize => HasDetectedComponents && _state == OrganizationState.Scanned;
+        public bool CanOrganize => _state == OrganizationState.Scanned
+            && (IncludedPhysBonesCount > 0 || IncludedCollidersCount > 0);
 
         /// <summary>
         /// Indica si se puede revertir la organización.
@@ -165,8 +165,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
 
         #region Lazy-Loaded Controllers
 
-        private PhysBoneScanner Scanner => _scanner ??= new PhysBoneScanner(ContextDetector);
-        private ContextDetector ContextDetector => _contextDetector ??= new ContextDetector();
+        private PhysBoneScanner Scanner => _scanner ??= new PhysBoneScanner();
         private PhysBoneRelocator Relocator => _relocator ??= new PhysBoneRelocator(Scanner);
 
         #endregion
@@ -198,8 +197,6 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 Debug.LogWarning("[MROrganizaPB] VRChat SDK no disponible");
                 return;
             }
-
-            Debug.Log($"[MROrganizaPB] Escaneando avatar: {_avatarRoot.name}");
 
             // Escanear PhysBones
             var physBones = Scanner.ScanPhysBones(_avatarRoot);
@@ -264,9 +261,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 return _lastResult;
             }
 
-            Debug.Log($"[MROrganizaPB] Organizando: {IncludedPhysBonesCount} PB, {IncludedCollidersCount} Col");
-
-            _lastResult = Relocator.RelocateAll(_detectedPhysBones, _detectedColliders);
+            _lastResult = Relocator.RelocateAll(_detectedPhysBones, _detectedColliders, _avatarRoot);
 
             if (_lastResult.Success)
             {
@@ -298,22 +293,11 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 return OrganizationResult.CreateFailure("No hay nada que revertir");
             }
 
-            Debug.Log("[MROrganizaPB] Revirtiendo organización...");
-
             var result = Relocator.RevertAll(_detectedPhysBones, _detectedColliders);
 
             if (result.Success)
             {
-                // Destruir contenedores vacíos
-                foreach (var container in _createdContainers)
-                {
-                    if (container != null && container.transform.childCount == 0)
-                    {
-                        DestroyImmediate(container);
-                    }
-                }
                 _createdContainers.Clear();
-
                 _state = OrganizationState.Scanned;
             }
 
@@ -329,6 +313,43 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         public OrganizationResult Execute()
         {
             return Organize();
+        }
+
+        /// <summary>
+        /// Organiza los PhysBones sin Undo (para uso durante NDMF build sobre clon).
+        /// </summary>
+        public OrganizationResult OrganizeForBuild()
+        {
+            if (_avatarRoot == null)
+            {
+                return OrganizationResult.CreateFailure("No hay avatar asignado");
+            }
+
+            if (!IsSDKAvailable)
+            {
+                return OrganizationResult.CreateFailure("VRChat SDK no disponible");
+            }
+
+            if (!HasDetectedComponents)
+            {
+                ScanAvatar();
+            }
+
+            if (!HasDetectedComponents)
+            {
+                var empty = OrganizationResult.CreateEmpty();
+                empty.AddWarning("No se encontraron PhysBones ni Colliders");
+                return empty;
+            }
+
+            _lastResult = Relocator.RelocateAll(_detectedPhysBones, _detectedColliders, _avatarRoot, useUndo: false);
+
+            if (_lastResult.Success)
+            {
+                _state = OrganizationState.Organized;
+            }
+
+            return _lastResult;
         }
 
         /// <summary>
