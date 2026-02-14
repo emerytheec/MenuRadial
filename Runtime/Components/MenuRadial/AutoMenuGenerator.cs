@@ -66,6 +66,20 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
+        /// Resultado de la sincronización incremental
+        /// </summary>
+        public class SyncResult
+        {
+            public bool Success;
+            public string Message;
+            public int FramesAdded;
+            public int MaterialFramesAdded;
+            public int OrphanedFrames;
+            public List<string> AddedClothingNames = new List<string>();
+            public List<string> OrphanedFrameNames = new List<string>();
+        }
+
+        /// <summary>
         /// Genera la estructura automática de menú basada en las ropas detectadas
         /// </summary>
         /// <returns>Resultado de la generación</returns>
@@ -220,6 +234,166 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Sincroniza la estructura existente con las ropas detectadas.
+        /// Agrega frames/materiales para ropas nuevas sin tocar lo existente.
+        /// Reporta frames huérfanos (sin ropa asociada) pero no los elimina.
+        /// </summary>
+        public SyncResult SyncStructure()
+        {
+            var result = new SyncResult { Success = false };
+
+            // Validaciones básicas
+            if (_menuRadial == null || _avatarRoot == null)
+            {
+                result.Message = "No hay avatar asignado";
+                return result;
+            }
+
+            var menuControl = FindMenuControlInChildren();
+            if (menuControl == null)
+            {
+                result.Message = "No se encontró MRMenuControl";
+                return result;
+            }
+
+            // Buscar MRUnificarObjetos existente
+            var unificarComponents = menuControl.GetComponentsInChildren<MRUnificarObjetos>(true);
+            if (unificarComponents == null || unificarComponents.Length == 0)
+            {
+                result.Message = "No se encontró MRUnificarObjetos";
+                return result;
+            }
+            var unificarObjetos = unificarComponents[0];
+
+            // Buscar MRUnificarMateriales existente (puede no existir)
+            var unificarMaterialesComponents = _menuRadial.GetComponentsInChildren<MRUnificarMateriales>(true);
+            MRUnificarMateriales unificarMateriales = unificarMaterialesComponents != null && unificarMaterialesComponents.Length > 0
+                ? unificarMaterialesComponents[0]
+                : null;
+
+            // Re-detectar ropas para asegurar lista actualizada
+            if (_coserRopa != null)
+            {
+                _coserRopa.DetectClothingsInAvatar();
+            }
+
+            // Obtener ropas detectadas
+            var detectedClothings = new List<ClothingEntry>();
+            if (_coserRopa?.DetectedClothings != null)
+            {
+                foreach (var c in _coserRopa.DetectedClothings)
+                {
+                    if (c.IsValid)
+                        detectedClothings.Add(c);
+                }
+            }
+
+            // Obtener nombres de frames existentes (excluyendo "Avatar")
+            var existingFrameNames = new HashSet<string>();
+            var existingFrames = unificarObjetos.FrameObjects;
+            if (existingFrames != null)
+            {
+                foreach (var frame in existingFrames)
+                {
+                    if (frame != null && frame.gameObject.name != "Avatar")
+                        existingFrameNames.Add(frame.gameObject.name);
+                }
+            }
+
+            // Obtener SourceGameObjects de material groups existentes
+            var existingMaterialSources = new HashSet<GameObject>();
+            if (unificarMateriales?.AlternativeMaterials != null)
+            {
+                foreach (var matGroup in unificarMateriales.AlternativeMaterials)
+                {
+                    if (matGroup != null && matGroup.SourceGameObject != null)
+                        existingMaterialSources.Add(matGroup.SourceGameObject);
+                }
+            }
+
+            // Crear set de nombres de ropas detectadas
+            var detectedClothingNames = new HashSet<string>();
+            foreach (var clothing in detectedClothings)
+            {
+                detectedClothingNames.Add(clothing.Name);
+            }
+
+            // DIFF: Detectar ropas nuevas (no tienen frame existente)
+            var newClothings = new List<ClothingEntry>();
+            foreach (var clothing in detectedClothings)
+            {
+                if (!existingFrameNames.Contains(clothing.Name))
+                    newClothings.Add(clothing);
+            }
+
+            // DIFF: Detectar frames huérfanos (no tienen ropa asociada)
+            if (existingFrames != null)
+            {
+                foreach (var frame in existingFrames)
+                {
+                    if (frame != null && frame.gameObject.name != "Avatar")
+                    {
+                        if (!detectedClothingNames.Contains(frame.gameObject.name))
+                        {
+                            result.OrphanedFrames++;
+                            result.OrphanedFrameNames.Add(frame.gameObject.name);
+                        }
+                    }
+                }
+            }
+
+            // Crear frames para ropas nuevas
+            foreach (var clothing in newClothings)
+            {
+                var frame = CreateFrameForClothing(unificarObjetos, clothing);
+                if (frame != null)
+                {
+                    result.FramesAdded++;
+                    result.AddedClothingNames.Add(clothing.Name);
+                }
+            }
+
+            // Crear material groups para ropas nuevas (si hay unificarMateriales)
+            if (unificarMateriales != null)
+            {
+                foreach (var clothing in newClothings)
+                {
+                    if (clothing.GameObject != null && !existingMaterialSources.Contains(clothing.GameObject))
+                    {
+                        var materialFrame = CreateMaterialFrameForClothing(unificarMateriales, clothing);
+                        if (materialFrame != null)
+                        {
+                            result.MaterialFramesAdded++;
+                        }
+                    }
+                }
+            }
+            else if (newClothings.Count > 0)
+            {
+                // Crear MRUnificarMateriales si no existe y hay ropas nuevas
+                unificarMateriales = CreateUnificarMateriales(menuControl);
+                if (unificarMateriales != null)
+                {
+                    foreach (var clothing in newClothings)
+                    {
+                        var materialFrame = CreateMaterialFrameForClothing(unificarMateriales, clothing);
+                        if (materialFrame != null)
+                        {
+                            result.MaterialFramesAdded++;
+                        }
+                    }
+                }
+            }
+
+            result.Success = true;
+            result.Message = result.FramesAdded > 0
+                ? $"Sincronización exitosa: {result.FramesAdded} ropas agregadas"
+                : "La estructura ya está sincronizada";
+
+            return result;
         }
 
         #endregion

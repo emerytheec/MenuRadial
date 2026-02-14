@@ -488,6 +488,12 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string CHILD_COMPONENTS = "menuRadial.childComponents";
             public const string CONFLICTS_DETECTED = "menuRadial.conflictsDetected";
             public const string RECREATE_COMPONENTS = "menuRadial.recreateComponents";
+            public const string SYNC_STRUCTURE = "menuRadial.syncStructure";
+            public const string SYNC_STRUCTURE_TOOLTIP = "menuRadial.syncStructureTooltip";
+            public const string SYNC_RESULT_TITLE = "menuRadial.syncResultTitle";
+            public const string SYNC_RESULT_ADDED = "menuRadial.syncResultAdded";
+            public const string SYNC_NO_CHANGES = "menuRadial.syncNoChanges";
+            public const string SYNC_ORPHANED_WARNING = "menuRadial.syncOrphanedWarning";
         }
 
         /// <summary>

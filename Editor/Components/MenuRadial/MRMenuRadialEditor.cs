@@ -558,6 +558,35 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             EditorGUILayout.EndHorizontal();
 
+            // Botón Sincronizar (solo si existe estructura)
+            EditorGUILayout.Space(5);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUI.BeginDisabledGroup(!hasExistingStructure || !hasAvatar);
+            if (GUILayout.Button(new GUIContent(
+                MRLocalization.Get(L.MenuRadialEditor.SYNC_STRUCTURE),
+                MRLocalization.Get(L.MenuRadialEditor.SYNC_STRUCTURE_TOOLTIP)),
+                GUILayout.Height(25)))
+            {
+                Undo.RecordObject(_target, "Sync Menu Structure");
+                var syncResult = _target.SyncMenuStructure();
+                if (syncResult.Success)
+                {
+                    string message = syncResult.FramesAdded > 0
+                        ? MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED, syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames))
+                        : MRLocalization.Get(L.MenuRadialEditor.SYNC_NO_CHANGES);
+                    if (syncResult.OrphanedFrames > 0)
+                        message += "\n\n" + MRLocalization.Get(L.MenuRadialEditor.SYNC_ORPHANED_WARNING, syncResult.OrphanedFrames, string.Join(", ", syncResult.OrphanedFrameNames));
+                    EditorUtility.DisplayDialog(
+                        MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_TITLE),
+                        message,
+                        MRLocalization.Get(L.Common.OK));
+                }
+                RefreshMenuControlCache();
+                EditorUtility.SetDirty(_target);
+            }
+            EditorGUI.EndDisabledGroup();
+            EditorGUILayout.EndHorizontal();
+
             if (_target.DetectedClothingCount == 0 && hasAvatar)
             {
                 EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.DETECT_CLOTHING_FIRST), MessageType.Info);

@@ -535,7 +535,13 @@
         "configureSlotFirst": "生成前にメニューで少なくとも1つのスロットを設定してください。",
         "childComponents": "子コンポーネント",
         "conflictsDetected": "{0} 件の競合が検出されました",
-        "recreateComponents": "不足コンポーネントを再作成"
+        "recreateComponents": "不足コンポーネントを再作成",
+        "syncStructure": "同期",
+        "syncStructureTooltip": "新しい衣装を検出し、既存の項目を変更せずに構造に追加します",
+        "syncResultTitle": "同期完了",
+        "syncResultAdded": "新しい衣装を {0} 件追加しました：{1}",
+        "syncNoChanges": "構造は既に同期されています。新しい衣装は見つかりませんでした。",
+        "syncOrphanedWarning": "孤立フレームが {0} 件検出されました：{1}\n不要な場合は手動で削除できます。"
     },
     "pesoTexturas": {
         "title": "MR Peso Texturas",

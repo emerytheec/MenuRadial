@@ -535,7 +535,13 @@
         "configureSlotFirst": "Configure at least one slot in the menu before generating.",
         "childComponents": "Child Components",
         "conflictsDetected": "{0} conflict(s) detected",
-        "recreateComponents": "Recreate Missing Components"
+        "recreateComponents": "Recreate Missing Components",
+        "syncStructure": "Sync",
+        "syncStructureTooltip": "Detects new clothing and adds it to the structure without modifying existing items",
+        "syncResultTitle": "Sync Complete",
+        "syncResultAdded": "{0} new clothing items added: {1}",
+        "syncNoChanges": "Structure is already in sync. No new clothing found.",
+        "syncOrphanedWarning": "{0} orphaned frames detected: {1}\nYou can manually remove them if no longer needed."
     },
     "pesoTexturas": {
         "title": "MR Texture Weight",

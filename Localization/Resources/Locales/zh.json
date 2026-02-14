@@ -535,7 +535,13 @@
         "configureSlotFirst": "请在生成前至少配置菜单中的一个槽位。",
         "childComponents": "子组件",
         "conflictsDetected": "检测到 {0} 个冲突",
-        "recreateComponents": "重新创建缺失组件"
+        "recreateComponents": "重新创建缺失组件",
+        "syncStructure": "同步",
+        "syncStructureTooltip": "检测新服装并将其添加到结构中，不修改现有项目",
+        "syncResultTitle": "同步完成",
+        "syncResultAdded": "已添加 {0} 件新服装：{1}",
+        "syncNoChanges": "结构已同步，未发现新服装。",
+        "syncOrphanedWarning": "检测到 {0} 个孤立帧：{1}\n如不再需要，可手动删除。"
     },
     "pesoTexturas": {
         "title": "MR 纹理分析",

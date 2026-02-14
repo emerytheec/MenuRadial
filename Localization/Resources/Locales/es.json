@@ -542,7 +542,13 @@
         "configureSlotFirst": "Configura al menos un slot en el menu antes de generar.",
         "childComponents": "Componentes Hijos",
         "conflictsDetected": "{0} conflicto(s) detectado(s)",
-        "recreateComponents": "Recrear Componentes Faltantes"
+        "recreateComponents": "Recrear Componentes Faltantes",
+        "syncStructure": "Sincronizar",
+        "syncStructureTooltip": "Detecta ropas nuevas y las agrega a la estructura sin modificar lo existente",
+        "syncResultTitle": "Sincronizacion Completada",
+        "syncResultAdded": "Se agregaron {0} ropas nuevas: {1}",
+        "syncNoChanges": "La estructura ya esta sincronizada. No se encontraron ropas nuevas.",
+        "syncOrphanedWarning": "Se detectaron {0} frames sin ropa asociada: {1}\nPuedes eliminarlos manualmente si ya no los necesitas."
     },
     "pesoTexturas": {
         "title": "MR Peso Texturas",

@@ -851,6 +851,12 @@ namespace Bender_Dios.MenuRadial.Localization
             public string childComponents;
             public string conflictsDetected;
             public string recreateComponents;
+            public string syncStructure;
+            public string syncStructureTooltip;
+            public string syncResultTitle;
+            public string syncResultAdded;
+            public string syncNoChanges;
+            public string syncOrphanedWarning;
 
             // PesoTexturas
             public string scanOptions;

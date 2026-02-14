@@ -549,6 +549,20 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
+        /// Sincroniza la estructura de menú existente con las ropas detectadas.
+        /// Agrega solo las ropas nuevas sin modificar lo existente.
+        /// </summary>
+        /// <returns>Resultado de la sincronización</returns>
+        public AutoMenuGenerator.SyncResult SyncMenuStructure()
+        {
+            var generator = new AutoMenuGenerator(this);
+            var result = generator.SyncStructure();
+            if (result.Success && result.FramesAdded > 0)
+                InvalidateCache();
+            return result;
+        }
+
+        /// <summary>
         /// Prepara todo el avatar ejecutando la secuencia completa.
         /// 1. Detectar y preparar ropas
         /// 2. Organizar PhysBones

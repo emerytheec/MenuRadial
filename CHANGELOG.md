@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.36] - 2026-02-14
+
+### Agregado
+- **Boton Sincronizar estructura**: Detecta ropas nuevas y las agrega a la estructura de menu sin modificar lo existente
+  - Nuevo metodo `SyncStructure()` en AutoMenuGenerator con diff incremental (frames + materiales)
+  - Nuevo metodo `SyncMenuStructure()` en MRMenuRadial como wrapper publico
+  - Boton "Sincronizar" en el inspector entre Generar/Regenerar y Generar Archivos VRChat
+  - Re-detecta ropas automaticamente al sincronizar (no requiere "Preparar Todo" previo)
+  - Reporta frames huerfanos (ropas eliminadas) sin borrarlos
+  - Soporte completo de Undo (Ctrl+Z)
+  - Localizado en 6 idiomas (es, en, zh, ja, ko, ru)
+
 ## [0.8.35] - 2026-02-14
 
 ### Corregido
