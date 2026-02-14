@@ -18,6 +18,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
     /// </summary>
     [AddComponentMenu("Bender Dios/MR Menu Radial")]
     [DisallowMultipleComponent]
+    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
     public class MRMenuRadial : MRComponentBase
     {
         #region Serialized Fields

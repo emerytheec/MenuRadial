@@ -20,6 +20,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
     /// Esto previene que partes del avatar desaparezcan por culling prematuro.
     /// </summary>
     [AddComponentMenu("Bender Dios/MR Ajustar Bounds")]
+    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
     public class MRAjustarBounds : MRComponentBase
     {
         #region Serialized Fields

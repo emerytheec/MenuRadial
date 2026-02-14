@@ -16,6 +16,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
     /// </summary>
     [AddComponentMenu("Bender Dios/MR Organiza PB")]
     [DisallowMultipleComponent]
+    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
     public class MROrganizaPB : MonoBehaviour, IValidatable, IEditorOnly
     {
         #region Serialized Fields

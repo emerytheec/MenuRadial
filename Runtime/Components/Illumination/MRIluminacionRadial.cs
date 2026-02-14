@@ -15,6 +15,7 @@ namespace Bender_Dios.MenuRadial.Components.Illumination
     /// </summary>
     [System.Serializable]
     [AddComponentMenu("MR/MR Iluminación Radial")]
+    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
     public class MRIluminacionRadial : MRComponentBase, IAnimationProvider, IPreviewable
     {
         [FormerlySerializedAs("rootObject")]

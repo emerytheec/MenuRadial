@@ -41,6 +41,7 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
     /// Gestiona materiales alternativos para prendas y genera animaciones de cambio
     /// </summary>
     [AddComponentMenu("MR/MR Agrupar Materiales")]
+    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
     public class MRAgruparMateriales : MRComponentBase
     {
         [SerializeField] private string _componentName = "Nueva Prenda";

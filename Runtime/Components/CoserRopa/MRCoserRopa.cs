@@ -21,6 +21,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
     /// 4. Un boton cose todas las ropas habilitadas
     /// </summary>
     [AddComponentMenu("Bender Dios/MR Coser Ropa")]
+    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
     public class MRCoserRopa : MRComponentBase
     {
         #region Serialized Fields
