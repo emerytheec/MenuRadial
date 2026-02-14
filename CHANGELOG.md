@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.34] - 2026-02-14
+
+### Agregado
+- **Icono MR en inspector**: Logo MR visible en los 12 componentes del proyecto via atributo `[Icon]`
+- **Landing page VPM**: Página web en GitHub Pages con tema oscuro estilo VRChat (emerytheec.github.io/vpm-listing)
+
 ## [0.8.33] - 2026-02-13
 
 ### Agregado
