@@ -658,15 +658,6 @@
         "availableLanguages": "利用可能な言語",
         "noLocaleFiles": "言語ファイルが見つかりませんでした。",
         "currentMarker": "(現在)",
-        "selectButton": "選択",
-        "testTranslation": "翻訳テスト",
-        "keyLabel": "キー:",
-        "getButton": "取得",
-        "withParam": "パラメータ付き:",
-        "resultLabel": "結果:",
-        "actions": "アクション",
-        "reloadTranslations": "翻訳を再読み込み",
-        "openLocalesFolder": "言語フォルダを開く",
-        "resetToUnity": "システム言語を検出"
+        "selectButton": "選択"
     }
 }

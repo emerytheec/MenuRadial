@@ -665,15 +665,6 @@
         "availableLanguages": "Idiomas Disponibles",
         "noLocaleFiles": "No se encontraron archivos de idioma.",
         "currentMarker": "(actual)",
-        "selectButton": "Seleccionar",
-        "testTranslation": "Probar Traduccion",
-        "keyLabel": "Key:",
-        "getButton": "Get",
-        "withParam": "Con parametro:",
-        "resultLabel": "Resultado:",
-        "actions": "Acciones",
-        "reloadTranslations": "Recargar Traducciones",
-        "openLocalesFolder": "Abrir Carpeta de Idiomas",
-        "resetToUnity": "Detectar Idioma del Sistema"
+        "selectButton": "Seleccionar"
     }
 }

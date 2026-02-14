@@ -631,15 +631,6 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string NO_LOCALE_FILES = "localizationWindow.noLocaleFiles";
             public const string CURRENT_MARKER = "localizationWindow.currentMarker";
             public const string SELECT_BUTTON = "localizationWindow.selectButton";
-            public const string TEST_TRANSLATION = "localizationWindow.testTranslation";
-            public const string KEY_LABEL = "localizationWindow.keyLabel";
-            public const string GET_BUTTON = "localizationWindow.getButton";
-            public const string WITH_PARAM = "localizationWindow.withParam";
-            public const string RESULT_LABEL = "localizationWindow.resultLabel";
-            public const string ACTIONS = "localizationWindow.actions";
-            public const string RELOAD_TRANSLATIONS = "localizationWindow.reloadTranslations";
-            public const string OPEN_LOCALES_FOLDER = "localizationWindow.openLocalesFolder";
-            public const string RESET_TO_UNITY = "localizationWindow.resetToUnity";
         }
 
         // ==========================================

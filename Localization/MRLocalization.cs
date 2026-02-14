@@ -226,6 +226,17 @@ namespace Bender_Dios.MenuRadial.Localization
 #endif
 
             OnLocaleChanged?.Invoke();
+
+#if UNITY_EDITOR
+            // Repaint global: fuerza redibujar todos los inspectores y ventanas abiertas
+            EditorApplication.delayCall += () =>
+            {
+                foreach (var window in Resources.FindObjectsOfTypeAll<EditorWindow>())
+                {
+                    window.Repaint();
+                }
+            };
+#endif
         }
 
         /// <summary>
@@ -236,6 +247,18 @@ namespace Bender_Dios.MenuRadial.Localization
             _isInitialized = false;
             _translations.Clear();
             Initialize();
+
+            OnLocaleChanged?.Invoke();
+
+#if UNITY_EDITOR
+            EditorApplication.delayCall += () =>
+            {
+                foreach (var window in Resources.FindObjectsOfTypeAll<EditorWindow>())
+                {
+                    window.Repaint();
+                }
+            };
+#endif
         }
 
         /// <summary>
@@ -939,14 +962,6 @@ namespace Bender_Dios.MenuRadial.Localization
             public string noLocaleFiles;
             public string currentMarker;
             public string selectButton;
-            public string testTranslation;
-            public string keyLabel;
-            public string getButton;
-            public string withParam;
-            public string resultLabel;
-            public string reloadTranslations;
-            public string openLocalesFolder;
-            public string resetToUnity;
 
             // FrameModules (ObjectListEditor, MaterialListEditor, BlendshapeListEditor, BlendshapeSelectionWindow)
             public string objectsFoldout;

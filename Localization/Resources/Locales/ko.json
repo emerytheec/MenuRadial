@@ -658,15 +658,6 @@
         "availableLanguages": "사용 가능한 언어",
         "noLocaleFiles": "언어 파일을 찾을 수 없습니다.",
         "currentMarker": "(현재)",
-        "selectButton": "선택",
-        "testTranslation": "번역 테스트",
-        "keyLabel": "Key:",
-        "getButton": "Get",
-        "withParam": "파라미터 포함:",
-        "resultLabel": "결과:",
-        "actions": "작업",
-        "reloadTranslations": "번역 다시 불러오기",
-        "openLocalesFolder": "언어 폴더 열기",
-        "resetToUnity": "시스템 언어 감지"
+        "selectButton": "선택"
     }
 }

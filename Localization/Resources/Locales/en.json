@@ -658,15 +658,6 @@
         "availableLanguages": "Available Languages",
         "noLocaleFiles": "No language files found.",
         "currentMarker": "(current)",
-        "selectButton": "Select",
-        "testTranslation": "Test Translation",
-        "keyLabel": "Key:",
-        "getButton": "Get",
-        "withParam": "With parameter:",
-        "resultLabel": "Result:",
-        "actions": "Actions",
-        "reloadTranslations": "Reload Translations",
-        "openLocalesFolder": "Open Languages Folder",
-        "resetToUnity": "Detect System Language"
+        "selectButton": "Select"
     }
 }

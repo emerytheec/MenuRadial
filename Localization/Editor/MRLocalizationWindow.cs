@@ -11,8 +11,6 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
     public class MRLocalizationWindow : EditorWindow
     {
         private Vector2 _scrollPosition;
-        private string _testKey = "common.confirm";
-        private string _testResult = "";
 
         [MenuItem("Tools/Menu Radial/Localization Settings", false, 100)]
         public static void ShowWindow()
@@ -48,12 +46,6 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
             EditorGUILayout.Space(10);
 
             DrawAvailableLocalesSection();
-            EditorGUILayout.Space(10);
-
-            DrawTestSection();
-            EditorGUILayout.Space(10);
-
-            DrawActionsSection();
 
             EditorGUILayout.EndScrollView();
         }
@@ -128,87 +120,6 @@ namespace Bender_Dios.MenuRadial.Localization.Editor
                             }
                         }
                     }
-                }
-            }
-        }
-
-        private void DrawTestSection()
-        {
-            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.TEST_TRANSLATION), EditorStyles.boldLabel);
-
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                _testKey = EditorGUILayout.TextField(MRLocalization.Get(L.LocalizationWindow.KEY_LABEL), _testKey);
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.GET_BUTTON), GUILayout.Width(80)))
-                    {
-                        _testResult = MRLocalization.Get(_testKey);
-                    }
-
-                    if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.WITH_PARAM), GUILayout.Width(80)))
-                    {
-                        _testResult = MRLocalization.Get(_testKey, 5, "test");
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(_testResult))
-                {
-                    EditorGUILayout.Space(5);
-                    EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.RESULT_LABEL), EditorStyles.miniLabel);
-                    EditorGUILayout.TextArea(_testResult, EditorStyles.wordWrappedLabel);
-                }
-            }
-        }
-
-        private void DrawActionsSection()
-        {
-            EditorGUILayout.LabelField(MRLocalization.Get(L.LocalizationWindow.ACTIONS), EditorStyles.boldLabel);
-
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.RELOAD_TRANSLATIONS)))
-                {
-                    MRLocalization.ReloadTranslations();
-                    Debug.Log("[MRLocalization] Traducciones recargadas");
-                }
-
-                EditorGUILayout.Space(5);
-
-                if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.OPEN_LOCALES_FOLDER)))
-                {
-                    // Buscar la carpeta Locales en cualquier ubicación (Assets o Packages)
-                    string[] guids = AssetDatabase.FindAssets("Locales", new[] { "Assets", "Packages" });
-                    Object folder = null;
-                    foreach (string guid in guids)
-                    {
-                        string assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                        if (assetPath.Contains("MenuRadial") && assetPath.Contains("Localization") && assetPath.EndsWith("Locales"))
-                        {
-                            folder = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
-                            break;
-                        }
-                    }
-
-                    if (folder != null)
-                    {
-                        EditorGUIUtility.PingObject(folder);
-                        Selection.activeObject = folder;
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[MRLocalization] Carpeta de Locales no encontrada");
-                    }
-                }
-
-                EditorGUILayout.Space(5);
-
-                if (GUILayout.Button(MRLocalization.Get(L.LocalizationWindow.RESET_TO_UNITY)))
-                {
-                    EditorPrefs.DeleteKey("MRLocalization_Locale");
-                    MRLocalization.ReloadTranslations();
-                    Debug.Log("[MRLocalization] Idioma reseteado a configuracion de Unity Editor");
                 }
             }
         }

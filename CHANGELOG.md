@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.35] - 2026-02-14
+
+### Corregido
+- **Repaint global al cambiar idioma**: `SetLocale()` y `ReloadTranslations()` ahora fuerzan repaint de todos los inspectores abiertos, no solo la ventana de localización
+
+### Eliminado
+- **Secciones de debug en MRLocalizationWindow**: Eliminadas secciones "Probar Traducción" y "Acciones" (recargar/abrir carpeta/resetear)
+- **9 claves muertas**: Eliminadas de MRLocalizationKeys.cs, MRLocalization.cs y los 6 archivos JSON
+
 ## [0.8.34] - 2026-02-14
 
 ### Agregado

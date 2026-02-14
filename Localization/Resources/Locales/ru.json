@@ -658,15 +658,6 @@
         "availableLanguages": "Доступные языки",
         "noLocaleFiles": "Файлы языков не найдены.",
         "currentMarker": "(текущий)",
-        "selectButton": "Выбрать",
-        "testTranslation": "Тест перевода",
-        "keyLabel": "Ключ:",
-        "getButton": "Получить",
-        "withParam": "С параметром:",
-        "resultLabel": "Результат:",
-        "actions": "Действия",
-        "reloadTranslations": "Перезагрузить переводы",
-        "openLocalesFolder": "Открыть папку языков",
-        "resetToUnity": "Определить язык системы"
+        "selectButton": "Выбрать"
     }
 }

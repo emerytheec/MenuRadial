@@ -658,15 +658,6 @@
         "availableLanguages": "可用语言",
         "noLocaleFiles": "未找到语言文件。",
         "currentMarker": "(当前)",
-        "selectButton": "选择",
-        "testTranslation": "测试翻译",
-        "keyLabel": "键:",
-        "getButton": "获取",
-        "withParam": "带参数:",
-        "resultLabel": "结果:",
-        "actions": "操作",
-        "reloadTranslations": "重新加载翻译",
-        "openLocalesFolder": "打开语言文件夹",
-        "resetToUnity": "检测系统语言"
+        "selectButton": "选择"
     }
 }
