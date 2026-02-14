@@ -318,11 +318,9 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
 
             if (_physBoneType == null) return entries;
 
-            // Pre-detectar armatures si no se ha hecho
-            if (_detectedArmatures == null)
-            {
-                DetectArmatures(avatarRoot, knownArmatures);
-            }
+            // Siempre re-detectar armatures (ScanPhysBones es el primero del ciclo)
+            _detectedArmatures = null;
+            DetectArmatures(avatarRoot, knownArmatures);
 
             var components = avatarRoot.GetComponentsInChildren(_physBoneType, true);
 

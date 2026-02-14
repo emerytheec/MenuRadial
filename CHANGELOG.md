@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.38] - 2026-02-14
+
+### Corregido
+- **Cache de armatures nunca se invalidaba**: `ClearDetection()` no reseteaba el cache interno del scanner, causando que re-escaneos usaran armatures obsoletas y PhysBones no fueran detectados
+- **ScanPhysBones siempre re-detecta armatures**: Eliminado el guard condicional que saltaba la deteccion si ya existia cache, garantizando armatures frescas en cada ciclo de escaneo
+
 ## [0.8.37] - 2026-02-14
 
 ### Corregido

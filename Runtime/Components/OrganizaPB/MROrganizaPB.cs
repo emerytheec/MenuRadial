@@ -228,6 +228,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
             _createdContainers.Clear();
             _lastResult = null;
             _state = OrganizationState.NotScanned;
+            Scanner.InvalidateArmatureCache();
         }
 
         /// <summary>
