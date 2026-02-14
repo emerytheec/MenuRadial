@@ -50,6 +50,16 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             public string ContextName;
         }
 
+        /// <summary>
+        /// Armature conocida externamente (ej: detectada por MRCoserRopa).
+        /// </summary>
+        public struct KnownArmature
+        {
+            public GameObject Root;
+            public Transform Armature;
+            public string Name;
+        }
+
         #endregion
 
         #region Properties
@@ -135,7 +145,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         /// Pre-detecta todas las armatures relevantes en el avatar.
         /// Incluye la armature del avatar y las armatures de hijos directos (ropas).
         /// </summary>
-        private void DetectArmatures(GameObject avatarRoot)
+        private void DetectArmatures(GameObject avatarRoot, IReadOnlyList<KnownArmature> knownArmatures = null)
         {
             _detectedArmatures = new List<ArmatureContext>();
 
@@ -178,6 +188,36 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                         IsAvatarContext = false,
                         ContextName = child.name
                     });
+                }
+            }
+
+            // 3. Armatures conocidas externamente (ej: de MRCoserRopa)
+            if (knownArmatures != null)
+            {
+                foreach (var known in knownArmatures)
+                {
+                    if (known.Root == null || known.Armature == null) continue;
+
+                    bool alreadyDetected = false;
+                    foreach (var existing in _detectedArmatures)
+                    {
+                        if (existing.ArmatureTransform == known.Armature)
+                        {
+                            alreadyDetected = true;
+                            break;
+                        }
+                    }
+
+                    if (!alreadyDetected)
+                    {
+                        _detectedArmatures.Add(new ArmatureContext
+                        {
+                            ContextRoot = known.Root,
+                            ArmatureTransform = known.Armature,
+                            IsAvatarContext = false,
+                            ContextName = known.Name
+                        });
+                    }
                 }
             }
 
@@ -246,6 +286,21 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             return avatarCtx;
         }
 
+        /// <summary>
+        /// Retorna el ArmatureContext del avatar (IsAvatarContext == true).
+        /// </summary>
+        private ArmatureContext FindAvatarContext()
+        {
+            if (_detectedArmatures == null) return null;
+
+            foreach (var ctx in _detectedArmatures)
+            {
+                if (ctx.IsAvatarContext) return ctx;
+            }
+
+            return null;
+        }
+
         #endregion
 
         #region Scanning
@@ -253,7 +308,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         /// <summary>
         /// Escanea el avatar y detecta todos los VRCPhysBone que están dentro de armatures.
         /// </summary>
-        public List<PhysBoneEntry> ScanPhysBones(GameObject avatarRoot)
+        public List<PhysBoneEntry> ScanPhysBones(GameObject avatarRoot, IReadOnlyList<KnownArmature> knownArmatures = null)
         {
             var entries = new List<PhysBoneEntry>();
 
@@ -266,7 +321,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             // Pre-detectar armatures si no se ha hecho
             if (_detectedArmatures == null)
             {
-                DetectArmatures(avatarRoot);
+                DetectArmatures(avatarRoot, knownArmatures);
             }
 
             var components = avatarRoot.GetComponentsInChildren(_physBoneType, true);
@@ -304,6 +359,18 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                         entries.Add(entry);
                         outsideCount++;
                     }
+                    else
+                    {
+                        // Fallback: asignar al contexto del avatar
+                        var avatarCtx = FindAvatarContext();
+                        if (avatarCtx != null)
+                        {
+                            var context = CreateOrganizationContext(avatarCtx);
+                            var entry = new PhysBoneEntry(comp, comp.transform, rootTransform, context);
+                            entries.Add(entry);
+                            insideCount++;
+                        }
+                    }
                 }
             }
 
@@ -315,7 +382,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         /// <summary>
         /// Escanea el avatar y detecta todos los VRCPhysBoneCollider que están dentro de armatures.
         /// </summary>
-        public List<ColliderEntry> ScanColliders(GameObject avatarRoot)
+        public List<ColliderEntry> ScanColliders(GameObject avatarRoot, IReadOnlyList<KnownArmature> knownArmatures = null)
         {
             var entries = new List<ColliderEntry>();
 
@@ -328,7 +395,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
             // Pre-detectar armatures si no se ha hecho
             if (_detectedArmatures == null)
             {
-                DetectArmatures(avatarRoot);
+                DetectArmatures(avatarRoot, knownArmatures);
             }
 
             var components = avatarRoot.GetComponentsInChildren(_physBoneColliderType, true);
@@ -365,6 +432,18 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                         entry.Included = false;
                         entries.Add(entry);
                         outsideCount++;
+                    }
+                    else
+                    {
+                        // Fallback: asignar al contexto del avatar
+                        var avatarCtx = FindAvatarContext();
+                        if (avatarCtx != null)
+                        {
+                            var context = CreateOrganizationContext(avatarCtx);
+                            var entry = new ColliderEntry(comp, comp.transform, rootTransform, context);
+                            entries.Add(entry);
+                            insideCount++;
+                        }
                     }
                 }
             }

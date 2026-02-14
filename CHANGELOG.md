@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.37] - 2026-02-14
+
+### Corregido
+- **Deteccion de PhysBones en ropas no reconocidas**: PhysBoneScanner ahora recibe armatures detectadas por MRCoserRopa como fuente adicional, evitando que ropas con estructura no estandar pierdan sus PhysBones
+- **Fallback al contexto del avatar**: PhysBones y Colliders que no pertenecen a ninguna armature detectada se asignan al contexto del avatar en lugar de descartarse silenciosamente
+
+### Agregado
+- Struct `PhysBoneScanner.KnownArmature` para recibir armatures externas
+- Metodo `MROrganizaPB.GetKnownArmatures()` que extrae armatures de MRCoserRopa
+- Helper `PhysBoneScanner.FindAvatarContext()` para fallback
+
 ## [0.8.36] - 2026-02-14
 
 ### Agregado

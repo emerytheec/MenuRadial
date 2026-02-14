@@ -4,6 +4,8 @@ using VRC.SDKBase;
 using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers;
+using Bender_Dios.MenuRadial.Components.CoserRopa;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 namespace Bender_Dios.MenuRadial.Components.OrganizaPB
 {
@@ -199,12 +201,15 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 return;
             }
 
+            // Obtener armatures conocidas de MRCoserRopa (si existe)
+            var knownArmatures = GetKnownArmatures();
+
             // Escanear PhysBones
-            var physBones = Scanner.ScanPhysBones(_avatarRoot);
+            var physBones = Scanner.ScanPhysBones(_avatarRoot, knownArmatures);
             _detectedPhysBones.AddRange(physBones);
 
             // Escanear Colliders
-            var colliders = Scanner.ScanColliders(_avatarRoot);
+            var colliders = Scanner.ScanColliders(_avatarRoot, knownArmatures);
             _detectedColliders.AddRange(colliders);
 
             // Cambiar estado a Scanned
@@ -441,6 +446,37 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Obtiene armatures conocidas de MRCoserRopa si está disponible.
+        /// </summary>
+        private IReadOnlyList<PhysBoneScanner.KnownArmature> GetKnownArmatures()
+        {
+            var menuRadial = GetComponentInParent<MRMenuRadial>();
+            var coserRopa = menuRadial != null
+                ? menuRadial.GetComponentInChildren<MRCoserRopa>()
+                : GetComponentInChildren<MRCoserRopa>();
+
+            if (coserRopa == null || coserRopa.DetectedClothings == null)
+                return null;
+
+            var result = new List<PhysBoneScanner.KnownArmature>();
+
+            foreach (var clothing in coserRopa.DetectedClothings)
+            {
+                if (!clothing.IsValid) continue;
+                if (clothing.ArmatureReference?.ArmatureRoot == null) continue;
+
+                result.Add(new PhysBoneScanner.KnownArmature
+                {
+                    Root = clothing.GameObject,
+                    Armature = clothing.ArmatureReference.ArmatureRoot,
+                    Name = clothing.Name
+                });
+            }
+
+            return result.Count > 0 ? result : null;
+        }
 
         private void OnAvatarChanged()
         {
