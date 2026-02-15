@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.39] - 2026-02-15
+
+### Corregido
+- **Bounds unificados solo cubrian el primer mesh**: `Bounds.Encapsulate()` operaba sobre copia del struct (Nullable.Value retorna copia), causando que los bounds calculados ignoraran todos los meshes excepto el primero
+- **Refresh de MeshBoundsInfo no actualizaba probe anchor**: `Refresh()` ahora recaptura `probeAnchor` y `hadOriginalProbeAnchor` del renderer
+
 ## [0.8.38] - 2026-02-14
 
 ### Corregido
