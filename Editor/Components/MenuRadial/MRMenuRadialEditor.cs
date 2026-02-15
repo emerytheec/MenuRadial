@@ -571,6 +571,25 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 var syncResult = _target.SyncMenuStructure();
                 if (syncResult.Success)
                 {
+                    // Refrescar AjustarBounds para incluir nuevos meshes en bounds y anchor
+                    if (_target.AjustarBounds != null)
+                    {
+                        var ab = _target.AjustarBounds;
+                        Undo.RecordObject(ab, "Refresh Ajustar Bounds");
+                        foreach (var meshInfo in ab.DetectedMeshes)
+                        {
+                            if (meshInfo.IsValid && meshInfo.Renderer != null)
+                                Undo.RecordObject(meshInfo.Renderer, "Refresh Ajustar Bounds");
+                        }
+                        foreach (var particleInfo in ab.DetectedParticles)
+                        {
+                            if (particleInfo.IsValid && particleInfo.Renderer != null)
+                                Undo.RecordObject(particleInfo.Renderer, "Refresh Ajustar Bounds");
+                        }
+                        ab.Refresh();
+                        EditorUtility.SetDirty(ab);
+                    }
+
                     string message = syncResult.FramesAdded > 0
                         ? MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED, syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames))
                         : MRLocalization.Get(L.MenuRadialEditor.SYNC_NO_CHANGES);
