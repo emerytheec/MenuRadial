@@ -305,6 +305,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                     "Sin esto, diferentes partes del avatar pueden verse mas claras u oscuras.",
                     MessageType.Info);
             }
+
         }
 
         #endregion

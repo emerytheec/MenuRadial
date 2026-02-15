@@ -169,6 +169,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                         int anchorsProcessed = ProcessAnchorOverride(ajustarBounds, avatarRoot);
                         totalAnchors += anchorsProcessed;
                     }
+
                 }
                 catch (Exception e)
                 {

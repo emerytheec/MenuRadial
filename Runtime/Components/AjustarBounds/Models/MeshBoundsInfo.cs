@@ -127,6 +127,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
                 // Capturar probe anchor original
                 _originalProbeAnchor = renderer.probeAnchor;
                 _hadOriginalProbeAnchor = renderer.probeAnchor != null;
+
             }
         }
 
@@ -160,6 +161,9 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
                 _meshName = _renderer.name;
                 _hierarchyPath = GetHierarchyPath(_renderer.transform);
                 _isValid = true;
+
+                _originalProbeAnchor = _renderer.probeAnchor;
+                _hadOriginalProbeAnchor = _renderer.probeAnchor != null;
             }
             else
             {
@@ -210,5 +214,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
                 _renderer.probeAnchor = _hadOriginalProbeAnchor ? _originalProbeAnchor : null;
             }
         }
+
     }
 }

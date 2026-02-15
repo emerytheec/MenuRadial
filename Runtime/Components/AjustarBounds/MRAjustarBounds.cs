@@ -531,7 +531,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
                 bool wasApplied = _boundsApplied;
                 bool wasParticlesApplied = _particleBoundsApplied;
                 bool wasAnchorApplied = _anchorApplied;
-
                 // Restaurar primero si estaban aplicados
                 if (wasApplied)
                 {

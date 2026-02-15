@@ -112,7 +112,10 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 else
                 {
                     // Expandir para incluir este mesh
-                    globalBounds.Value.Encapsulate(worldBounds);
+                    // Bounds es struct — .Value retorna copia, Encapsulate sobre copia no tiene efecto
+                    var temp = globalBounds.Value;
+                    temp.Encapsulate(worldBounds);
+                    globalBounds = temp;
                 }
 
                 validCount++;
