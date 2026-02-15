@@ -571,6 +571,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 var syncResult = _target.SyncMenuStructure();
                 if (syncResult.Success)
                 {
+                    // Re-escanear AnalisisColision para detectar cambios en componentes MA
+                    if (_target.AnalisisColision != null)
+                    {
+                        Undo.RecordObject(_target.AnalisisColision, "Refresh Analisis Colision");
+                        _target.AnalisisColision.Refresh();
+                        EditorUtility.SetDirty(_target.AnalisisColision);
+                    }
+
                     // Refrescar AjustarBounds para incluir nuevos meshes en bounds y anchor
                     if (_target.AjustarBounds != null)
                     {

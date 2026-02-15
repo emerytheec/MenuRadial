@@ -102,27 +102,27 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         /// <summary>
         /// Cantidad de componentes problematicos.
         /// </summary>
-        public int ProblematicCount => _problematicEntries?.Count ?? 0;
+        public int ProblematicCount => _problematicEntries?.Count(e => e.IsValid) ?? 0;
 
         /// <summary>
         /// Cantidad de componentes problematicos en raiz de ropa.
         /// </summary>
-        public int ProblematicOnClothingRootCount => _problematicEntries?.Count(e => e.IsOnClothingRoot) ?? 0;
+        public int ProblematicOnClothingRootCount => _problematicEntries?.Count(e => e.IsValid && e.IsOnClothingRoot) ?? 0;
 
         /// <summary>
         /// Cantidad de componentes que requieren decision del usuario.
         /// </summary>
-        public int UserDecisionCount => _userDecisionEntries?.Count ?? 0;
+        public int UserDecisionCount => _userDecisionEntries?.Count(e => e.IsValid) ?? 0;
 
         /// <summary>
         /// Cantidad de componentes compatibles.
         /// </summary>
-        public int CompatibleCount => _compatibleEntries?.Count ?? 0;
+        public int CompatibleCount => _compatibleEntries?.Count(e => e.IsValid) ?? 0;
 
         /// <summary>
         /// Cantidad de meshes detectados en raíces de ropa.
         /// </summary>
-        public int MeshOnRootCount => _meshOnRootEntries?.Count ?? 0;
+        public int MeshOnRootCount => _meshOnRootEntries?.Count(e => e.IsValid) ?? 0;
 
         /// <summary>
         /// Si hay algun componente problematico.
