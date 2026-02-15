@@ -5,6 +5,11 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.40] - 2026-02-15
+
+### Agregado
+- **Refresh de AjustarBounds al Sincronizar**: Al presionar Sincronizar en MRMenuRadial, refresca bounds y anchor override automaticamente para cubrir meshes nuevos (ropa, pelucas, accesorios) sin requerir intervencion manual en el componente AjustarBounds
+
 ## [0.8.39] - 2026-02-15
 
 ### Corregido
