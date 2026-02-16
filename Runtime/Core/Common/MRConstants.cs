@@ -231,7 +231,12 @@ namespace Bender_Dios.MenuRadial.Core.Common
     }
 
     /// <summary>
-    /// Constantes para ajuste de bounds de meshes
+    /// Constantes para ajuste de bounds de meshes.
+    /// Limites basados en VRChat Performance Ranking System:
+    ///   Excellent: 2.5 x 2.5 x 2.5m
+    ///   Good:      4.0 x 4.0 x 4.0m
+    ///   Medium:    5.0 x 6.0 x 5.0m
+    ///   Poor:      5.0 x 6.0 x 5.0m
     /// </summary>
     public static class MRBoundsConstants
     {
@@ -240,6 +245,29 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// </summary>
         public const float DEFAULT_MARGIN_PERCENTAGE = 0.10f;
 
+        /// <summary>
+        /// Tamanio maximo permitido ejes X/Z en metros.
+        /// Superar 5m en X o Z convierte el avatar en Very Poor.
+        /// </summary>
+        public const float MAX_BOUNDS_SIZE_XZ = 5f;
+
+        /// <summary>
+        /// Tamanio maximo permitido eje Y (altura) en metros.
+        /// Superar 6m en Y convierte el avatar en Very Poor.
+        /// </summary>
+        public const float MAX_BOUNDS_SIZE_Y = 6f;
+
+        /// <summary>
+        /// Umbral de advertencia ejes X/Z en metros (rank Good).
+        /// Superar 4m baja el rank a Medium o peor.
+        /// </summary>
+        public const float WARNING_BOUNDS_SIZE_XZ = 4f;
+
+        /// <summary>
+        /// Umbral de advertencia eje Y en metros (rank Good).
+        /// Superar 4m baja el rank a Medium o peor.
+        /// </summary>
+        public const float WARNING_BOUNDS_SIZE_Y = 4f;
     }
 
     /// <summary>

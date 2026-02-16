@@ -7,7 +7,15 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
 {
     /// <summary>
     /// Calculador de bounds unificados para avatares.
-    /// Escanea todos los SkinnedMeshRenderer y calcula un bounding box que englobe todo.
+    /// Usa BakeMesh para obtener la geometria real deformada de cada mesh,
+    /// calcula un AABB en el espacio del rootBone compartido (Hips),
+    /// y aplica ese mismo volumen a todos los renderers.
+    ///
+    /// Basado en el enfoque de WhiteFlare AvatarTools:
+    /// - BakeMesh para geometria precisa
+    /// - rootBone compartido (Hips) para todos los renderers
+    /// - Reset de transform del renderer a identity
+    /// - Sin clamp artificial a limites VRChat
     /// </summary>
     public class BoundsCalculator
     {
@@ -17,10 +25,39 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
         public const float DEFAULT_MARGIN_PERCENTAGE = MRBoundsConstants.DEFAULT_MARGIN_PERCENTAGE;
 
         /// <summary>
+        /// Detecta el rootBone compartido (Hips) del avatar.
+        /// Usa el Animator humanoid si existe, sino busca por nombre.
+        /// </summary>
+        public Transform DetectSharedRootBone(GameObject avatarRoot)
+        {
+            if (avatarRoot == null) return null;
+
+            // Buscar Animator humanoid
+            foreach (var anim in avatarRoot.GetComponentsInChildren<Animator>(true))
+            {
+                if (anim != null && anim.isHuman)
+                {
+                    var hips = anim.GetBoneTransform(HumanBodyBones.Hips);
+                    if (hips != null) return hips;
+                }
+            }
+
+            // Fallback: buscar por nombre
+            foreach (var child in avatarRoot.GetComponentsInChildren<Transform>(true))
+            {
+                var name = child.name.ToLowerInvariant();
+                if (name == "hips" || name == "hip" || name == "pelvis")
+                    return child;
+            }
+
+            // Ultimo fallback: usar el root del avatar
+            Debug.LogWarning("[BoundsCalculator] No se encontro hueso Hips, usando avatar root como rootBone");
+            return avatarRoot.transform;
+        }
+
+        /// <summary>
         /// Escanea un avatar y recopila informacion de todos los SkinnedMeshRenderer
         /// </summary>
-        /// <param name="avatarRoot">GameObject raiz del avatar</param>
-        /// <returns>Lista de informacion de bounds por mesh</returns>
         public List<MeshBoundsInfo> ScanAvatar(GameObject avatarRoot)
         {
             var result = new List<MeshBoundsInfo>();
@@ -31,7 +68,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 return result;
             }
 
-            // Buscar todos los SkinnedMeshRenderer (incluidos inactivos)
             var renderers = avatarRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
 
             foreach (var renderer in renderers)
@@ -43,10 +79,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 }
 
                 var info = new MeshBoundsInfo(renderer);
-
-                // Calcular bounds que cubren exactamente el mesh
-                info.CalculatedBounds = CalculateMeshBounds(renderer);
-
                 result.Add(info);
             }
 
@@ -55,30 +87,15 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
         }
 
         /// <summary>
-        /// Calcula los bounds exactos de un SkinnedMeshRenderer basandose en su mesh
+        /// Calcula el bounding box unificado usando BakeMesh para obtener
+        /// la geometria real deformada. Todos los vertices se transforman
+        /// al espacio local del rootBone compartido (Hips).
+        ///
+        /// El resultado es un AABB en rootBone-space que engloba todos los meshes.
         /// </summary>
-        private Bounds CalculateMeshBounds(SkinnedMeshRenderer renderer)
-        {
-            if (renderer.sharedMesh == null)
-            {
-                return new Bounds(Vector3.zero, Vector3.one);
-            }
-
-            // Usar los bounds del mesh compartido como base
-            // Estos bounds son en espacio local del mesh
-            return renderer.sharedMesh.bounds;
-        }
-
-        /// <summary>
-        /// Calcula el bounding box unificado que engloba todos los meshes del avatar
-        /// </summary>
-        /// <param name="meshInfos">Lista de informacion de meshes</param>
-        /// <param name="avatarRoot">Transform raiz del avatar para conversiones de espacio</param>
-        /// <param name="marginPercentage">Porcentaje de margen adicional (0.10 = 10%)</param>
-        /// <returns>Resultado del calculo con bounds unificados</returns>
         public BoundsCalculationResult CalculateUnifiedBounds(
             List<MeshBoundsInfo> meshInfos,
-            Transform avatarRoot,
+            Transform sharedRootBone,
             float marginPercentage = DEFAULT_MARGIN_PERCENTAGE)
         {
             if (meshInfos == null || meshInfos.Count == 0)
@@ -86,58 +103,108 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 return BoundsCalculationResult.CreateFailure("No hay meshes para calcular");
             }
 
-            if (avatarRoot == null)
+            if (sharedRootBone == null)
             {
-                return BoundsCalculationResult.CreateFailure("Avatar root es null");
+                return BoundsCalculationResult.CreateFailure("rootBone compartido es null");
             }
 
-            // Inicializar bounds con el primer mesh valido
-            Bounds? globalBounds = null;
+            Matrix4x4 worldToRootBone = sharedRootBone.worldToLocalMatrix;
+            Vector3 min = Vector3.positiveInfinity;
+            Vector3 max = Vector3.negativeInfinity;
             int validCount = 0;
+            int totalVertices = 0;
 
             foreach (var info in meshInfos)
             {
                 if (!info.IsValid || info.Renderer == null)
-                {
                     continue;
-                }
 
-                // Convertir bounds locales a world space y luego a espacio del avatar
-                Bounds worldBounds = TransformBoundsToAvatarSpace(info.Renderer, avatarRoot);
+                // Saltar renderers sin bones (meshes estaticos)
+                if (!info.HasBones)
+                    continue;
 
-                if (!globalBounds.HasValue)
+                // BakeMesh: hornea el mesh deformado segun los huesos actuales
+                // El resultado esta en el espacio local del renderer
+                var bakedMesh = new Mesh();
+                info.Renderer.BakeMesh(bakedMesh);
+
+                // Matriz combinada: renderer-local → world → rootBone-local
+                Matrix4x4 toRootBone = worldToRootBone * info.Renderer.transform.localToWorldMatrix;
+
+                var vertices = bakedMesh.vertices;
+                foreach (var v in vertices)
                 {
-                    globalBounds = worldBounds;
-                }
-                else
-                {
-                    // Expandir para incluir este mesh
-                    // Bounds es struct — .Value retorna copia, Encapsulate sobre copia no tiene efecto
-                    var temp = globalBounds.Value;
-                    temp.Encapsulate(worldBounds);
-                    globalBounds = temp;
+                    Vector3 rootBoneLocal = toRootBone.MultiplyPoint3x4(v);
+                    min = Vector3.Min(min, rootBoneLocal);
+                    max = Vector3.Max(max, rootBoneLocal);
                 }
 
+                totalVertices += vertices.Length;
+                Object.DestroyImmediate(bakedMesh);
                 validCount++;
             }
 
-            if (!globalBounds.HasValue)
+            if (totalVertices == 0)
             {
-                return BoundsCalculationResult.CreateFailure("No se encontraron meshes validos");
+                return BoundsCalculationResult.CreateFailure("No se encontraron vertices validos");
             }
 
-            Bounds unified = globalBounds.Value;
+            // Crear AABB crudo
+            Bounds rawBounds = new Bounds();
+            rawBounds.SetMinMax(min, max);
 
-            // Calcular centro geometrico real (Opcion B)
-            // El centro Y es el punto medio entre el minimo y maximo reales
-            Vector3 center = unified.center;
-            Vector3 size = unified.size;
+            Vector3 center = rawBounds.center;
+            Vector3 extents = rawBounds.extents;
+
+            // Redondear centro a grid de 0.01m (centimetros)
+            Vector3 roundedCenter = new Vector3(
+                Mathf.Round(center.x * 100f) / 100f,
+                Mathf.Round(center.y * 100f) / 100f,
+                Mathf.Round(center.z * 100f) / 100f
+            );
+
+            // Expandir extents para compensar el error de redondeo
+            extents.x += Mathf.Abs(roundedCenter.x - center.x);
+            extents.y += Mathf.Abs(roundedCenter.y - center.y);
+            extents.z += Mathf.Abs(roundedCenter.z - center.z);
+
+            // Redondear extents hacia arriba a 0.01m
+            extents.x = Mathf.Ceil(extents.x * 100f) / 100f;
+            extents.y = Mathf.Ceil(extents.y * 100f) / 100f;
+            extents.z = Mathf.Ceil(extents.z * 100f) / 100f;
+
+            // Bounds exactos (sin margen extra)
+            Bounds unified = new Bounds(roundedCenter, extents * 2f);
 
             // Aplicar margen de seguridad
-            Vector3 sizeWithMargin = size * (1f + marginPercentage);
+            Vector3 extentsWithMargin = extents * (1f + marginPercentage);
 
-            // El centro no cambia, solo el tamanio
-            Bounds unifiedWithMargin = new Bounds(center, sizeWithMargin);
+            // Redondear hacia arriba despues de aplicar margen
+            extentsWithMargin.x = Mathf.Ceil(extentsWithMargin.x * 100f) / 100f;
+            extentsWithMargin.y = Mathf.Ceil(extentsWithMargin.y * 100f) / 100f;
+            extentsWithMargin.z = Mathf.Ceil(extentsWithMargin.z * 100f) / 100f;
+
+            Bounds unifiedWithMargin = new Bounds(roundedCenter, extentsWithMargin * 2f);
+
+            // Advertencia VRChat (sin clamp — solo informativo)
+            Vector3 finalSize = unifiedWithMargin.size;
+            if (finalSize.x > MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ ||
+                finalSize.y > MRBoundsConstants.WARNING_BOUNDS_SIZE_Y ||
+                finalSize.z > MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ)
+            {
+                Debug.LogWarning($"[BoundsCalculator] Bounds superan rank Good de VRChat: " +
+                    $"{finalSize.x:F2}x{finalSize.y:F2}x{finalSize.z:F2}m " +
+                    $"(Good max: {MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ}x{MRBoundsConstants.WARNING_BOUNDS_SIZE_Y}x{MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ}m)");
+            }
+
+            if (finalSize.x > MRBoundsConstants.MAX_BOUNDS_SIZE_XZ ||
+                finalSize.y > MRBoundsConstants.MAX_BOUNDS_SIZE_Y ||
+                finalSize.z > MRBoundsConstants.MAX_BOUNDS_SIZE_XZ)
+            {
+                Debug.LogError($"[BoundsCalculator] Bounds superan limite Very Poor de VRChat: " +
+                    $"{finalSize.x:F2}x{finalSize.y:F2}x{finalSize.z:F2}m " +
+                    $"(Max: {MRBoundsConstants.MAX_BOUNDS_SIZE_XZ}x{MRBoundsConstants.MAX_BOUNDS_SIZE_Y}x{MRBoundsConstants.MAX_BOUNDS_SIZE_XZ}m)");
+            }
 
             var result = BoundsCalculationResult.CreateSuccess(
                 unified,
@@ -147,94 +214,42 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 marginPercentage
             );
 
-            Debug.Log($"[BoundsCalculator] Bounds calculados: Centro={center}, Tamanio={sizeWithMargin}, " +
-                      $"MinY={unifiedWithMargin.min.y:F2}, MaxY={unifiedWithMargin.max.y:F2}");
+            Debug.Log($"[BoundsCalculator] Bounds calculados ({totalVertices} vertices, {validCount} meshes): " +
+                      $"Centro={roundedCenter}, Tamanio={finalSize}");
 
             return result;
         }
 
         /// <summary>
-        /// Transforma los bounds de un renderer al espacio local del avatar
+        /// Aplica los bounds unificados a todos los meshes.
+        /// Asigna el rootBone compartido, resetea el transform, y establece localBounds.
+        /// Despues de esto, TODOS los renderers comparten el mismo volumen de culling.
         /// </summary>
-        private Bounds TransformBoundsToAvatarSpace(SkinnedMeshRenderer renderer, Transform avatarRoot)
-        {
-            // Obtener bounds locales del renderer
-            Bounds localBounds = renderer.localBounds;
-
-            // Obtener los 8 vertices del bounding box
-            Vector3[] corners = GetBoundsCorners(localBounds);
-
-            // Transformar cada esquina a world space y luego a espacio del avatar
-            Vector3 min = Vector3.positiveInfinity;
-            Vector3 max = Vector3.negativeInfinity;
-
-            Matrix4x4 localToWorld = renderer.transform.localToWorldMatrix;
-            Matrix4x4 worldToAvatar = avatarRoot.worldToLocalMatrix;
-            Matrix4x4 localToAvatar = worldToAvatar * localToWorld;
-
-            foreach (var corner in corners)
-            {
-                Vector3 avatarSpacePoint = localToAvatar.MultiplyPoint3x4(corner);
-                min = Vector3.Min(min, avatarSpacePoint);
-                max = Vector3.Max(max, avatarSpacePoint);
-            }
-
-            // Crear bounds a partir de min/max
-            Bounds avatarSpaceBounds = new Bounds();
-            avatarSpaceBounds.SetMinMax(min, max);
-
-            return avatarSpaceBounds;
-        }
-
-        /// <summary>
-        /// Obtiene las 8 esquinas de un bounding box
-        /// </summary>
-        private Vector3[] GetBoundsCorners(Bounds bounds)
-        {
-            Vector3 min = bounds.min;
-            Vector3 max = bounds.max;
-
-            return new Vector3[]
-            {
-                new Vector3(min.x, min.y, min.z),
-                new Vector3(min.x, min.y, max.z),
-                new Vector3(min.x, max.y, min.z),
-                new Vector3(min.x, max.y, max.z),
-                new Vector3(max.x, min.y, min.z),
-                new Vector3(max.x, min.y, max.z),
-                new Vector3(max.x, max.y, min.z),
-                new Vector3(max.x, max.y, max.z)
-            };
-        }
-
-        /// <summary>
-        /// Aplica los bounds unificados a todos los meshes
-        /// </summary>
-        /// <param name="meshInfos">Lista de informacion de meshes</param>
-        /// <param name="unifiedBounds">Bounds unificados a aplicar</param>
-        /// <returns>Numero de meshes actualizados</returns>
-        public int ApplyUnifiedBounds(List<MeshBoundsInfo> meshInfos, Bounds unifiedBounds)
+        public int ApplyUnifiedBounds(List<MeshBoundsInfo> meshInfos, Bounds unifiedBounds, Transform sharedRootBone)
         {
             int appliedCount = 0;
 
             foreach (var info in meshInfos)
             {
-                if (info.IsValid && info.Renderer != null)
-                {
-                    info.ApplyUnifiedBounds(unifiedBounds);
-                    appliedCount++;
-                }
+                if (!info.IsValid || info.Renderer == null)
+                    continue;
+
+                // Saltar renderers sin bones (no se puede resetear su transform)
+                if (!info.HasBones)
+                    continue;
+
+                info.ApplyUnifiedBounds(unifiedBounds, sharedRootBone);
+                appliedCount++;
             }
 
-            Debug.Log($"[BoundsCalculator] Bounds aplicados a {appliedCount} meshes");
+            Debug.Log($"[BoundsCalculator] Bounds unificados aplicados a {appliedCount} meshes " +
+                      $"(rootBone: {sharedRootBone.name})");
             return appliedCount;
         }
 
         /// <summary>
         /// Restaura los bounds originales de todos los meshes
         /// </summary>
-        /// <param name="meshInfos">Lista de informacion de meshes</param>
-        /// <returns>Numero de meshes restaurados</returns>
         public int RestoreOriginalBounds(List<MeshBoundsInfo> meshInfos)
         {
             int restoredCount = 0;
@@ -276,8 +291,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
         /// <summary>
         /// Escanea un avatar y recopila informacion de todos los ParticleSystem
         /// </summary>
-        /// <param name="avatarRoot">GameObject raiz del avatar</param>
-        /// <returns>Lista de informacion de bounds por particula</returns>
         public List<ParticleBoundsInfo> ScanParticles(GameObject avatarRoot)
         {
             var result = new List<ParticleBoundsInfo>();
@@ -288,7 +301,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 return result;
             }
 
-            // Buscar todos los ParticleSystem (incluidos inactivos)
             var particleSystems = avatarRoot.GetComponentsInChildren<ParticleSystem>(true);
 
             foreach (var ps in particleSystems)
@@ -310,12 +322,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
 
         /// <summary>
         /// Calcula bounds individuales para cada sistema de particulas.
-        /// Cada particula obtiene su propio bound basado en sus propiedades.
         /// </summary>
-        /// <param name="particleInfos">Lista de informacion de particulas</param>
-        /// <param name="avatarRoot">Transform raiz del avatar</param>
-        /// <param name="marginPercentage">Porcentaje de margen adicional</param>
-        /// <returns>Numero de particulas procesadas</returns>
         public int CalculateIndividualParticleBounds(
             List<ParticleBoundsInfo> particleInfos,
             Transform avatarRoot,
@@ -335,7 +342,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                     continue;
                 }
 
-                // Calcular bounds basados en las propiedades del ParticleSystem
                 Bounds calculatedBounds = CalculateParticleBounds(info.ParticleSystem, marginPercentage);
                 info.CalculatedBounds = calculatedBounds;
 
@@ -348,7 +354,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
 
         /// <summary>
         /// Calcula los bounds para un sistema de particulas individual
-        /// basandose en sus propiedades de emision y movimiento.
         /// </summary>
         private Bounds CalculateParticleBounds(ParticleSystem ps, float marginPercentage)
         {
@@ -356,21 +361,15 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
             var shape = ps.shape;
             var renderer = ps.GetComponent<ParticleSystemRenderer>();
 
-            // Obtener bounds actuales como base
             Bounds baseBounds = renderer != null ? renderer.bounds : new Bounds(Vector3.zero, Vector3.one);
 
-            // Calcular el alcance maximo de las particulas
             float maxLifetime = main.startLifetime.constantMax;
             float maxSpeed = main.startSpeed.constantMax;
             float maxDistance = maxLifetime * maxSpeed;
-
-            // Considerar el tamanio de las particulas
             float maxSize = main.startSize.constantMax;
 
-            // Expandir bounds basandose en el alcance
             Vector3 expansion = Vector3.one * (maxDistance + maxSize);
 
-            // Considerar la forma del emisor
             if (shape.enabled)
             {
                 switch (shape.shapeType)
@@ -391,11 +390,8 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 }
             }
 
-            // Crear bounds expandidos
             Vector3 center = baseBounds.center;
             Vector3 size = baseBounds.size + expansion * 2f;
-
-            // Aplicar margen adicional
             size *= (1f + marginPercentage);
 
             return new Bounds(center, size);
@@ -404,8 +400,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
         /// <summary>
         /// Aplica los bounds calculados a todos los sistemas de particulas
         /// </summary>
-        /// <param name="particleInfos">Lista de informacion de particulas</param>
-        /// <returns>Numero de particulas actualizadas</returns>
         public int ApplyParticleBounds(List<ParticleBoundsInfo> particleInfos)
         {
             int appliedCount = 0;
@@ -426,8 +420,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
         /// <summary>
         /// Restaura los bounds originales de todos los sistemas de particulas
         /// </summary>
-        /// <param name="particleInfos">Lista de informacion de particulas</param>
-        /// <returns>Numero de particulas restauradas</returns>
         public int RestoreParticleBounds(List<ParticleBoundsInfo> particleInfos)
         {
             int restoredCount = 0;

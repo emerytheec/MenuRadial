@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.42] - 2026-02-16
+
+### Corregido
+- **AjustarBounds: Rediseno con BakeMesh**: Reemplazado el calculo de bounds basado en Encapsulate por el enfoque de WhiteFlare AvatarTools — usa `BakeMesh()` para obtener geometria real deformada y transforma vertices al espacio del rootBone compartido (Hips), produciendo bounds precisos en lugar de volumenes inflados de ~100m
+- **AjustarBounds: Datos stale al re-escanear**: `ScanAvatar()` capturaba bounds ya aplicados como "originales" — ahora restaura bounds antes de re-escanear
+- **AjustarBounds: Wireframe Scene View desalineado**: `OnSceneGUI` usaba la matriz del avatar root pero los bounds estan en espacio del rootBone (Hips)
+- **PrepareAll no calculaba bounds**: Faltaba llamada a `CalculateBounds()` entre scan y apply en `MRMenuRadial.PrepareAll()`
+
+### Mejorado
+- **AjustarBounds UI**: Meshes sin huesos muestran "Sin huesos" en amarillo (antes se ignoraban silenciosamente), resumen de estado muestra conteo de meshes saltados, nombre del rootBone visible en resultados
+- **Undo completo**: Apply/Restore ahora registran Undo tanto para el Renderer como para su Transform (se resetea a identity al aplicar)
+
+### Eliminado
+- **MRAjustarBoundsPlugin.cs**: Eliminado plugin NDMF de AjustarBounds — los bounds se aplican en editor via boton "Aplicar", no requieren build
+
 ## [0.8.41] - 2026-02-15
 
 ### Corregido

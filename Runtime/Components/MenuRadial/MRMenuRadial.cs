@@ -603,11 +603,13 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (AjustarBounds != null)
             {
                 AjustarBounds.ScanAvatar();
+                AjustarBounds.CalculateBounds();
                 AjustarBounds.ApplyBounds();
 
                 if (AjustarBounds.IncludeParticles)
                 {
                     AjustarBounds.ScanParticles();
+                    AjustarBounds.CalculateParticleBounds();
                     AjustarBounds.ApplyParticleBounds();
                 }
             }

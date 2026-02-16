@@ -84,8 +84,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
                 EditorGUILayout.Space(8);
 
-                // Info NDMF
-                DrawNDMFInfo();
+                // Resumen de estado
+                DrawStatusSummary();
             }
             else
             {
@@ -350,6 +350,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
                 EditorGUILayout.LabelField($"Meshes procesados: {result.ValidMeshCount}/{result.MeshCount}", EditorStyles.miniLabel);
                 EditorGUILayout.LabelField($"Margen aplicado: {(result.MarginPercentage * 100):F0}%", EditorStyles.miniLabel);
+
+                // rootBone compartido
+                if (_target.SharedRootBone != null)
+                {
+                    EditorGUILayout.LabelField($"rootBone: {_target.SharedRootBone.name} (espacio de referencia)", EditorStyles.miniLabel);
+                }
             }
             else if (_target.LastCalculationResult != null)
             {
@@ -413,12 +419,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             if (GUILayout.Button(new GUIContent("Aplicar Bounds", "Aplicar bounds unificados a todos los meshes"), GUILayout.Height(30)))
             {
                 Undo.RecordObject(_target, "Aplicar Bounds");
-                // Registrar Undo para cada mesh
+                // Registrar Undo para cada renderer y su Transform (se modifica rootBone, localBounds y transform)
                 foreach (var meshInfo in _target.DetectedMeshes)
                 {
                     if (meshInfo.IsValid && meshInfo.Renderer != null)
                     {
                         Undo.RecordObject(meshInfo.Renderer, "Aplicar Bounds");
+                        Undo.RecordObject(meshInfo.Renderer.transform, "Aplicar Bounds");
                     }
                 }
                 _target.ApplyBounds();
@@ -433,12 +440,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             if (GUILayout.Button(new GUIContent("Restaurar", "Restaurar bounds originales"), GUILayout.Height(30)))
             {
                 Undo.RecordObject(_target, "Restaurar Bounds");
-                // Registrar Undo para cada mesh
+                // Registrar Undo para cada renderer y su Transform (se restaura rootBone, localBounds y transform)
                 foreach (var meshInfo in _target.DetectedMeshes)
                 {
                     if (meshInfo.IsValid && meshInfo.Renderer != null)
                     {
                         Undo.RecordObject(meshInfo.Renderer, "Restaurar Bounds");
+                        Undo.RecordObject(meshInfo.Renderer.transform, "Restaurar Bounds");
                     }
                 }
                 _target.RestoreBounds();
@@ -468,7 +476,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Mesh", EditorStyles.miniBoldLabel, GUILayout.MinWidth(100));
             EditorGUILayout.LabelField("Bounds Originales", EditorStyles.miniBoldLabel, GUILayout.Width(150));
-            EditorGUILayout.LabelField("Estado", EditorStyles.miniBoldLabel, GUILayout.Width(60));
+            EditorGUILayout.LabelField("Estado", EditorStyles.miniBoldLabel, GUILayout.Width(70));
             EditorGUILayout.EndHorizontal();
 
             // Lista con scroll
@@ -530,9 +538,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                 EditorGUILayout.LabelField("-", EditorStyles.miniLabel, GUILayout.Width(150));
             }
 
-            // Estado
-            string status = meshInfo.IsValid ? "OK" : "Invalido";
-            EditorGUILayout.LabelField(status, EditorStyles.miniLabel, GUILayout.Width(60));
+            // Estado (distinguir: invalido, sin huesos, OK)
+            string status;
+            if (!meshInfo.IsValid)
+            {
+                status = "Invalido";
+            }
+            else if (!meshInfo.HasBones)
+            {
+                GUI.contentColor = WarningColor;
+                status = "Sin huesos";
+            }
+            else
+            {
+                status = "OK";
+            }
+            EditorGUILayout.LabelField(status, EditorStyles.miniLabel, GUILayout.Width(70));
 
             GUI.contentColor = Color.white;
 
@@ -762,13 +783,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
                 EditorGUILayout.LabelField(
                     "Se han encontrado componentes MA Mesh Settings en el avatar.\n" +
-                    "Estos seran DESACTIVADOS automaticamente durante el build.\n" +
-                    "MRAjustarBounds tiene prioridad.",
+                    "Pueden entrar en conflicto con MRAjustarBounds.\n" +
+                    "Considera desactivarlos manualmente si usas este componente.",
                     EditorStyles.wordWrappedMiniLabel);
 
                 // Contar componentes
                 var components = ModularAvatarDetector.Instance.GetMeshSettingsComponents(_target.AvatarRoot);
-                EditorGUILayout.LabelField($"Componentes a desactivar: {components.Length}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"Componentes detectados: {components.Length}", EditorStyles.miniLabel);
 
                 EditorGUILayout.EndVertical();
             }
@@ -776,19 +797,39 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
         #endregion
 
-        #region NDMF Info
+        #region Status Summary
 
-        private void DrawNDMFInfo()
+        private void DrawStatusSummary()
         {
             if (_target.HasValidCalculation && _target.ValidMeshCount > 0)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 // Estado de bounds
-                GUI.contentColor = SuccessColor;
-                string boundsStatus = _target.BoundsApplied ? "aplicados" : "listos";
-                EditorGUILayout.LabelField($"[OK] Bounds: {_target.ValidMeshCount} mesh(es) {boundsStatus}", EditorStyles.boldLabel);
+                if (_target.BoundsApplied)
+                {
+                    GUI.contentColor = AppliedColor;
+                    EditorGUILayout.LabelField($"Bounds APLICADOS a {_target.ValidMeshCount} mesh(es)", EditorStyles.boldLabel);
+                }
+                else
+                {
+                    GUI.contentColor = SuccessColor;
+                    EditorGUILayout.LabelField($"Bounds calculados para {_target.ValidMeshCount} mesh(es) (sin aplicar)", EditorStyles.boldLabel);
+                }
                 GUI.contentColor = Color.white;
+
+                // Meshes saltados por falta de huesos
+                int skippedCount = 0;
+                foreach (var m in _target.DetectedMeshes)
+                {
+                    if (m.IsValid && !m.HasBones) skippedCount++;
+                }
+                if (skippedCount > 0)
+                {
+                    GUI.contentColor = WarningColor;
+                    EditorGUILayout.LabelField($"{skippedCount} mesh(es) saltado(s) (sin huesos)", EditorStyles.miniLabel);
+                    GUI.contentColor = Color.white;
+                }
 
                 // Estado de anchor
                 if (_target.UnifyAnchorOverride)
@@ -796,32 +837,25 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                     var anchor = _target.EffectiveAnchor;
                     if (anchor != null)
                     {
-                        string anchorStatus = _target.AnchorApplied ? "aplicado" : "listo";
-                        GUI.contentColor = SuccessColor;
-                        EditorGUILayout.LabelField($"[OK] Anchor: {anchor.name} ({anchorStatus})", EditorStyles.boldLabel);
+                        string anchorStatus = _target.AnchorApplied ? "APLICADO" : "listo";
+                        GUI.contentColor = _target.AnchorApplied ? AppliedColor : SuccessColor;
+                        EditorGUILayout.LabelField($"Anchor: {anchor.name} ({anchorStatus})", EditorStyles.miniLabel);
                         GUI.contentColor = Color.white;
                     }
                     else
                     {
                         GUI.contentColor = WarningColor;
-                        EditorGUILayout.LabelField("[!] Anchor: no detectado", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField("Anchor: no detectado", EditorStyles.miniLabel);
                         GUI.contentColor = Color.white;
                     }
                 }
-
-                EditorGUILayout.LabelField(
-                    "Se procesara automaticamente al:",
-                    EditorStyles.wordWrappedMiniLabel);
-                EditorGUILayout.LabelField(
-                    "  - Entrar en Play Mode\n  - Subir el avatar a VRChat",
-                    EditorStyles.wordWrappedMiniLabel);
 
                 EditorGUILayout.EndVertical();
             }
             else if (_target.DetectedMeshCount > 0)
             {
                 EditorGUILayout.HelpBox(
-                    "Calcula los bounds para que se procesen automaticamente.",
+                    "Haz clic en 'Calcular' para obtener los bounds unificados y luego 'Aplicar' para verlos en la escena.",
                     MessageType.Info);
             }
         }
@@ -835,13 +869,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             if (_target == null || !_target.HasValidCalculation)
                 return;
 
-            // Dibujar el bounding box unificado en la escena
+            // Los bounds estan en espacio del rootBone (Hips)
             var bounds = _target.LastCalculationResult.UnifiedBoundsWithMargin;
+            var rootBone = _target.SharedRootBone;
 
-            if (_target.AvatarRoot != null)
+            if (rootBone != null)
             {
-                // Transformar bounds al world space
-                Matrix4x4 matrix = _target.AvatarRoot.transform.localToWorldMatrix;
+                // Transformar bounds de rootBone-local a world space
+                Matrix4x4 matrix = rootBone.localToWorldMatrix;
                 Handles.matrix = matrix;
 
                 // Color segun estado

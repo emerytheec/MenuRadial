@@ -66,6 +66,11 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         [Range(0f, 1f)]
         private float _particleMarginPercentage = 0.20f;
 
+        [Header("rootBone Compartido")]
+        [SerializeField]
+        [Tooltip("Hueso compartido para todos los renderers (auto-detectado: Hips)")]
+        private Transform _sharedRootBone;
+
         [Header("Meshes Detectados")]
         [SerializeField]
         private List<MeshBoundsInfo> _detectedMeshes = new List<MeshBoundsInfo>();
@@ -132,6 +137,11 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
             get => _autoApply;
             set => _autoApply = value;
         }
+
+        /// <summary>
+        /// rootBone compartido (Hips) para todos los renderers
+        /// </summary>
+        public Transform SharedRootBone => _sharedRootBone;
 
         /// <summary>
         /// Lista de meshes detectados
@@ -306,11 +316,15 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
             _lastCalculationResult = null;
             _boundsApplied = false;
             _particleBoundsApplied = false;
+            _sharedRootBone = null;
 
             if (_avatarRoot == null)
             {
                 return;
             }
+
+            // Detectar rootBone compartido (Hips)
+            _sharedRootBone = Calculator.DetectSharedRootBone(_avatarRoot);
 
             // Escanear avatar (meshes)
             ScanAvatar();
@@ -352,15 +366,24 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         /// </summary>
         public void ScanAvatar()
         {
-            _detectedMeshes.Clear();
-
             if (_avatarRoot == null)
             {
+                _detectedMeshes.Clear();
                 Debug.LogWarning("[MRAjustarBounds] No hay avatar asignado");
                 return;
             }
 
+            // Restaurar bounds originales antes de escanear para no capturar datos stale
+            if (_boundsApplied && _detectedMeshes.Count > 0)
+            {
+                Calculator.RestoreOriginalBounds(_detectedMeshes);
+                _boundsApplied = false;
+                Debug.Log("[MRAjustarBounds] Bounds restaurados antes de re-escanear");
+            }
+
+            _detectedMeshes.Clear();
             _detectedMeshes = Calculator.ScanAvatar(_avatarRoot);
+            _lastCalculationResult = null;
             Debug.Log($"[MRAjustarBounds] Detectados {_detectedMeshes.Count} meshes en '{_avatarRoot.name}'");
         }
 
@@ -375,9 +398,21 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
                 return;
             }
 
+            // Auto-detectar rootBone si no esta seteado (fallback para PrepareAll)
+            if (_sharedRootBone == null)
+            {
+                _sharedRootBone = Calculator.DetectSharedRootBone(_avatarRoot);
+            }
+
+            if (_sharedRootBone == null)
+            {
+                _lastCalculationResult = BoundsCalculationResult.CreateFailure("No se pudo detectar rootBone (Hips)");
+                return;
+            }
+
             _lastCalculationResult = Calculator.CalculateUnifiedBounds(
                 _detectedMeshes,
-                _avatarRoot.transform,
+                _sharedRootBone,
                 _marginPercentage
             );
 
@@ -402,7 +437,19 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
                 return;
             }
 
-            int applied = Calculator.ApplyUnifiedBounds(_detectedMeshes, _lastCalculationResult.UnifiedBoundsWithMargin);
+            // Auto-detectar rootBone si no esta seteado
+            if (_sharedRootBone == null)
+            {
+                _sharedRootBone = Calculator.DetectSharedRootBone(_avatarRoot);
+            }
+
+            if (_sharedRootBone == null)
+            {
+                Debug.LogWarning("[MRAjustarBounds] No se pudo detectar rootBone (Hips)");
+                return;
+            }
+
+            int applied = Calculator.ApplyUnifiedBounds(_detectedMeshes, _lastCalculationResult.UnifiedBoundsWithMargin, _sharedRootBone);
             _boundsApplied = applied > 0;
 
             Debug.Log($"[MRAjustarBounds] Bounds aplicados a {applied} meshes");
@@ -526,49 +573,44 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         /// </summary>
         public void Refresh()
         {
-            if (_avatarRoot != null)
+            if (_avatarRoot == null)
+                return;
+
+            bool wasApplied = _boundsApplied;
+            bool wasParticlesApplied = _particleBoundsApplied;
+            bool wasAnchorApplied = _anchorApplied;
+
+            // Restaurar anchor (no lo maneja ScanAvatar)
+            if (wasAnchorApplied)
             {
-                bool wasApplied = _boundsApplied;
-                bool wasParticlesApplied = _particleBoundsApplied;
-                bool wasAnchorApplied = _anchorApplied;
-                // Restaurar primero si estaban aplicados
-                if (wasApplied)
-                {
-                    RestoreBounds();
-                }
-                if (wasParticlesApplied)
-                {
-                    RestoreParticleBounds();
-                }
-                if (wasAnchorApplied)
-                {
-                    RestoreAnchorOverride();
-                }
+                RestoreAnchorOverride();
+            }
 
-                // Re-escanear y recalcular meshes
-                ScanAvatar();
-                CalculateBounds();
+            // Re-detectar rootBone (puede cambiar si la jerarquia cambio)
+            _sharedRootBone = Calculator.DetectSharedRootBone(_avatarRoot);
 
-                // Re-escanear y recalcular particulas si esta habilitado
-                if (_includeParticles)
-                {
-                    ScanParticles();
-                    CalculateParticleBounds();
-                }
+            // ScanAvatar/ScanParticles restauran internamente si _boundsApplied/_particleBoundsApplied
+            ScanAvatar();
+            CalculateBounds();
 
-                // Re-aplicar si estaban aplicados
-                if (wasApplied && HasValidCalculation)
-                {
-                    ApplyBounds();
-                }
-                if (wasParticlesApplied && _includeParticles)
-                {
-                    ApplyParticleBounds();
-                }
-                if (wasAnchorApplied && _unifyAnchorOverride)
-                {
-                    ApplyAnchorOverride();
-                }
+            if (_includeParticles)
+            {
+                ScanParticles();
+                CalculateParticleBounds();
+            }
+
+            // Re-aplicar si estaban aplicados
+            if (wasApplied && HasValidCalculation)
+            {
+                ApplyBounds();
+            }
+            if (wasParticlesApplied && _includeParticles)
+            {
+                ApplyParticleBounds();
+            }
+            if (wasAnchorApplied && _unifyAnchorOverride)
+            {
+                ApplyAnchorOverride();
             }
         }
 
@@ -601,14 +643,22 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         /// </summary>
         public void ScanParticles()
         {
-            _detectedParticles.Clear();
-
             if (_avatarRoot == null)
             {
+                _detectedParticles.Clear();
                 Debug.LogWarning("[MRAjustarBounds] No hay avatar asignado");
                 return;
             }
 
+            // Restaurar bounds de particulas antes de re-escanear
+            if (_particleBoundsApplied && _detectedParticles.Count > 0)
+            {
+                Calculator.RestoreParticleBounds(_detectedParticles);
+                _particleBoundsApplied = false;
+                Debug.Log("[MRAjustarBounds] Bounds de particulas restaurados antes de re-escanear");
+            }
+
+            _detectedParticles.Clear();
             _detectedParticles = Calculator.ScanParticles(_avatarRoot);
             Debug.Log($"[MRAjustarBounds] Detectadas {_detectedParticles.Count} particulas en '{_avatarRoot.name}'");
         }

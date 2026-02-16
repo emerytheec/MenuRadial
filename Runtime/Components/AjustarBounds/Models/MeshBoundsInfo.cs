@@ -5,7 +5,8 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
 {
     /// <summary>
     /// Informacion de bounds de un SkinnedMeshRenderer individual.
-    /// Almacena tanto los bounds originales como los calculados.
+    /// Almacena el estado original completo (bounds, rootBone, transform)
+    /// para poder restaurarlo despues de aplicar bounds unificados.
     /// </summary>
     [Serializable]
     public class MeshBoundsInfo
@@ -15,9 +16,6 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
 
         [SerializeField]
         private Bounds _originalBounds;
-
-        [SerializeField]
-        private Bounds _calculatedBounds;
 
         [SerializeField]
         private bool _isValid;
@@ -34,6 +32,22 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         [SerializeField]
         private bool _hadOriginalProbeAnchor;
 
+        [SerializeField]
+        private bool _boundsCurrentlyApplied;
+
+        // Estado original del renderer para restaurar
+        [SerializeField]
+        private Transform _originalRootBone;
+
+        [SerializeField]
+        private Vector3 _originalLocalPosition;
+
+        [SerializeField]
+        private Quaternion _originalLocalRotation;
+
+        [SerializeField]
+        private Vector3 _originalLocalScale;
+
         /// <summary>
         /// Referencia al SkinnedMeshRenderer
         /// </summary>
@@ -44,21 +58,12 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         }
 
         /// <summary>
-        /// Bounds originales antes de modificar
+        /// Bounds originales antes de modificar (en espacio del rootBone original)
         /// </summary>
         public Bounds OriginalBounds
         {
             get => _originalBounds;
             set => _originalBounds = value;
-        }
-
-        /// <summary>
-        /// Bounds calculados que cubren exactamente el mesh
-        /// </summary>
-        public Bounds CalculatedBounds
-        {
-            get => _calculatedBounds;
-            set => _calculatedBounds = value;
         }
 
         /// <summary>
@@ -107,12 +112,23 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         }
 
         /// <summary>
+        /// rootBone original del renderer (antes de unificar)
+        /// </summary>
+        public Transform OriginalRootBone => _originalRootBone;
+
+        /// <summary>
+        /// Indica si el renderer tiene bones (meshes sin bones se saltan)
+        /// </summary>
+        public bool HasBones => _renderer != null && _renderer.bones != null && _renderer.bones.Length > 0;
+
+        /// <summary>
         /// Constructor por defecto
         /// </summary>
         public MeshBoundsInfo() { }
 
         /// <summary>
-        /// Constructor con SkinnedMeshRenderer
+        /// Constructor con SkinnedMeshRenderer.
+        /// Captura todo el estado original del renderer para poder restaurarlo.
         /// </summary>
         public MeshBoundsInfo(SkinnedMeshRenderer renderer)
         {
@@ -120,14 +136,17 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
             if (renderer != null)
             {
                 _originalBounds = renderer.localBounds;
+                _originalRootBone = renderer.rootBone;
+                _originalLocalPosition = renderer.transform.localPosition;
+                _originalLocalRotation = renderer.transform.localRotation;
+                _originalLocalScale = renderer.transform.localScale;
+
                 _meshName = renderer.name;
                 _hierarchyPath = GetHierarchyPath(renderer.transform);
                 _isValid = true;
 
-                // Capturar probe anchor original
                 _originalProbeAnchor = renderer.probeAnchor;
                 _hadOriginalProbeAnchor = renderer.probeAnchor != null;
-
             }
         }
 
@@ -151,19 +170,30 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         }
 
         /// <summary>
-        /// Actualiza la referencia y recaptura datos
+        /// Actualiza la referencia y recaptura datos.
+        /// No sobreescribe originales si los bounds unificados estan aplicados.
         /// </summary>
         public void Refresh()
         {
             if (_renderer != null)
             {
-                _originalBounds = _renderer.localBounds;
+                if (!_boundsCurrentlyApplied)
+                {
+                    _originalBounds = _renderer.localBounds;
+                    _originalRootBone = _renderer.rootBone;
+                    _originalLocalPosition = _renderer.transform.localPosition;
+                    _originalLocalRotation = _renderer.transform.localRotation;
+                    _originalLocalScale = _renderer.transform.localScale;
+                }
                 _meshName = _renderer.name;
                 _hierarchyPath = GetHierarchyPath(_renderer.transform);
                 _isValid = true;
 
-                _originalProbeAnchor = _renderer.probeAnchor;
-                _hadOriginalProbeAnchor = _renderer.probeAnchor != null;
+                if (!_boundsCurrentlyApplied)
+                {
+                    _originalProbeAnchor = _renderer.probeAnchor;
+                    _hadOriginalProbeAnchor = _renderer.probeAnchor != null;
+                }
             }
             else
             {
@@ -172,24 +202,42 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         }
 
         /// <summary>
-        /// Aplica los bounds unificados al renderer
+        /// Aplica bounds unificados: asigna rootBone compartido, resetea transform,
+        /// y establece los bounds unificados.
+        /// Esto hace que TODOS los renderers usen el mismo volumen de culling.
         /// </summary>
-        public void ApplyUnifiedBounds(Bounds unifiedBounds)
+        public void ApplyUnifiedBounds(Bounds unifiedBounds, Transform sharedRootBone)
         {
             if (_renderer != null)
             {
+                // Resetear transform a identity para alineacion correcta con rootBone
+                _renderer.transform.localPosition = Vector3.zero;
+                _renderer.transform.localRotation = Quaternion.identity;
+                _renderer.transform.localScale = Vector3.one;
+
+                // Asignar rootBone compartido y bounds unificados
+                _renderer.rootBone = sharedRootBone;
                 _renderer.localBounds = unifiedBounds;
+                _boundsCurrentlyApplied = true;
             }
         }
 
         /// <summary>
-        /// Restaura los bounds originales
+        /// Restaura el estado original completo: bounds, rootBone y transform.
         /// </summary>
         public void RestoreOriginalBounds()
         {
             if (_renderer != null)
             {
+                // Restaurar transform original
+                _renderer.transform.localPosition = _originalLocalPosition;
+                _renderer.transform.localRotation = _originalLocalRotation;
+                _renderer.transform.localScale = _originalLocalScale;
+
+                // Restaurar rootBone y bounds originales
+                _renderer.rootBone = _originalRootBone;
                 _renderer.localBounds = _originalBounds;
+                _boundsCurrentlyApplied = false;
             }
         }
 
