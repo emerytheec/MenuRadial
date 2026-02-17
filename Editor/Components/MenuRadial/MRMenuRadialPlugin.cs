@@ -33,13 +33,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         protected override void Configure()
         {
-            // Ejecutar en fase Transforming, después de Modular Avatar
+            // Pass 1: Mezclar FX/Parameters/Menu ANTES de Modular Avatar
+            // Es critico que MR mezcle primero para que MA detecte los toggles
+            // de MR y pueda conectar ShapeChanger a los mismos parametros.
             InPhase(BuildPhase.Transforming)
-                .AfterPlugin("nadena.dev.modular-avatar")
+                .BeforePlugin("nadena.dev.modular-avatar")
                 .WithRequiredExtension(typeof(AnimatorServicesContext), seq =>
                 {
                     seq.Run(MRMenuRadialPass.Instance);
                 });
+
+            // Pass 2: Limpiar componentes MR DESPUES de Modular Avatar
+            // Debe ejecutarse despues de MA y despues de MRAjustarBoundsPlugin
+            // para que todos los plugins MR puedan acceder a sus componentes.
+            InPhase(BuildPhase.Transforming)
+                .AfterPlugin("nadena.dev.modular-avatar")
+                .Run(MRMenuRadialCleanupPass.Instance);
         }
 
         protected override void OnUnhandledException(Exception e)
@@ -232,12 +241,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             // 3. Mezclar Menu con la configuración de integración
             MergeMenu(context, avatar, generatedMenu, effectiveMenuName, menuIcon, integrationMode, targetSubMenuIndex, customMenuPath);
 
-            // 4. Limpiar componentes MR del avatar clonado SOLO si es interno
-            // NO destruir MRMenuRadial externos porque no son parte del clon
-            if (isInternalToAvatar && menuRadial != null)
-            {
-                CleanupComponents(menuRadial);
-            }
+            // La limpieza de componentes MR se hace en MRMenuRadialCleanupPass (AfterMA)
+            // para no destruir componentes que otros plugins MR necesitan (ej: MRAjustarBounds)
 
             Debug.Log($"[MRMenuRadial NDMF] Merge completado para '{menuRadialName}'");
         }
@@ -726,6 +731,56 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
 
             // Eliminar cualquier MonoBehaviour cuyo tipo contenga "MR" en el namespace Bender_Dios
+            var allMonoBehaviours = rootObject.GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (var mb in allMonoBehaviours)
+            {
+                if (mb == null) continue;
+                var typeName = mb.GetType().FullName;
+                if (typeName != null && typeName.StartsWith("Bender_Dios.MenuRadial"))
+                {
+                    UnityEngine.Object.DestroyImmediate(mb);
+                }
+            }
+
+            // Finalmente eliminar MRMenuRadial
+            if (menuRadial != null)
+            {
+                UnityEngine.Object.DestroyImmediate(menuRadial);
+            }
+
+            Debug.Log("[MRMenuRadial NDMF] Componentes MR limpiados del avatar");
+        }
+    }
+
+    /// <summary>
+    /// Pass de limpieza que elimina componentes MR del clon DESPUES de que todos los plugins
+    /// (incluidos MRAjustarBounds y MA) hayan terminado de procesar.
+    /// </summary>
+    internal class MRMenuRadialCleanupPass : Pass<MRMenuRadialCleanupPass>
+    {
+        public override string DisplayName => "MR Menu Radial - Limpiar componentes";
+
+        protected override void Execute(BuildContext context)
+        {
+            var menuRadials = context.AvatarRootObject.GetComponentsInChildren<MRMenuRadial>(true);
+
+            if (menuRadials.Length == 0)
+                return;
+
+            foreach (var menuRadial in menuRadials)
+            {
+                if (menuRadial == null) continue;
+                CleanupComponents(menuRadial);
+            }
+        }
+
+        private void CleanupComponents(MRMenuRadial menuRadial)
+        {
+            if (menuRadial == null) return;
+
+            var rootObject = menuRadial.gameObject;
+
+            // Eliminar cualquier MonoBehaviour del namespace Bender_Dios.MenuRadial
             var allMonoBehaviours = rootObject.GetComponentsInChildren<MonoBehaviour>(true);
             foreach (var mb in allMonoBehaviours)
             {

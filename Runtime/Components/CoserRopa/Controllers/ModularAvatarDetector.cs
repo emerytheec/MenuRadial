@@ -58,7 +58,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         {
             "ModularAvatarVertexColorRemover",  // Modifica vertices
             "ModularAvatarMeshCutter",          // Corta meshes
-            "ModularAvatarShapeChanger",        // Cambia blendshapes reactivamente
+            // ShapeChanger removido: no causa conflictos reales con MR, MA lo procesa correctamente
             "ModularAvatarVertexFilter",        // Filtra vertices por eje
             "VertexFilterByAxisComponent",      // Filtro de vertices por eje (nombre real)
             "ModularAvatarBlendshapeSync"       // Sincroniza blendshapes en Edit Mode (afecta al body)
@@ -559,8 +559,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             // Componentes relacionados con Mesh/Vertex son problemáticos
             if (componentTypeName.Contains("MeshCutter") ||
                 componentTypeName.Contains("VertexFilter") ||
-                componentTypeName.Contains("VertexColor") ||
-                componentTypeName.Contains("ShapeChanger"))
+                componentTypeName.Contains("VertexColor"))
                 return ColisionClassification.Problematic;
 
             // Si es un componente de MA conocido pero no clasificado

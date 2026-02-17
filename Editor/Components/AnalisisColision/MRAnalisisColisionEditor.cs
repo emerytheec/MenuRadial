@@ -40,7 +40,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         {
             "ModularAvatarMeshCutter",
             "ModularAvatarVertexFilter",
-            "ModularAvatarShapeChanger",
             "VertexFilterByAxisComponent",  // Nombre real del filtro de vertices
             "ModularAvatarBlendshapeSync"   // Sincroniza blendshapes en Edit Mode
         };
@@ -1021,8 +1020,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             // Tambien verificar por patrones de nombre
             return typeName.Contains("MeshCutter") ||
-                   typeName.Contains("VertexFilter") ||
-                   typeName.Contains("ShapeChanger");
+                   typeName.Contains("VertexFilter");
         }
 
         #endregion

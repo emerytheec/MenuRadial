@@ -30,12 +30,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         /// <summary>
         /// Componentes criticos que SIEMPRE se desactivan automaticamente.
         /// Estos modifican vertices/meshes y causan conflictos graves con MR.
+        /// NOTA: ShapeChanger fue removido — no causa conflictos reales con MR,
+        /// MA lo procesa correctamente y destruirlo rompe funcionalidad del avatar.
         /// </summary>
         private static readonly string[] CRITICAL_COMPONENTS = new[]
         {
             "MeshCutter",
-            "VertexFilter",
-            "ShapeChanger"
+            "VertexFilter"
         };
 
         /// <summary>
@@ -316,7 +317,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
 
             Debug.Log($"[MRAnalisisColision] Escaneo completado: {_scanResult.GetSummary()}");
 
-            // SIEMPRE desactivar componentes criticos (MeshCutter, VertexFilter, ShapeChanger)
+            // SIEMPRE desactivar componentes criticos (MeshCutter, VertexFilter)
             int criticalDisabled = DisableCriticalComponents();
             if (criticalDisabled > 0)
             {
@@ -457,7 +458,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Desactiva componentes criticos (MeshCutter, VertexFilter, ShapeChanger) en raiz de ropa.
+        /// Desactiva componentes criticos (MeshCutter, VertexFilter) en raiz de ropa.
         /// Solo se desactivan automaticamente si estan en la raiz de una prenda detectada.
         /// </summary>
         /// <returns>Cantidad de componentes desactivados.</returns>

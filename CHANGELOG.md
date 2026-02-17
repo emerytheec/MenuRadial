@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.44] - 2026-02-17
+
+### Corregido
+- **Compatibilidad MA ShapeChanger**: Los componentes `ModularAvatarShapeChanger` dejaban de funcionar al subir el avatar porque MR mezclaba su FX controller DESPUES de Modular Avatar — MA no podia detectar los toggles de MR y ShapeChanger no se conectaba a ellos
+- **Orden de ejecucion NDMF**: MRMenuRadialPlugin ahora mezcla FX/Parameters/Menu ANTES de Modular Avatar para que MA detecte los toggles y conecte ShapeChanger correctamente
+- **Bounds exagerados tras fix ShapeChanger**: Separado MRMenuRadialPlugin en dos passes (merge BeforeMA + cleanup AfterMA) para que MRAjustarBoundsPlugin pueda acceder a su componente antes de la limpieza
+- **AnalisisColision destruia ShapeChanger**: Removido `ShapeChanger` de las listas `CRITICAL_COMPONENTS` y `MA_PROBLEMATIC_ON_ROOT` — no causa conflictos reales con MR y destruirlo rompia funcionalidad del avatar
+- **AnalisisColision doble destruccion**: `GetProblematicOnClothingRoot()` ahora respeta el checkbox del usuario; `GetProblematicToDisable()` excluye entradas en raiz de ropa para evitar destruccion duplicada que anulaba el toggle `AutoDisableProblematicOnRoot`
+
 ## [0.8.43] - 2026-02-17
 
 ### Corregido
