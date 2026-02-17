@@ -186,7 +186,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
 
             Bounds unifiedWithMargin = new Bounds(roundedCenter, extentsWithMargin * 2f);
 
-            // Advertencia VRChat (sin clamp — solo informativo)
+            // Advertencia VRChat
             Vector3 finalSize = unifiedWithMargin.size;
             if (finalSize.x > MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ ||
                 finalSize.y > MRBoundsConstants.WARNING_BOUNDS_SIZE_Y ||
@@ -197,13 +197,26 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                     $"(Good max: {MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ}x{MRBoundsConstants.WARNING_BOUNDS_SIZE_Y}x{MRBoundsConstants.WARNING_BOUNDS_SIZE_XZ}m)");
             }
 
+            // Clamp a limites VRChat Very Poor menos 1cm
+            float maxXZ = MRBoundsConstants.MAX_BOUNDS_SIZE_XZ - 0.01f;
+            float maxY = MRBoundsConstants.MAX_BOUNDS_SIZE_Y - 0.01f;
+            bool wasClamped = false;
+
             if (finalSize.x > MRBoundsConstants.MAX_BOUNDS_SIZE_XZ ||
                 finalSize.y > MRBoundsConstants.MAX_BOUNDS_SIZE_Y ||
                 finalSize.z > MRBoundsConstants.MAX_BOUNDS_SIZE_XZ)
             {
-                Debug.LogError($"[BoundsCalculator] Bounds superan limite Very Poor de VRChat: " +
-                    $"{finalSize.x:F2}x{finalSize.y:F2}x{finalSize.z:F2}m " +
-                    $"(Max: {MRBoundsConstants.MAX_BOUNDS_SIZE_XZ}x{MRBoundsConstants.MAX_BOUNDS_SIZE_Y}x{MRBoundsConstants.MAX_BOUNDS_SIZE_XZ}m)");
+                Debug.LogWarning($"[BoundsCalculator] Bounds exceden Very Poor ({finalSize.x:F2}x{finalSize.y:F2}x{finalSize.z:F2}m), " +
+                    $"limitando a {maxXZ:F2}x{maxY:F2}x{maxXZ:F2}m");
+
+                Vector3 clampedSize = new Vector3(
+                    Mathf.Min(finalSize.x, maxXZ),
+                    Mathf.Min(finalSize.y, maxY),
+                    Mathf.Min(finalSize.z, maxXZ)
+                );
+                unifiedWithMargin = new Bounds(roundedCenter, clampedSize);
+                finalSize = clampedSize;
+                wasClamped = true;
             }
 
             var result = BoundsCalculationResult.CreateSuccess(
@@ -213,9 +226,11 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 validCount,
                 marginPercentage
             );
+            result.WasClamped = wasClamped;
 
             Debug.Log($"[BoundsCalculator] Bounds calculados ({totalVertices} vertices, {validCount} meshes): " +
-                      $"Centro={roundedCenter}, Tamanio={finalSize}");
+                      $"Centro={roundedCenter}, Tamanio={finalSize}" +
+                      (wasClamped ? " [LIMITADO a max VRChat]" : ""));
 
             return result;
         }
@@ -234,9 +249,13 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers
                 if (!info.IsValid || info.Renderer == null)
                     continue;
 
-                // Saltar renderers sin bones (no se puede resetear su transform)
+                // Meshes sin bones: no unificar, pero limitar si exceden VRChat
                 if (!info.HasBones)
+                {
+                    if (info.ClampToVRChatLimits())
+                        appliedCount++;
                     continue;
+                }
 
                 info.ApplyUnifiedBounds(unifiedBounds, sharedRootBone);
                 appliedCount++;

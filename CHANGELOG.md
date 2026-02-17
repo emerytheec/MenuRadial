@@ -5,6 +5,20 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.43] - 2026-02-17
+
+### Corregido
+- **AjustarBounds: Bounds incorrectos en VRChat**: MeshRetargeter sobreescribia rootBone y localBounds durante el cosido de ropa en NDMF, causando bounds exagerados al subir el avatar
+- **AjustarBounds: Bounds excedian limite VRChat**: Bounds unificados y de meshes sin huesos ahora se limitan a Very Poor - 1cm (4.99x5.99x4.99m) en lugar de pasar de largo
+
+### Agregado
+- **Plugin NDMF MRAjustarBounds**: Re-agregado plugin que recalcula bounds frescos DESPUES de MRCoserRopa y Modular Avatar, garantizando bounds correctos en el avatar final
+- **Clamp VRChat para meshes sin huesos**: Meshes sin bones que excedan limites VRChat se limitan automaticamente al aplicar bounds
+- **UI: Estado "Limitado"**: Meshes sin huesos que fueron limitados muestran estado "Limitado" en la lista y resumen con conteo separado
+
+### Mejorado
+- **Botones fusionados**: "Escanear" y "Calcular" unificados en un solo boton "Escanear" que ejecuta ambos pasos, eliminando el estado intermedio confuso
+
 ## [0.8.42] - 2026-02-16
 
 ### Corregido

@@ -351,6 +351,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                 EditorGUILayout.LabelField($"Meshes procesados: {result.ValidMeshCount}/{result.MeshCount}", EditorStyles.miniLabel);
                 EditorGUILayout.LabelField($"Margen aplicado: {(result.MarginPercentage * 100):F0}%", EditorStyles.miniLabel);
 
+                // Aviso si fue limitado a max VRChat
+                if (result.WasClamped)
+                {
+                    GUI.contentColor = WarningColor;
+                    EditorGUILayout.LabelField("Bounds limitados al maximo de VRChat (Very Poor - 1cm)", EditorStyles.miniLabel);
+                    GUI.contentColor = Color.white;
+                }
+
                 // rootBone compartido
                 if (_target.SharedRootBone != null)
                 {
@@ -387,27 +395,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
         private void DrawActionButtons()
         {
-            EditorGUILayout.BeginHorizontal();
-
-            // Boton Escanear
-            if (GUILayout.Button(new GUIContent("Escanear", "Re-escanear meshes del avatar"), GUILayout.Height(25)))
+            // Boton Escanear (escanea + calcula en un solo paso)
+            if (GUILayout.Button(new GUIContent("Escanear", "Re-escanear meshes del avatar y calcular bounds"), GUILayout.Height(25)))
             {
-                Undo.RecordObject(_target, "Escanear Avatar");
+                Undo.RecordObject(_target, "Escanear y Calcular Bounds");
                 _target.ScanAvatar();
+                if (_target.DetectedMeshCount > 0)
+                {
+                    _target.CalculateBounds();
+                }
                 EditorUtility.SetDirty(_target);
             }
-
-            // Boton Calcular
-            GUI.enabled = _target.DetectedMeshCount > 0;
-            if (GUILayout.Button(new GUIContent("Calcular", "Calcular bounds unificados"), GUILayout.Height(25)))
-            {
-                Undo.RecordObject(_target, "Calcular Bounds");
-                _target.CalculateBounds();
-                EditorUtility.SetDirty(_target);
-            }
-            GUI.enabled = true;
-
-            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(3);
 
@@ -546,8 +544,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             }
             else if (!meshInfo.HasBones)
             {
-                GUI.contentColor = WarningColor;
-                status = "Sin huesos";
+                if (meshInfo.BoundsCurrentlyApplied)
+                {
+                    GUI.contentColor = AppliedColor;
+                    status = "Limitado";
+                }
+                else
+                {
+                    GUI.contentColor = WarningColor;
+                    status = "Sin huesos";
+                }
             }
             else
             {
@@ -818,17 +824,32 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                 }
                 GUI.contentColor = Color.white;
 
-                // Meshes saltados por falta de huesos
-                int skippedCount = 0;
+                // Meshes sin huesos: distinguir entre saltados y limitados
+                int bonelessCount = 0;
+                int clampedCount = 0;
                 foreach (var m in _target.DetectedMeshes)
                 {
-                    if (m.IsValid && !m.HasBones) skippedCount++;
+                    if (m.IsValid && !m.HasBones)
+                    {
+                        bonelessCount++;
+                        if (m.BoundsCurrentlyApplied) clampedCount++;
+                    }
                 }
-                if (skippedCount > 0)
+                if (bonelessCount > 0)
                 {
-                    GUI.contentColor = WarningColor;
-                    EditorGUILayout.LabelField($"{skippedCount} mesh(es) saltado(s) (sin huesos)", EditorStyles.miniLabel);
-                    GUI.contentColor = Color.white;
+                    if (clampedCount > 0)
+                    {
+                        GUI.contentColor = AppliedColor;
+                        EditorGUILayout.LabelField($"{clampedCount} mesh(es) sin huesos limitado(s) a max VRChat", EditorStyles.miniLabel);
+                        GUI.contentColor = Color.white;
+                    }
+                    int justSkipped = bonelessCount - clampedCount;
+                    if (justSkipped > 0)
+                    {
+                        GUI.contentColor = WarningColor;
+                        EditorGUILayout.LabelField($"{justSkipped} mesh(es) sin huesos (bounds OK)", EditorStyles.miniLabel);
+                        GUI.contentColor = Color.white;
+                    }
                 }
 
                 // Estado de anchor

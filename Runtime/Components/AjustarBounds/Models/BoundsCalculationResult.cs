@@ -35,6 +35,9 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         [SerializeField]
         private List<string> _warnings = new List<string>();
 
+        [SerializeField]
+        private bool _wasClamped;
+
         /// <summary>
         /// Indica si el calculo fue exitoso
         /// </summary>
@@ -98,6 +101,15 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         /// Lista de advertencias durante el calculo
         /// </summary>
         public List<string> Warnings => _warnings;
+
+        /// <summary>
+        /// Indica si los bounds fueron limitados al maximo de VRChat
+        /// </summary>
+        public bool WasClamped
+        {
+            get => _wasClamped;
+            set => _wasClamped = value;
+        }
 
         /// <summary>
         /// Tamanio del bounding box final (con margen)

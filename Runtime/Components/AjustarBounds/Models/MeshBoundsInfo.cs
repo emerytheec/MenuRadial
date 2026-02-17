@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Bender_Dios.MenuRadial.Core.Common;
 
 namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
 {
@@ -122,6 +123,11 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
         public bool HasBones => _renderer != null && _renderer.bones != null && _renderer.bones.Length > 0;
 
         /// <summary>
+        /// Indica si los bounds estan actualmente modificados (unificados o limitados)
+        /// </summary>
+        public bool BoundsCurrentlyApplied => _boundsCurrentlyApplied;
+
+        /// <summary>
         /// Constructor por defecto
         /// </summary>
         public MeshBoundsInfo() { }
@@ -220,6 +226,36 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds.Models
                 _renderer.localBounds = unifiedBounds;
                 _boundsCurrentlyApplied = true;
             }
+        }
+
+        /// <summary>
+        /// Limita los bounds de un mesh sin huesos a los maximos de VRChat (Very Poor).
+        /// Solo modifica localBounds, no toca rootBone ni transform.
+        /// Retorna true si los bounds fueron limitados.
+        /// </summary>
+        public bool ClampToVRChatLimits()
+        {
+            if (_renderer == null) return false;
+
+            var bounds = _renderer.localBounds;
+            var size = bounds.size;
+
+            bool needsClamp = size.x > MRBoundsConstants.MAX_BOUNDS_SIZE_XZ ||
+                              size.y > MRBoundsConstants.MAX_BOUNDS_SIZE_Y ||
+                              size.z > MRBoundsConstants.MAX_BOUNDS_SIZE_XZ;
+
+            if (!needsClamp) return false;
+
+            float maxXZ = MRBoundsConstants.MAX_BOUNDS_SIZE_XZ - 0.01f;
+            float maxY = MRBoundsConstants.MAX_BOUNDS_SIZE_Y - 0.01f;
+
+            size.x = Mathf.Min(size.x, maxXZ);
+            size.y = Mathf.Min(size.y, maxY);
+            size.z = Mathf.Min(size.z, maxXZ);
+
+            _renderer.localBounds = new Bounds(bounds.center, size);
+            _boundsCurrentlyApplied = true;
+            return true;
         }
 
         /// <summary>
