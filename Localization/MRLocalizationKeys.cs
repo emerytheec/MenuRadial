@@ -598,6 +598,9 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string COL_NAME = "organizaPB.colName";
             public const string COL_ROOT = "organizaPB.colRoot";
             public const string ALREADY_ORGANIZED = "organizaPB.alreadyOrganized";
+            public const string LINK_CONTAINERS_LINKED = "organizaPB.linkContainersLinked";
+            public const string LINK_FRAMES_NOT_FOUND = "organizaPB.linkFramesNotFound";
+            public const string LINK_NO_MENU_RADIAL = "organizaPB.linkNoMenuRadial";
         }
 
         /// <summary>

@@ -635,7 +635,10 @@
         "colType": "タイプ",
         "colName": "名前",
         "colRoot": "Root",
-        "alreadyOrganized": "整理済み"
+        "alreadyOrganized": "整理済み",
+        "linkContainersLinked": "{0} 個のPBコンテナをフレームにリンクしました。",
+        "linkFramesNotFound": "フレームが見つかりません: {0}。先にメニュー構造を生成してください。",
+        "linkNoMenuRadial": "MR Menu Radialが見つかりません。コンテナはリンクされませんでした。"
     },
     "circularMenu": {
         "windowTitle": "円形メニュー: {0}",

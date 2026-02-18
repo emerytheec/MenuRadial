@@ -635,7 +635,10 @@
         "colType": "类型",
         "colName": "名称",
         "colRoot": "Root",
-        "alreadyOrganized": "已整理"
+        "alreadyOrganized": "已整理",
+        "linkContainersLinked": "{0} 个PB容器已关联到帧。",
+        "linkFramesNotFound": "未找到以下帧: {0}。请先生成菜单结构。",
+        "linkNoMenuRadial": "未找到MR Menu Radial。容器未关联。"
     },
     "circularMenu": {
         "windowTitle": "圆形菜单: {0}",

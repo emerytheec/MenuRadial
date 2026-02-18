@@ -941,6 +941,9 @@ namespace Bender_Dios.MenuRadial.Localization
             public string colName;
             public string colRoot;
             public string alreadyOrganized;
+            public string linkContainersLinked;
+            public string linkFramesNotFound;
+            public string linkNoMenuRadial;
 
             // CircularMenu
             public string windowTitle;

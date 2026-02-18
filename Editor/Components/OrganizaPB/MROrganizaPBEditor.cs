@@ -3,6 +3,8 @@ using UnityEditor;
 using System.Collections.Generic;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
+using Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 using Bender_Dios.MenuRadial.Localization;
 using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
@@ -163,6 +165,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                         Undo.RecordObject(_target, "Escanear PhysBones");
                         _target.ScanAvatar();
                         EditorUtility.SetDirty(_target);
+                        LinkContainersToFrames(_target);
                     }
 
                     if (_target.HasDetectedComponents && !_target.IsOrganized)
@@ -242,6 +245,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                             if (result.Success)
                             {
                                 Debug.Log($"[MROrganizaPB] Organización completada: {result.GetSummary()}");
+                                LinkContainersToFrames(_target);
                             }
                         }
                     }
@@ -290,6 +294,61 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             }
 
             EditorGUILayout.HelpBox(result.GetSummary(), messageType);
+        }
+
+        #endregion
+
+        #region Frame Linking
+
+        private void LinkContainersToFrames(MROrganizaPB target)
+        {
+            var menuRadial = target.GetComponentInParent<MRMenuRadial>();
+            if (menuRadial == null)
+            {
+                Debug.LogWarning($"[MROrganizaPB] {MRLocalization.Get(L.OrganizaPB.LINK_NO_MENU_RADIAL)}");
+                return;
+            }
+
+            int linked = 0;
+            var framesNotFound = new List<string>();
+
+            foreach (var (context, container) in target.GetAllContainersWithContext())
+            {
+                var frame = PhysBoneFrameLinker.FindFrameForContext(context, menuRadial);
+                if (frame == null)
+                {
+                    framesNotFound.Add(context.ContextName);
+                    continue;
+                }
+
+                // Verificar si ya está vinculado (deduplicación)
+                bool alreadyLinked = false;
+                foreach (var objRef in frame.ObjectReferences)
+                {
+                    if (objRef.Target == container)
+                    {
+                        alreadyLinked = true;
+                        break;
+                    }
+                }
+
+                if (alreadyLinked) continue;
+
+                Undo.RecordObject(frame, "Vincular contenedor PB");
+                frame.AddGameObject(container, isActive: true);
+                EditorUtility.SetDirty(frame);
+                linked++;
+            }
+
+            if (linked > 0)
+            {
+                Debug.Log($"[MROrganizaPB] {MRLocalization.Get(L.OrganizaPB.LINK_CONTAINERS_LINKED, linked)}");
+            }
+
+            if (framesNotFound.Count > 0)
+            {
+                Debug.LogWarning($"[MROrganizaPB] {MRLocalization.Get(L.OrganizaPB.LINK_FRAMES_NOT_FOUND, string.Join(", ", framesNotFound))}");
+            }
         }
 
         #endregion

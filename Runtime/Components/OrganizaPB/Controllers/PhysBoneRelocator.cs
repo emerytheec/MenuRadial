@@ -297,6 +297,24 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
         }
 
         /// <summary>
+        /// Obtiene todos los contenedores con su contexto de organización.
+        /// </summary>
+        public IEnumerable<(OrganizationContext context, GameObject container)> GetContainersWithContext()
+        {
+            foreach (var kvp in _physBonesContainers)
+            {
+                if (kvp.Key != null && kvp.Value != null)
+                    yield return (kvp.Key, kvp.Value);
+            }
+
+            foreach (var kvp in _collidersContainers)
+            {
+                if (kvp.Key != null && kvp.Value != null)
+                    yield return (kvp.Key, kvp.Value);
+            }
+        }
+
+        /// <summary>
         /// Destruye todos los componentes originales marcados para destrucción.
         /// </summary>
         private void DestroyOriginalComponents()

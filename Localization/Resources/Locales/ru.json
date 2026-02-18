@@ -635,7 +635,10 @@
         "colType": "Тип",
         "colName": "Имя",
         "colRoot": "Root",
-        "alreadyOrganized": "Уже организовано"
+        "alreadyOrganized": "Уже организовано",
+        "linkContainersLinked": "{0} PB-контейнеров привязано к фреймам.",
+        "linkFramesNotFound": "Не найдены фреймы для: {0}. Сначала сгенерируйте структуру меню.",
+        "linkNoMenuRadial": "MR Menu Radial не найден. Контейнеры не привязаны."
     },
     "circularMenu": {
         "windowTitle": "Круговое меню: {0}",

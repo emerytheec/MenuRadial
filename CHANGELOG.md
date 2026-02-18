@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.45] - 2026-02-18
+
+### Agregado
+- **Auto-vincular contenedores PhysBone a frames**: Al Escanear u Organizar PhysBones, los contenedores (VRCPB, VRCPBC) se vinculan automaticamente al frame (MRAgruparObjetos) correspondiente de cada ropa/avatar, para que se activen/desactiven junto con el outfit
+- **Deteccion de contenedores pre-existentes**: PhysBones ya organizados por el usuario o creador se detectan y vinculan a sus frames sin necesidad de reorganizar
+- **Deduplicacion**: Vincular multiples veces no duplica referencias en los frames
+- **PhysBoneFrameLinker**: Nueva clase helper que detecta contenedores existentes y busca frames por nombre de contexto
+- **PhysBoneRelocator.GetContainersWithContext()**: Expone contenedores con su contexto de organizacion
+- **MROrganizaPB.GetAllContainersWithContext()**: Wrapper que unifica contenedores creados y pre-existentes
+- **Localizacion**: 3 nuevas keys en 6 idiomas para mensajes de vinculacion de contenedores
+
 ## [0.8.44] - 2026-02-17
 
 ### Corregido

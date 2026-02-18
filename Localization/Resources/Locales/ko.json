@@ -635,7 +635,10 @@
         "colType": "타입",
         "colName": "이름",
         "colRoot": "Root",
-        "alreadyOrganized": "이미 정리됨"
+        "alreadyOrganized": "이미 정리됨",
+        "linkContainersLinked": "{0}개의 PB 컨테이너가 프레임에 연결되었습니다.",
+        "linkFramesNotFound": "프레임을 찾을 수 없습니다: {0}. 먼저 메뉴 구조를 생성하세요.",
+        "linkNoMenuRadial": "MR Menu Radial을 찾을 수 없습니다. 컨테이너가 연결되지 않았습니다."
     },
     "circularMenu": {
         "windowTitle": "원형 메뉴: {0}",

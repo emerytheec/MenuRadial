@@ -635,7 +635,10 @@
         "colType": "Type",
         "colName": "Name",
         "colRoot": "Root",
-        "alreadyOrganized": "Already organized"
+        "alreadyOrganized": "Already organized",
+        "linkContainersLinked": "{0} PB containers linked to frames.",
+        "linkFramesNotFound": "No frames found for: {0}. Generate the menu structure first.",
+        "linkNoMenuRadial": "No MR Menu Radial found. Containers not linked."
     },
     "circularMenu": {
         "windowTitle": "Circular Menu: {0}",
