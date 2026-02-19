@@ -541,7 +541,10 @@
         "syncResultTitle": "동기화 완료",
         "syncResultAdded": "새 의상 {0}개 추가됨: {1}",
         "syncNoChanges": "구조가 이미 동기화되어 있습니다. 새 의상이 없습니다.",
-        "syncOrphanedWarning": "고아 프레임 {0}개 감지됨: {1}\n더 이상 필요하지 않으면 수동으로 삭제할 수 있습니다."
+        "syncOrphanedWarning": "고아 프레임 {0}개 감지됨: {1}\n더 이상 필요하지 않으면 수동으로 삭제할 수 있습니다.",
+        "structureGeneratedInfoWithWigs": "의상 프레임 {0}개, 가발 프레임 {1}개 생성됨.\n아바타: 메시 {2}개 포함, {3}개 제외.",
+        "syncResultAddedWithWigs": "새 의상 {0}개 추가됨: {1}\n새 가발 {2}개 추가됨: {3}",
+        "syncResultWigsAdded": "새 가발 {0}개 추가됨: {1}"
     },
     "pesoTexturas": {
         "title": "MR Peso Texturas",

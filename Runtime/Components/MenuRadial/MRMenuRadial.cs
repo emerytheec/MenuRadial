@@ -557,7 +557,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         {
             var generator = new AutoMenuGenerator(this);
             var result = generator.SyncStructure();
-            if (result.Success && result.FramesAdded > 0)
+            if (result.Success && (result.FramesAdded > 0 || result.WigFramesAdded > 0))
                 InvalidateCache();
             return result;
         }

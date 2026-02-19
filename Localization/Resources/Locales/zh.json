@@ -541,7 +541,10 @@
         "syncResultTitle": "同步完成",
         "syncResultAdded": "已添加 {0} 件新服装：{1}",
         "syncNoChanges": "结构已同步，未发现新服装。",
-        "syncOrphanedWarning": "检测到 {0} 个孤立帧：{1}\n如不再需要，可手动删除。"
+        "syncOrphanedWarning": "检测到 {0} 个孤立帧：{1}\n如不再需要，可手动删除。",
+        "structureGeneratedInfoWithWigs": "已创建 {0} 个服装帧和 {1} 个假发帧。\n角色：{2} 个网格已包含，{3} 个已排除。",
+        "syncResultAddedWithWigs": "已添加 {0} 件新服装：{1}\n已添加 {2} 顶新假发：{3}",
+        "syncResultWigsAdded": "已添加 {0} 顶新假发：{1}"
     },
     "pesoTexturas": {
         "title": "MR 纹理分析",

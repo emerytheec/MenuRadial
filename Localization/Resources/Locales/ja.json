@@ -541,7 +541,10 @@
         "syncResultTitle": "同期完了",
         "syncResultAdded": "新しい衣装を {0} 件追加しました：{1}",
         "syncNoChanges": "構造は既に同期されています。新しい衣装は見つかりませんでした。",
-        "syncOrphanedWarning": "孤立フレームが {0} 件検出されました：{1}\n不要な場合は手動で削除できます。"
+        "syncOrphanedWarning": "孤立フレームが {0} 件検出されました：{1}\n不要な場合は手動で削除できます。",
+        "structureGeneratedInfoWithWigs": "衣装フレーム {0} 件、ウィッグフレーム {1} 件を作成しました。\nアバター：{2} メッシュ含む、{3} 除外。",
+        "syncResultAddedWithWigs": "新しい衣装を {0} 件追加しました：{1}\n新しいウィッグを {2} 件追加しました：{3}",
+        "syncResultWigsAdded": "新しいウィッグを {0} 件追加しました：{1}"
     },
     "pesoTexturas": {
         "title": "MR Peso Texturas",

@@ -525,8 +525,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 var result = _target.GenerateMenuStructure();
                 if (result.Success)
                 {
+                    string infoMessage = result.WigFramesCreated > 0
+                        ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.ClothingFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
+                        : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
                     EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED),
-                        MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded),
+                        infoMessage,
                         MRLocalization.Get(L.Common.OK));
                 }
                 RefreshMenuControlCache();
@@ -546,8 +549,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     var result = _target.RegenerateMenuStructure();
                     if (result.Success)
                     {
+                        string infoMessage = result.WigFramesCreated > 0
+                            ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.ClothingFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
+                            : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
                         EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_REGENERATED),
-                            MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded),
+                            infoMessage,
                             MRLocalization.Get(L.Common.OK));
                     }
                     RefreshMenuControlCache();
@@ -598,9 +604,27 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                         EditorUtility.SetDirty(ab);
                     }
 
-                    string message = syncResult.FramesAdded > 0
-                        ? MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED, syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames))
-                        : MRLocalization.Get(L.MenuRadialEditor.SYNC_NO_CHANGES);
+                    string message;
+                    if (syncResult.FramesAdded > 0 && syncResult.WigFramesAdded > 0)
+                    {
+                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED_WITH_WIGS,
+                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames),
+                            syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
+                    }
+                    else if (syncResult.WigFramesAdded > 0)
+                    {
+                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_WIGS_ADDED,
+                            syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
+                    }
+                    else if (syncResult.FramesAdded > 0)
+                    {
+                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED,
+                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames));
+                    }
+                    else
+                    {
+                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_NO_CHANGES);
+                    }
                     if (syncResult.OrphanedFrames > 0)
                         message += "\n\n" + MRLocalization.Get(L.MenuRadialEditor.SYNC_ORPHANED_WARNING, syncResult.OrphanedFrames, string.Join(", ", syncResult.OrphanedFrameNames));
                     EditorUtility.DisplayDialog(

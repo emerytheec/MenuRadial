@@ -5,6 +5,20 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.46] - 2026-02-19
+
+### Agregado
+- **Auto-deteccion de pelucas**: Las pelucas se detectan automaticamente y se crean en un radial "Pelucas" separado del radial "Outfits"
+- **WigDetector**: Nuevo sistema de scoring multi-señal (threshold=7) que identifica pelucas por: ausencia de huesos de extremidades (+3), presencia de hueso Head (+2), meshes con nombre de pelo (+3), contenedor con nombre de pelo (+2), MA BoneProxy apuntando a Head (+2), Head con ≥3 hijos (+2), ≤5 huesos humanoides (+1)
+- **Dos fuentes de deteccion**: Reclasifica ClothingEntries que parecen pelucas + escanea hijos del avatar no detectados como ropa
+- **Sincronizar pelucas**: El boton Sincronizar detecta pelucas nuevas y las agrega al radial "Pelucas" sin tocar "Outfits"
+- **Dialogos informativos**: Generar, Regenerar y Sincronizar muestran cuantas pelucas fueron detectadas cuando corresponde
+- **Localizacion**: 3 nuevas keys en 6 idiomas para mensajes de pelucas
+
+### Sin cambios
+- Sin pelucas detectadas: comportamiento 100% identico al anterior
+- MRCoserRopa, ClothingEntry, ArmatureFinder y BodyMeshDetector no fueron modificados
+
 ## [0.8.45] - 2026-02-18
 
 ### Agregado

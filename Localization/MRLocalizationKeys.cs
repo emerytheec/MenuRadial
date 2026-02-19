@@ -494,6 +494,9 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string SYNC_RESULT_ADDED = "menuRadial.syncResultAdded";
             public const string SYNC_NO_CHANGES = "menuRadial.syncNoChanges";
             public const string SYNC_ORPHANED_WARNING = "menuRadial.syncOrphanedWarning";
+            public const string STRUCTURE_GENERATED_INFO_WITH_WIGS = "menuRadial.structureGeneratedInfoWithWigs";
+            public const string SYNC_RESULT_ADDED_WITH_WIGS = "menuRadial.syncResultAddedWithWigs";
+            public const string SYNC_RESULT_WIGS_ADDED = "menuRadial.syncResultWigsAdded";
         }
 
         /// <summary>

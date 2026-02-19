@@ -541,7 +541,10 @@
         "syncResultTitle": "Sync Complete",
         "syncResultAdded": "{0} new clothing items added: {1}",
         "syncNoChanges": "Structure is already in sync. No new clothing found.",
-        "syncOrphanedWarning": "{0} orphaned frames detected: {1}\nYou can manually remove them if no longer needed."
+        "syncOrphanedWarning": "{0} orphaned frames detected: {1}\nYou can manually remove them if no longer needed.",
+        "structureGeneratedInfoWithWigs": "{0} clothing frames and {1} wig frames created.\nAvatar: {2} meshes included, {3} excluded.",
+        "syncResultAddedWithWigs": "{0} new clothing items added: {1}\n{2} new wigs added: {3}",
+        "syncResultWigsAdded": "{0} new wigs added: {1}"
     },
     "pesoTexturas": {
         "title": "MR Texture Weight",

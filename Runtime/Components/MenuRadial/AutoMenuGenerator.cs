@@ -63,6 +63,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             public MRUnificarMateriales UnificarMateriales;
             public List<MRAgruparMateriales> CreatedMaterialFrames;
             public int MaterialSlotsDetected;
+
+            // Wig system fields
+            public MRUnificarObjetos UnificarPelucas;
+            public List<MRAgruparObjetos> CreatedWigFrames;
+            public int WigFramesCreated;
         }
 
         /// <summary>
@@ -77,6 +82,10 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             public int OrphanedFrames;
             public List<string> AddedClothingNames = new List<string>();
             public List<string> OrphanedFrameNames = new List<string>();
+
+            // Wig sync fields
+            public int WigFramesAdded;
+            public List<string> AddedWigNames = new List<string>();
         }
 
         /// <summary>
@@ -89,7 +98,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             {
                 Success = false,
                 CreatedFrames = new List<MRAgruparObjetos>(),
-                CreatedMaterialFrames = new List<MRAgruparMateriales>()
+                CreatedMaterialFrames = new List<MRAgruparMateriales>(),
+                CreatedWigFrames = new List<MRAgruparObjetos>()
             };
 
             // Validaciones
@@ -107,8 +117,29 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
             result.MenuControl = menuControl;
 
-            // Crear MRUnificarObjetos
-            var unificarObjetos = CreateUnificarObjetos(menuControl);
+            // Detectar pelucas ANTES de crear estructura
+            var detectedClothings = new List<ClothingEntry>();
+            if (_coserRopa?.DetectedClothings != null)
+            {
+                foreach (var c in _coserRopa.DetectedClothings)
+                {
+                    if (c.IsValid)
+                        detectedClothings.Add(c);
+                }
+            }
+
+            var wigCandidates = WigDetector.DetectWigs(_avatarRoot, detectedClothings);
+
+            // Crear set de índices de ClothingEntries reclasificados como peluca
+            var wigClothingIndices = new HashSet<int>();
+            foreach (var wig in wigCandidates)
+            {
+                if (wig.ClothingEntryIndex >= 0)
+                    wigClothingIndices.Add(wig.ClothingEntryIndex);
+            }
+
+            // Crear MRUnificarObjetos para Outfits
+            var unificarObjetos = CreateUnificarObjetos(menuControl, "Outfits");
             if (unificarObjetos == null)
             {
                 result.Message = "No se pudo crear MRUnificarObjetos";
@@ -132,12 +163,17 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             result.AvatarMeshesIncluded = included;
             result.AvatarMeshesExcluded = excluded;
 
-            // Crear frames para cada ropa detectada (si hay CoserRopa y ropas)
+            // Crear frames para cada ropa detectada, EXCLUYENDO pelucas reclasificadas
             if (_coserRopa != null && _coserRopa.DetectedClothings != null)
             {
-                foreach (var clothing in _coserRopa.DetectedClothings)
+                for (int i = 0; i < _coserRopa.DetectedClothings.Count; i++)
                 {
+                    var clothing = _coserRopa.DetectedClothings[i];
                     if (!clothing.IsValid)
+                        continue;
+
+                    // Saltar si fue reclasificado como peluca
+                    if (wigClothingIndices.Contains(i))
                         continue;
 
                     var frame = CreateFrameForClothing(unificarObjetos, clothing);
@@ -149,25 +185,62 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
-            // Crear MRUnificarMateriales (solo si hay ropas detectadas)
-            if (_coserRopa != null && _coserRopa.DetectedClothings != null && _coserRopa.DetectedClothings.Any(c => c.IsValid))
+            // Crear radial "Pelucas" si hay pelucas detectadas
+            if (wigCandidates.Count > 0)
             {
-                var unificarMateriales = CreateUnificarMateriales(menuControl);
-                if (unificarMateriales != null)
+                var unificarPelucas = CreateUnificarObjetos(menuControl, "Pelucas");
+                if (unificarPelucas != null)
                 {
-                    result.UnificarMateriales = unificarMateriales;
+                    result.UnificarPelucas = unificarPelucas;
 
-                    // Crear MRAgruparMateriales para cada ropa (NO para avatar)
-                    foreach (var clothing in _coserRopa.DetectedClothings)
+                    foreach (var wig in wigCandidates)
                     {
-                        if (!clothing.IsValid)
-                            continue;
-
-                        var materialFrame = CreateMaterialFrameForClothing(unificarMateriales, clothing);
-                        if (materialFrame != null)
+                        var wigFrame = CreateFrameForWig(unificarPelucas, wig);
+                        if (wigFrame != null)
                         {
-                            result.CreatedMaterialFrames.Add(materialFrame);
-                            result.MaterialSlotsDetected += materialFrame.SlotCount;
+                            result.CreatedWigFrames.Add(wigFrame);
+                            result.WigFramesCreated++;
+                        }
+                    }
+                }
+            }
+
+            // Crear MRUnificarMateriales (solo para outfits, excluyendo pelucas)
+            if (_coserRopa != null && _coserRopa.DetectedClothings != null)
+            {
+                bool hasNonWigClothing = false;
+                for (int i = 0; i < _coserRopa.DetectedClothings.Count; i++)
+                {
+                    if (_coserRopa.DetectedClothings[i].IsValid && !wigClothingIndices.Contains(i))
+                    {
+                        hasNonWigClothing = true;
+                        break;
+                    }
+                }
+
+                if (hasNonWigClothing)
+                {
+                    var unificarMateriales = CreateUnificarMateriales(menuControl);
+                    if (unificarMateriales != null)
+                    {
+                        result.UnificarMateriales = unificarMateriales;
+
+                        for (int i = 0; i < _coserRopa.DetectedClothings.Count; i++)
+                        {
+                            var clothing = _coserRopa.DetectedClothings[i];
+                            if (!clothing.IsValid)
+                                continue;
+
+                            // Excluir pelucas del sistema de materiales
+                            if (wigClothingIndices.Contains(i))
+                                continue;
+
+                            var materialFrame = CreateMaterialFrameForClothing(unificarMateriales, clothing);
+                            if (materialFrame != null)
+                            {
+                                result.CreatedMaterialFrames.Add(materialFrame);
+                                result.MaterialSlotsDetected += materialFrame.SlotCount;
+                            }
                         }
                     }
                 }
@@ -176,6 +249,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             // Resultado exitoso
             result.Success = true;
             result.Message = $"Generación exitosa: {result.ClothingFramesCreated} ropas, " +
+                           $"{result.WigFramesCreated} pelucas, " +
                            $"{result.AvatarMeshesIncluded} meshes de avatar incluidos, " +
                            $"{result.AvatarMeshesExcluded} excluidos, " +
                            $"{result.CreatedFrames.Count} frames totales, " +
@@ -259,14 +333,30 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 return result;
             }
 
-            // Buscar MRUnificarObjetos existente
+            // Buscar MRUnificarObjetos existentes por nombre
             var unificarComponents = menuControl.GetComponentsInChildren<MRUnificarObjetos>(true);
             if (unificarComponents == null || unificarComponents.Length == 0)
             {
                 result.Message = "No se encontró MRUnificarObjetos";
                 return result;
             }
-            var unificarObjetos = unificarComponents[0];
+
+            // Identificar radiales de Outfits y Pelucas por nombre
+            MRUnificarObjetos unificarOutfits = null;
+            MRUnificarObjetos unificarPelucas = null;
+            foreach (var uo in unificarComponents)
+            {
+                if (uo.gameObject.name == "Pelucas")
+                    unificarPelucas = uo;
+                else if (unificarOutfits == null)
+                    unificarOutfits = uo; // Primer no-Pelucas es Outfits
+            }
+
+            if (unificarOutfits == null)
+            {
+                result.Message = "No se encontró MRUnificarObjetos de Outfits";
+                return result;
+            }
 
             // Buscar MRUnificarMateriales existente (puede no existir)
             var unificarMaterialesComponents = _menuRadial.GetComponentsInChildren<MRUnificarMateriales>(true);
@@ -291,18 +381,115 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
-            // Obtener nombres de frames existentes (excluyendo "Avatar")
-            var existingFrameNames = new HashSet<string>();
-            var existingFrames = unificarObjetos.FrameObjects;
-            if (existingFrames != null)
+            // Detectar pelucas entre las ropas detectadas
+            var wigCandidates = WigDetector.DetectWigs(_avatarRoot, detectedClothings);
+            var wigClothingIndices = new HashSet<int>();
+            foreach (var wig in wigCandidates)
             {
-                foreach (var frame in existingFrames)
+                if (wig.ClothingEntryIndex >= 0)
+                    wigClothingIndices.Add(wig.ClothingEntryIndex);
+            }
+
+            // Separar outfits de pelucas
+            var outfitClothings = new List<ClothingEntry>();
+            for (int i = 0; i < detectedClothings.Count; i++)
+            {
+                if (!wigClothingIndices.Contains(i))
+                    outfitClothings.Add(detectedClothings[i]);
+            }
+
+            // --- SYNC OUTFITS ---
+            var existingOutfitFrameNames = new HashSet<string>();
+            var existingOutfitFrames = unificarOutfits.FrameObjects;
+            if (existingOutfitFrames != null)
+            {
+                foreach (var frame in existingOutfitFrames)
                 {
                     if (frame != null && frame.gameObject.name != "Avatar")
-                        existingFrameNames.Add(frame.gameObject.name);
+                        existingOutfitFrameNames.Add(frame.gameObject.name);
                 }
             }
 
+            // Crear set de nombres de outfits detectados
+            var detectedOutfitNames = new HashSet<string>();
+            foreach (var clothing in outfitClothings)
+                detectedOutfitNames.Add(clothing.Name);
+
+            // DIFF: Detectar outfits nuevos
+            var newOutfitClothings = new List<ClothingEntry>();
+            foreach (var clothing in outfitClothings)
+            {
+                if (!existingOutfitFrameNames.Contains(clothing.Name))
+                    newOutfitClothings.Add(clothing);
+            }
+
+            // DIFF: Detectar frames huérfanos en Outfits
+            if (existingOutfitFrames != null)
+            {
+                foreach (var frame in existingOutfitFrames)
+                {
+                    if (frame != null && frame.gameObject.name != "Avatar")
+                    {
+                        if (!detectedOutfitNames.Contains(frame.gameObject.name))
+                        {
+                            result.OrphanedFrames++;
+                            result.OrphanedFrameNames.Add(frame.gameObject.name);
+                        }
+                    }
+                }
+            }
+
+            // Crear frames para outfits nuevos
+            foreach (var clothing in newOutfitClothings)
+            {
+                var frame = CreateFrameForClothing(unificarOutfits, clothing);
+                if (frame != null)
+                {
+                    result.FramesAdded++;
+                    result.AddedClothingNames.Add(clothing.Name);
+                }
+            }
+
+            // --- SYNC PELUCAS ---
+            if (wigCandidates.Count > 0)
+            {
+                // Crear radial "Pelucas" si no existe
+                if (unificarPelucas == null)
+                {
+                    unificarPelucas = CreateUnificarObjetos(menuControl, "Pelucas");
+                }
+
+                if (unificarPelucas != null)
+                {
+                    // Nombres de frames existentes en Pelucas
+                    var existingWigFrameNames = new HashSet<string>();
+                    var existingWigFrames = unificarPelucas.FrameObjects;
+                    if (existingWigFrames != null)
+                    {
+                        foreach (var frame in existingWigFrames)
+                        {
+                            if (frame != null)
+                                existingWigFrameNames.Add(frame.gameObject.name);
+                        }
+                    }
+
+                    // Agregar pelucas nuevas
+                    foreach (var wig in wigCandidates)
+                    {
+                        if (!existingWigFrameNames.Contains(wig.Name))
+                        {
+                            var wigFrame = CreateFrameForWig(unificarPelucas, wig);
+                            if (wigFrame != null)
+                            {
+                                result.WigFramesAdded++;
+                                result.AddedWigNames.Add(wig.Name);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- SYNC MATERIALES (solo outfits, excluyendo pelucas) ---
             // Obtener SourceGameObjects de material groups existentes
             var existingMaterialSources = new HashSet<GameObject>();
             if (unificarMateriales?.AlternativeMaterials != null)
@@ -314,52 +501,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
-            // Crear set de nombres de ropas detectadas
-            var detectedClothingNames = new HashSet<string>();
-            foreach (var clothing in detectedClothings)
-            {
-                detectedClothingNames.Add(clothing.Name);
-            }
-
-            // DIFF: Detectar ropas nuevas (no tienen frame existente)
-            var newClothings = new List<ClothingEntry>();
-            foreach (var clothing in detectedClothings)
-            {
-                if (!existingFrameNames.Contains(clothing.Name))
-                    newClothings.Add(clothing);
-            }
-
-            // DIFF: Detectar frames huérfanos (no tienen ropa asociada)
-            if (existingFrames != null)
-            {
-                foreach (var frame in existingFrames)
-                {
-                    if (frame != null && frame.gameObject.name != "Avatar")
-                    {
-                        if (!detectedClothingNames.Contains(frame.gameObject.name))
-                        {
-                            result.OrphanedFrames++;
-                            result.OrphanedFrameNames.Add(frame.gameObject.name);
-                        }
-                    }
-                }
-            }
-
-            // Crear frames para ropas nuevas
-            foreach (var clothing in newClothings)
-            {
-                var frame = CreateFrameForClothing(unificarObjetos, clothing);
-                if (frame != null)
-                {
-                    result.FramesAdded++;
-                    result.AddedClothingNames.Add(clothing.Name);
-                }
-            }
-
-            // Crear material groups para ropas nuevas (si hay unificarMateriales)
             if (unificarMateriales != null)
             {
-                foreach (var clothing in newClothings)
+                foreach (var clothing in newOutfitClothings)
                 {
                     if (clothing.GameObject != null && !existingMaterialSources.Contains(clothing.GameObject))
                     {
@@ -371,13 +515,13 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     }
                 }
             }
-            else if (newClothings.Count > 0)
+            else if (newOutfitClothings.Count > 0)
             {
                 // Crear MRUnificarMateriales si no existe y hay ropas nuevas
                 unificarMateriales = CreateUnificarMateriales(menuControl);
                 if (unificarMateriales != null)
                 {
-                    foreach (var clothing in newClothings)
+                    foreach (var clothing in newOutfitClothings)
                     {
                         var materialFrame = CreateMaterialFrameForClothing(unificarMateriales, clothing);
                         if (materialFrame != null)
@@ -389,8 +533,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
 
             result.Success = true;
-            result.Message = result.FramesAdded > 0
-                ? $"Sincronización exitosa: {result.FramesAdded} ropas agregadas"
+            int totalAdded = result.FramesAdded + result.WigFramesAdded;
+            result.Message = totalAdded > 0
+                ? $"Sincronización exitosa: {result.FramesAdded} ropas, {result.WigFramesAdded} pelucas agregadas"
                 : "La estructura ya está sincronizada";
 
             return result;
@@ -466,9 +611,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Crea un MRUnificarObjetos como hijo del MenuControl
         /// </summary>
-        private MRUnificarObjetos CreateUnificarObjetos(Component menuControl)
+        private MRUnificarObjetos CreateUnificarObjetos(Component menuControl, string componentName = "Outfits")
         {
-            string componentName = "Outfits";
 
 #if UNITY_EDITOR
             UnityEditor.Undo.RecordObject(menuControl, "Create UnificarObjetos");
@@ -735,6 +879,33 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             foreach (var mesh in meshes)
             {
                 frame.AddGameObject(mesh.gameObject, isActive: true);
+            }
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(frame);
+#endif
+
+            return frame;
+        }
+
+        /// <summary>
+        /// Crea un MRAgruparObjetos para una peluca
+        /// </summary>
+        private MRAgruparObjetos CreateFrameForWig(MRUnificarObjetos unificarObjetos, WigDetector.WigCandidate wig)
+        {
+            if (wig.Root == null || wig.Meshes == null || wig.Meshes.Count == 0)
+                return null;
+
+            // Crear el MRAgruparObjetos
+            var frame = CreateAgruparObjetos(unificarObjetos, wig.Name);
+            if (frame == null)
+                return null;
+
+            // Añadir cada mesh al frame con IsActive = true
+            foreach (var mesh in wig.Meshes)
+            {
+                if (mesh != null)
+                    frame.AddGameObject(mesh.gameObject, isActive: true);
             }
 
 #if UNITY_EDITOR
