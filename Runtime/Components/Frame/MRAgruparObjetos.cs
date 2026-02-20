@@ -485,7 +485,11 @@ namespace Bender_Dios.MenuRadial.Components.Frame
         /// <summary>
         /// Nombre de la animación (MRAgruparObjetos no genera animaciones directamente)
         /// </summary>
-        public string AnimationName => FrameName + "_FrameData";
+        public string AnimationName
+        {
+            get => FrameName + "_FrameData";
+            set { } // Derivado de FrameName, no se asigna directamente
+        }
         
         /// <summary>
         /// Indica si el componente puede generar animaciones

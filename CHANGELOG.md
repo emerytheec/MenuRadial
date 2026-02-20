@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.48] - 2026-02-20
+
+### Corregido
+- **Colision de nombres de animacion**: AutoMenuGenerator ahora asigna AnimationName basado en el nombre del componente ("Outfits", "Pelucas") en vez de usar el default "RadialToggle" para todos los radiales
+- **Auto-resolucion de AnimationName duplicados**: SlotNameConflictValidator resuelve conflictos de AnimationName agregando sufijos numericos (_1, _2) ademas de los conflictos de slotName
+
+### Cambiado
+- **IAnimationProvider.AnimationName**: Ahora incluye setter en la interfaz para permitir renombrar AnimationName desde el auto-resolver de conflictos
+- **MRAgruparObjetos y MRMenuControl**: AnimationName tiene setter no-op (nombre derivado de otros campos)
+
 ## [0.8.47] - 2026-02-20
 
 ### Agregado

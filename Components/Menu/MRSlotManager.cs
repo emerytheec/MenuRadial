@@ -343,6 +343,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
 
             _conflictValidator ??= new SlotNameConflictValidator();
             _conflictValidator.AutoResolveSlotNameConflicts(slots, conflicts);
+            _conflictValidator.AutoResolveAnimationNameConflicts(slots, conflicts);
             ValidateAllSlots();
             return true;
         }

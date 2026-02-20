@@ -192,6 +192,55 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Validators
         }
 
         /// <summary>
+        /// Auto-resuelve conflictos de nombres de animación agregando sufijos numéricos.
+        /// Usa IAnimationProvider.AnimationName setter para actualizar el nombre.
+        /// </summary>
+        /// <param name="slots">Lista de slots a modificar</param>
+        /// <param name="conflicts">Conflictos a resolver (solo DuplicateAnimationName)</param>
+        public void AutoResolveAnimationNameConflicts(IList<MRAnimationSlot> slots, List<ConflictInfo> conflicts)
+        {
+            // Recopilar todos los AnimationNames existentes para evitar colisiones
+            var existingAnimNames = new HashSet<string>();
+            foreach (var slot in slots)
+            {
+                if (slot == null) continue;
+                var provider = slot.GetAnimationProvider();
+                if (provider == null) continue;
+                string name = provider.AnimationName;
+                if (!string.IsNullOrEmpty(name))
+                    existingAnimNames.Add(name);
+            }
+
+            foreach (var conflict in conflicts.Where(c => c.Type == ConflictType.DuplicateAnimationName))
+            {
+                // Mantener el primer slot con el nombre original, renombrar los demás
+                int counter = 1;
+                foreach (var index in conflict.SlotIndices.Skip(1))
+                {
+                    if (index < 0 || index >= slots.Count)
+                        continue;
+
+                    var provider = slots[index].GetAnimationProvider();
+                    if (provider == null)
+                        continue;
+
+                    string newName = $"{conflict.Name}_{counter}";
+
+                    // Asegurar que el nuevo nombre no existe
+                    while (existingAnimNames.Contains(newName))
+                    {
+                        counter++;
+                        newName = $"{conflict.Name}_{counter}";
+                    }
+
+                    provider.AnimationName = newName;
+                    existingAnimNames.Add(newName);
+                    counter++;
+                }
+            }
+        }
+
+        /// <summary>
         /// Valida y retorna un resultado de validación
         /// </summary>
         /// <param name="slots">Lista de slots a validar</param>

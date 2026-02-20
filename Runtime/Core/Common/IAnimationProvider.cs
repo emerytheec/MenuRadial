@@ -15,7 +15,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         /// <summary>
         /// Nombre de la animación que se generará
         /// </summary>
-        string AnimationName { get; }
+        string AnimationName { get; set; }
         
         /// <summary>
         /// Indica si el componente está listo para generar animaciones

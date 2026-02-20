@@ -715,6 +715,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             componentObject.transform.localScale = Vector3.one;
 
             var unificarObjetos = componentObject.AddComponent<MRUnificarObjetos>();
+            unificarObjetos.AnimationName = componentName;
 
             // Añadir al slot del MenuControl
             AddToMenuControlSlot(menuControl, componentObject, componentName);

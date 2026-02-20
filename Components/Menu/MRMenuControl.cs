@@ -335,7 +335,11 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// <summary>
         /// Nombre de la animación
         /// </summary>
-        public string AnimationName => name + "_ControlMenu";
+        public string AnimationName
+        {
+            get => name + "_ControlMenu";
+            set { } // Derivado del nombre del GameObject, no se asigna directamente
+        }
         
         /// <summary>
         /// Puede generar animación si todos los slots son válidos
