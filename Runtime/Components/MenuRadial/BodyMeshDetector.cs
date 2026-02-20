@@ -94,10 +94,6 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// </summary>
         private const float BONE_WEIGHT_THRESHOLD = 0.7f;
 
-        /// <summary>
-        /// Peso mínimo para considerar que un hueso influye en el mesh
-        /// </summary>
-        private const float MIN_BONE_WEIGHT = 0.01f;
 
         #endregion
 
@@ -254,6 +250,31 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 .Where(r => r.ShouldExclude && r.Mesh != null)
                 .Select(r => r.Mesh)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Obtiene los meshes hermanos del armature que fueron excluidos por patrón de pelo.
+        /// Útil para WigDetector: estos meshes son candidatos a pelo del avatar base.
+        /// </summary>
+        public static List<SkinnedMeshRenderer> GetHairExcludedMeshes(
+            Transform armatureRoot,
+            Animator animator = null)
+        {
+            var results = AnalyzeMeshes(armatureRoot, animator);
+            return results
+                .Where(r => r.ShouldExclude && r.Mesh != null && IsHairExclusion(r.ExclusionReason))
+                .Select(r => r.Mesh)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Verifica si la razón de exclusión corresponde a un patrón de pelo.
+        /// </summary>
+        private static bool IsHairExclusion(string exclusionReason)
+        {
+            if (string.IsNullOrEmpty(exclusionReason))
+                return false;
+            return exclusionReason.StartsWith("Patrón de pelo:");
         }
 
         #endregion

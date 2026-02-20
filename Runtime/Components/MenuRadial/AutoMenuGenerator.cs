@@ -130,12 +130,48 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             var wigCandidates = WigDetector.DetectWigs(_avatarRoot, detectedClothings);
 
-            // Crear set de índices de ClothingEntries reclasificados como peluca
+            // Clasificar pelucas: completas (se saltan en ropa) vs híbridas (ropa + pelo)
+            // Para híbridas, separar meshes de pelo y crear frame de ropa sin ellos
             var wigClothingIndices = new HashSet<int>();
+            var hybridWigMeshes = new Dictionary<int, HashSet<SkinnedMeshRenderer>>();
+
             foreach (var wig in wigCandidates)
             {
                 if (wig.ClothingEntryIndex >= 0)
-                    wigClothingIndices.Add(wig.ClothingEntryIndex);
+                {
+                    // Verificar si es híbrido (tiene meshes de ropa además de pelo)
+                    var clothing = detectedClothings[wig.ClothingEntryIndex];
+                    Transform armature = clothing.ArmatureReference?.ArmatureRoot;
+                    if (armature != null)
+                    {
+                        var allMeshes = BodyMeshDetector.GetAllSiblingMeshes(armature);
+                        var wigMeshSet = new HashSet<SkinnedMeshRenderer>(wig.Meshes);
+                        bool hasNonWigMeshes = false;
+                        foreach (var m in allMeshes)
+                        {
+                            if (!wigMeshSet.Contains(m))
+                            {
+                                hasNonWigMeshes = true;
+                                break;
+                            }
+                        }
+
+                        if (hasNonWigMeshes && wig.Meshes.Count < allMeshes.Count)
+                        {
+                            // Híbrido: no saltar la ropa, pero excluir meshes de pelo
+                            hybridWigMeshes[wig.ClothingEntryIndex] = wigMeshSet;
+                        }
+                        else
+                        {
+                            // Peluca completa: saltar en ropa
+                            wigClothingIndices.Add(wig.ClothingEntryIndex);
+                        }
+                    }
+                    else
+                    {
+                        wigClothingIndices.Add(wig.ClothingEntryIndex);
+                    }
+                }
             }
 
             // Crear MRUnificarObjetos para Outfits
@@ -163,7 +199,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             result.AvatarMeshesIncluded = included;
             result.AvatarMeshesExcluded = excluded;
 
-            // Crear frames para cada ropa detectada, EXCLUYENDO pelucas reclasificadas
+            // Crear frames para cada ropa detectada
             if (_coserRopa != null && _coserRopa.DetectedClothings != null)
             {
                 for (int i = 0; i < _coserRopa.DetectedClothings.Count; i++)
@@ -172,11 +208,16 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     if (!clothing.IsValid)
                         continue;
 
-                    // Saltar si fue reclasificado como peluca
+                    // Saltar si fue reclasificado como peluca completa
                     if (wigClothingIndices.Contains(i))
                         continue;
 
-                    var frame = CreateFrameForClothing(unificarObjetos, clothing);
+                    // Para híbridos, excluir meshes de pelo del frame de ropa
+                    HashSet<SkinnedMeshRenderer> excludeMeshes = null;
+                    if (hybridWigMeshes.ContainsKey(i))
+                        excludeMeshes = hybridWigMeshes[i];
+
+                    var frame = CreateFrameForClothing(unificarObjetos, clothing, excludeMeshes);
                     if (frame != null)
                     {
                         result.CreatedFrames.Add(frame);
@@ -383,19 +424,53 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             // Detectar pelucas entre las ropas detectadas
             var wigCandidates = WigDetector.DetectWigs(_avatarRoot, detectedClothings);
+
+            // Clasificar pelucas: completas vs híbridas
             var wigClothingIndices = new HashSet<int>();
+            var hybridWigMeshes = new Dictionary<int, HashSet<SkinnedMeshRenderer>>();
+
             foreach (var wig in wigCandidates)
             {
                 if (wig.ClothingEntryIndex >= 0)
-                    wigClothingIndices.Add(wig.ClothingEntryIndex);
+                {
+                    var clothing = detectedClothings[wig.ClothingEntryIndex];
+                    Transform armature = clothing.ArmatureReference?.ArmatureRoot;
+                    if (armature != null)
+                    {
+                        var allMeshes = BodyMeshDetector.GetAllSiblingMeshes(armature);
+                        var wigMeshSet = new HashSet<SkinnedMeshRenderer>(wig.Meshes);
+                        bool hasNonWigMeshes = false;
+                        foreach (var m in allMeshes)
+                        {
+                            if (!wigMeshSet.Contains(m))
+                            {
+                                hasNonWigMeshes = true;
+                                break;
+                            }
+                        }
+
+                        if (hasNonWigMeshes && wig.Meshes.Count < allMeshes.Count)
+                            hybridWigMeshes[wig.ClothingEntryIndex] = wigMeshSet;
+                        else
+                            wigClothingIndices.Add(wig.ClothingEntryIndex);
+                    }
+                    else
+                    {
+                        wigClothingIndices.Add(wig.ClothingEntryIndex);
+                    }
+                }
             }
 
-            // Separar outfits de pelucas
+            // Separar outfits de pelucas completas (los híbridos se incluyen como outfits)
             var outfitClothings = new List<ClothingEntry>();
+            var outfitClothingOriginalIndices = new List<int>();
             for (int i = 0; i < detectedClothings.Count; i++)
             {
                 if (!wigClothingIndices.Contains(i))
+                {
                     outfitClothings.Add(detectedClothings[i]);
+                    outfitClothingOriginalIndices.Add(i);
+                }
             }
 
             // --- SYNC OUTFITS ---
@@ -417,10 +492,14 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             // DIFF: Detectar outfits nuevos
             var newOutfitClothings = new List<ClothingEntry>();
-            foreach (var clothing in outfitClothings)
+            var newOutfitOriginalIndices = new List<int>();
+            for (int j = 0; j < outfitClothings.Count; j++)
             {
-                if (!existingOutfitFrameNames.Contains(clothing.Name))
-                    newOutfitClothings.Add(clothing);
+                if (!existingOutfitFrameNames.Contains(outfitClothings[j].Name))
+                {
+                    newOutfitClothings.Add(outfitClothings[j]);
+                    newOutfitOriginalIndices.Add(outfitClothingOriginalIndices[j]);
+                }
             }
 
             // DIFF: Detectar frames huérfanos en Outfits
@@ -440,9 +519,17 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
 
             // Crear frames para outfits nuevos
-            foreach (var clothing in newOutfitClothings)
+            for (int j = 0; j < newOutfitClothings.Count; j++)
             {
-                var frame = CreateFrameForClothing(unificarOutfits, clothing);
+                var clothing = newOutfitClothings[j];
+                int origIdx = newOutfitOriginalIndices[j];
+
+                // Para híbridos, excluir meshes de pelo del frame de ropa
+                HashSet<SkinnedMeshRenderer> excludeMeshes = null;
+                if (hybridWigMeshes.ContainsKey(origIdx))
+                    excludeMeshes = hybridWigMeshes[origIdx];
+
+                var frame = CreateFrameForClothing(unificarOutfits, clothing, excludeMeshes);
                 if (frame != null)
                 {
                     result.FramesAdded++;
@@ -834,9 +921,16 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
-        /// Crea un MRAgruparObjetos para una ropa
+        /// Crea un MRAgruparObjetos para una ropa.
+        /// Opcionalmente excluye meshes específicos (ej: meshes de pelo que irán al radial Pelucas).
         /// </summary>
-        private MRAgruparObjetos CreateFrameForClothing(MRUnificarObjetos unificarObjetos, ClothingEntry clothing)
+        /// <param name="unificarObjetos">Radial donde agregar el frame.</param>
+        /// <param name="clothing">Ropa detectada.</param>
+        /// <param name="excludeMeshes">Meshes a excluir del frame (puede ser null).</param>
+        private MRAgruparObjetos CreateFrameForClothing(
+            MRUnificarObjetos unificarObjetos,
+            ClothingEntry clothing,
+            HashSet<SkinnedMeshRenderer> excludeMeshes = null)
         {
             if (clothing?.GameObject == null || clothing.ArmatureReference == null)
                 return null;
@@ -874,10 +968,12 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (frame == null)
                 return null;
 
-            // Añadir cada mesh al frame con IsActive = true
-            // Los meshes se agregan siempre como activos porque representan el estado "visible" del outfit
+            // Añadir cada mesh al frame con IsActive = true, excluyendo los meshes de pelo si aplica
             foreach (var mesh in meshes)
             {
+                if (excludeMeshes != null && excludeMeshes.Contains(mesh))
+                    continue;
+
                 frame.AddGameObject(mesh.gameObject, isActive: true);
             }
 

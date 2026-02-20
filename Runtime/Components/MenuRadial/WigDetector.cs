@@ -82,6 +82,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// Detecta pelucas entre los hijos del avatar.
         /// Fuente 1: Reclasifica ClothingEntries que parecen pelucas.
         /// Fuente 2: Escanea hijos directos no detectados como ropa.
+        /// Fuente 3: Detecta pelo del avatar base (meshes hermanos del armature con peso en head).
         /// </summary>
         /// <param name="avatarRoot">GameObject raíz del avatar.</param>
         /// <param name="detectedClothings">Lista de ropas detectadas por MRCoserRopa (puede ser null).</param>
@@ -105,6 +106,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
             if (avatarArmature == null)
                 avatarArmature = BodyMeshDetector.FindArmature(avatarRoot.transform);
+
+            // Obtener head bone del avatar para análisis de bone weights
+            Transform avatarHeadBone = BoneWeightAnalyzer.GetAvatarHeadBone(avatarRoot);
 
             // Set de GameObjects ya cubiertos por detectedClothings
             var clothingRoots = new HashSet<GameObject>();
@@ -130,21 +134,36 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     if (score >= WIG_SCORE_THRESHOLD)
                     {
                         Transform armature = clothing.ArmatureReference?.ArmatureRoot;
-                        var meshes = armature != null
+                        var allMeshes = armature != null
                             ? BodyMeshDetector.GetAllSiblingMeshes(armature)
                             : new List<SkinnedMeshRenderer>();
+
+                        // Usar bone weights para seleccionar solo meshes de pelo
+                        // Si hay head bone, separar; sino, usar todos los meshes
+                        List<SkinnedMeshRenderer> wigMeshes = allMeshes;
+                        if (armature != null)
+                        {
+                            Transform headBone = BoneWeightAnalyzer.FindHeadBoneInArmature(armature);
+                            if (headBone != null)
+                            {
+                                var headWeighted = BoneWeightAnalyzer.GetHeadWeightedMeshes(allMeshes, headBone);
+                                if (headWeighted.Count > 0)
+                                    wigMeshes = headWeighted;
+                            }
+                        }
 
                         wigs.Add(new WigCandidate
                         {
                             Root = clothing.GameObject,
                             ArmatureRoot = armature,
-                            Meshes = meshes,
+                            Meshes = wigMeshes,
                             Name = clothing.Name,
                             Score = score,
                             ClothingEntryIndex = i
                         });
 
-                        Debug.Log($"[WigDetector] Reclasificado '{clothing.Name}' como peluca (score={score})");
+                        Debug.Log($"[WigDetector] Reclasificado '{clothing.Name}' como peluca (score={score}, " +
+                                 $"{wigMeshes.Count}/{allMeshes.Count} meshes de pelo)");
                     }
                 }
             }
@@ -189,6 +208,50 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     });
 
                     Debug.Log($"[WigDetector] Detectado '{child.name}' como peluca no-ropa (score={score})");
+                }
+            }
+
+            // Fuente 3: Pelo del avatar base (meshes hermanos del armature del avatar)
+            // Agrupa TODOS los meshes de pelo del avatar en UN solo WigCandidate
+            if (avatarArmature != null)
+            {
+                var hairMeshes = BodyMeshDetector.GetHairExcludedMeshes(avatarArmature, avatarAnimator);
+                var confirmedHairMeshes = new List<SkinnedMeshRenderer>();
+                int bestScore = 0;
+
+                foreach (var hairMesh in hairMeshes)
+                {
+                    if (hairMesh == null)
+                        continue;
+
+                    // Saltar si ya fue capturado por Fuente 1 o 2
+                    if (wigs.Any(w => w.Meshes != null && w.Meshes.Contains(hairMesh)))
+                        continue;
+
+                    int score = ScoreAvatarHairMesh(hairMesh, avatarHeadBone);
+                    if (score >= WIG_SCORE_THRESHOLD)
+                    {
+                        confirmedHairMeshes.Add(hairMesh);
+                        if (score > bestScore)
+                            bestScore = score;
+                    }
+                }
+
+                if (confirmedHairMeshes.Count > 0)
+                {
+                    wigs.Add(new WigCandidate
+                    {
+                        Root = avatarRoot,
+                        ArmatureRoot = avatarArmature,
+                        Meshes = confirmedHairMeshes,
+                        Name = confirmedHairMeshes.Count == 1
+                            ? confirmedHairMeshes[0].gameObject.name
+                            : "Hair",
+                        Score = bestScore,
+                        ClothingEntryIndex = -1
+                    });
+
+                    Debug.Log($"[WigDetector] Detectado pelo de avatar: {confirmedHairMeshes.Count} meshes (score={bestScore})");
                 }
             }
 
@@ -238,6 +301,10 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             int humanoidCount = ArmatureFinder.CountHumanoidBones(armature);
             if (humanoidCount <= 5)
                 score += 1;
+
+            // Señal 8: Meshes con peso concentrado en huesos de la cabeza (+2)
+            if (HasHeadWeightedMeshes(armature))
+                score += 2;
 
             return score;
         }
@@ -291,12 +358,38 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 int humanoidCount = ArmatureFinder.CountHumanoidBones(armature);
                 if (humanoidCount <= 5)
                     score += 1;
+
+                // Señal 8: Meshes con peso concentrado en huesos de la cabeza (+2)
+                if (HasHeadWeightedMeshes(armature))
+                    score += 2;
             }
             else
             {
-                // Sin armature: probablemente accesorio simple.
-                // Solo las señales de nombre aplican, que ya fueron evaluadas arriba.
+                // Sin armature: intentar señal 8 directamente con los meshes
+                if (HasHeadWeightedMeshesInList(meshes))
+                    score += 2;
             }
+
+            return score;
+        }
+
+        /// <summary>
+        /// Calcula score para un mesh del avatar base que fue excluido por patrón de pelo.
+        /// Usa bone weights para confirmar que realmente es pelo.
+        /// </summary>
+        private static int ScoreAvatarHairMesh(SkinnedMeshRenderer mesh, Transform avatarHeadBone)
+        {
+            int score = 0;
+
+            // Señal 3: Nombre con patrón de pelo (+3)
+            if (MatchesHairPattern(mesh.gameObject.name))
+                score += 3;
+
+            // Señal 8: Peso concentrado en huesos de la cabeza (+4)
+            // Usa peso mayor para pelo de avatar porque la señal de nombre ya confirma
+            // Si avatarHeadBone es null, BoneWeightAnalyzer busca Head en los bones del mesh como fallback
+            if (BoneWeightAnalyzer.IsHeadWeightedMesh(mesh, avatarHeadBone))
+                score += 4;
 
             return score;
         }
@@ -440,6 +533,48 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                         return true;
                 }
             }
+            return false;
+        }
+
+        /// <summary>
+        /// Verifica si algún mesh hermano del armature tiene peso concentrado en huesos de la cabeza.
+        /// Usa BoneWeightAnalyzer para análisis de pesos de vértices.
+        /// </summary>
+        private static bool HasHeadWeightedMeshes(Transform armature)
+        {
+            if (armature == null)
+                return false;
+
+            // Buscar head bone dentro del armature de la ropa
+            Transform headBone = BoneWeightAnalyzer.FindHeadBoneInArmature(armature);
+            if (headBone == null)
+                return false;
+
+            var meshes = BodyMeshDetector.GetAllSiblingMeshes(armature);
+            foreach (var smr in meshes)
+            {
+                if (smr != null && BoneWeightAnalyzer.IsHeadWeightedMesh(smr, headBone))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Verifica si algún mesh en una lista tiene peso concentrado en huesos de la cabeza.
+        /// Usado cuando no hay armature detectado (busca head bone en los propios bones del mesh).
+        /// </summary>
+        private static bool HasHeadWeightedMeshesInList(SkinnedMeshRenderer[] meshes)
+        {
+            if (meshes == null)
+                return false;
+
+            foreach (var smr in meshes)
+            {
+                if (smr != null && BoneWeightAnalyzer.IsHeadWeightedMesh(smr, null))
+                    return true;
+            }
+
             return false;
         }
 

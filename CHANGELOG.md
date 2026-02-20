@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.47] - 2026-02-20
+
+### Agregado
+- **BoneWeightAnalyzer**: Nuevo analizador de pesos de huesos que determina si un mesh tiene su geometria influenciada por huesos de la cabeza (pelo) o del cuerpo (ropa). Umbral: 60% peso en head bones = pelo
+- **Deteccion de pelo del avatar base** (Fuente 3): Los meshes hermanos del armature excluidos por BodyMeshDetector como "pelo" ahora se detectan y agregan al radial "Pelucas"
+- **Señal 8 de scoring**: Bone weight analysis como nueva señal en WigDetector (+2 para ropa/hijos, +4 para pelo de avatar)
+- **Clasificacion hibrida de pelucas**: Ropas que contienen tanto meshes de pelo como de ropa se separan: meshes de pelo van al radial "Pelucas", meshes de ropa van al radial "Outfits"
+- **BodyMeshDetector.GetHairExcludedMeshes()**: Expone meshes excluidos por patron de pelo para WigDetector Fuente 3
+
+### Corregido
+- **WigDetector Fuente 1**: Ahora usa BoneWeightAnalyzer para seleccionar solo meshes head-weighted del candidato a peluca, no todos los meshes de la ropa
+- **Agrupacion de pelo de avatar**: Multiples meshes de pelo del avatar base se agrupan en UN solo frame en vez de crear uno por mesh
+
+### Eliminado
+- **BodyMeshDetector.MIN_BONE_WEIGHT**: Constante no usada eliminada
+
 ## [0.8.46] - 2026-02-19
 
 ### Agregado
