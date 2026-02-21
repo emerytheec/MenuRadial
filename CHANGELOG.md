@@ -5,6 +5,13 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.50] - 2026-02-21
+
+### Cambiado
+- **Duplicacion de frames con numeracion secuencial**: Al duplicar un MRAgruparObjetos ahora se usa formato "NombreBase 01", "NombreBase 02", etc. en vez de "(Copy)". El conteo es global — duplicar cualquier clon siempre genera el siguiente numero disponible
+- **Boton duplicar en MRAgruparObjetos**: Cuando un frame esta enlazado a un MRUnificarObjetos, aparece un boton "Duplicar frame" directamente en su inspector, permitiendo duplicar desde ambos componentes
+- **Compatibilidad con nombres legacy**: Los nombres con sufijo "(Copy)" se reconocen y el nombre base se extrae correctamente para continuar la numeracion secuencial
+
 ## [0.8.49] - 2026-02-21
 
 ### Agregado

@@ -5,6 +5,7 @@ using System.Linq;
 using Bender_Dios.MenuRadial.Components.Frame;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
+using Bender_Dios.MenuRadial.Editor.Components.Radial;
 using Bender_Dios.MenuRadial.Localization;
 using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
@@ -33,6 +34,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
         private List<int> _lastMaterialIds = new List<int>();
         private List<int> _lastBlendshapeIds = new List<int>();
 
+        // Referencia al MRUnificarObjetos padre (si está enlazado)
+        private MRUnificarObjetos _parentUnificar;
+
         // Para manejo correcto de selección
         private static bool _isSelectionChangeHandlerRegistered = false;
         private static MRAgruparObjetos _lastActiveFrameObject = null;
@@ -43,6 +47,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
         private void OnEnable()
         {
             _target = (MRAgruparObjetos)target;
+
+            // Detectar si está enlazado a un MRUnificarObjetos padre
+            _parentUnificar = null;
+            if (_target.transform.parent != null)
+            {
+                var parent = _target.transform.parent.GetComponent<MRUnificarObjetos>();
+                if (parent != null && parent.FrameObjects.Contains(_target))
+                {
+                    _parentUnificar = parent;
+                }
+            }
 
             // Inicializar módulos especializados - Inyección de dependencias manual
             _objectListEditor = new ObjectListEditor(_target);
@@ -149,9 +164,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             
             // Botón de previsualización
             DrawPreviewButton();
-            
+
+            // Botón de duplicar (solo si está enlazado a un MRUnificarObjetos)
+            DrawDuplicateButton();
+
             EditorGUILayout.Space(EditorStyleManager.SPACING);
-            
+
             // Delegar cada sección a su módulo especializado
             _objectListEditor?.DrawObjectSection();
             
@@ -226,6 +244,69 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             });
         }
         
+        /// <summary>
+        /// Dibuja el botón de duplicar si el frame está enlazado a un MRUnificarObjetos
+        /// </summary>
+        private void DrawDuplicateButton()
+        {
+            if (_parentUnificar == null) return;
+
+            EditorGUILayout.Space(2f);
+
+            Color originalColor = GUI.color;
+            GUI.color = new Color(0.5f, 0.8f, 1f);
+            if (GUILayout.Button(MRLocalization.Get(L.RadialExtra.DUPLICATE_FRAME), EditorStyleManager.ButtonStyle))
+            {
+                DuplicateThisFrame();
+            }
+            GUI.color = originalColor;
+        }
+
+        /// <summary>
+        /// Duplica este frame y lo inserta en el MRUnificarObjetos padre
+        /// </summary>
+        private void DuplicateThisFrame()
+        {
+            var existingGONames = _parentUnificar.FrameObjects
+                .Where(f => f != null)
+                .Select(f => f.gameObject.name);
+            var existingFrameNames = _parentUnificar.FrameObjects
+                .Where(f => f != null)
+                .Select(f => f.FrameName);
+
+            string newGOName = MRUnificarObjetosReorderableController.GenerateSequentialName(
+                _target.gameObject.name, existingGONames);
+            string newFrameName = MRUnificarObjetosReorderableController.GenerateSequentialName(
+                _target.FrameName, existingFrameNames);
+
+            // Crear nuevo GameObject como hermano
+            var newFrameGO = new GameObject(newGOName);
+            newFrameGO.transform.SetParent(_target.transform.parent);
+            int siblingIndex = _target.transform.GetSiblingIndex() + 1;
+            newFrameGO.transform.SetSiblingIndex(siblingIndex);
+
+            // Agregar componente y copiar datos
+            var newFrame = newFrameGO.AddComponent<MRAgruparObjetos>();
+            MRUnificarObjetosReorderableController.CopyFrameDataTo(_target, newFrame, newFrameName);
+
+            Undo.RegisterCreatedObjectUndo(newFrameGO, "Duplicar Frame");
+
+            // Insertar en la lista del padre justo después de este frame
+            Undo.RecordObject(_parentUnificar, "Duplicar Frame");
+            int sourceIndex = _parentUnificar.FrameObjects.IndexOf(_target);
+            if (sourceIndex >= 0)
+            {
+                _parentUnificar.FrameObjects.Insert(sourceIndex + 1, newFrame);
+            }
+            else
+            {
+                _parentUnificar.FrameObjects.Add(newFrame);
+            }
+
+            EditorUtility.SetDirty(_parentUnificar);
+            Selection.activeGameObject = newFrameGO;
+        }
+
         /// <summary>
         /// Maneja los cambios en las propiedades y ejecuta acciones correspondientes
         /// NUEVO: Incluye auto-actualización de rutas como MR Radial Menu

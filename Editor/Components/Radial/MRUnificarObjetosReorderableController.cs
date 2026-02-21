@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
@@ -197,22 +199,30 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         {
             if (sourceFrame == null) return;
 
-            // Obtener el padre del frame original para crear el duplicado en el mismo lugar
             Transform parent = sourceFrame.transform.parent;
 
+            // Generar nombres secuenciales
+            var existingGONames = _target.FrameObjects
+                .Where(f => f != null)
+                .Select(f => f.gameObject.name);
+            var existingFrameNames = _target.FrameObjects
+                .Where(f => f != null)
+                .Select(f => f.FrameName);
+
+            string newGOName = GenerateSequentialName(sourceFrame.gameObject.name, existingGONames);
+            string newFrameName = GenerateSequentialName(sourceFrame.FrameName, existingFrameNames);
+
             // Crear nuevo GameObject
-            var newFrameGO = new GameObject($"{sourceFrame.gameObject.name} (Copy)");
+            var newFrameGO = new GameObject(newGOName);
             newFrameGO.transform.SetParent(parent);
 
             // Posicionar justo debajo del original en la jerarquía
             int siblingIndex = sourceFrame.transform.GetSiblingIndex() + 1;
             newFrameGO.transform.SetSiblingIndex(siblingIndex);
 
-            // Agregar componente MRAgruparObjetos
+            // Agregar componente y copiar datos
             var newFrame = newFrameGO.AddComponent<MRAgruparObjetos>();
-
-            // Copiar datos del frame original
-            CopyFrameData(sourceFrame, newFrame);
+            CopyFrameDataTo(sourceFrame, newFrame, newFrameName);
 
             // Registrar para Undo
             Undo.RegisterCreatedObjectUndo(newFrameGO, "Duplicar Frame");
@@ -229,16 +239,67 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         }
 
         /// <summary>
-        /// Copia los datos de un frame a otro
+        /// Extracts the base name by stripping trailing sequential numbers (2+ digits) or "(Copy)" suffixes.
+        /// E.g., "Outfit 03" → "Outfit", "Outfit (Copy)" → "Outfit", "Outfit 01 (Copy)" → "Outfit"
         /// </summary>
-        private void CopyFrameData(MRAgruparObjetos source, MRAgruparObjetos destination)
+        internal static string ExtractBaseName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return name;
+
+            string result = name;
+
+            // Strip trailing " (Copy)" patterns (legacy duplicates, could be nested)
+            while (result.EndsWith(" (Copy)"))
+            {
+                result = result.Substring(0, result.Length - 7);
+            }
+
+            // Strip trailing " XX" number suffix (2+ digits from our sequential format)
+            var match = Regex.Match(result, @"^(.+?)\s+(\d{2,})$");
+            if (match.Success)
+            {
+                result = match.Groups[1].Value;
+            }
+
+            return result.TrimEnd();
+        }
+
+        /// <summary>
+        /// Generates a sequential name based on existing sibling names.
+        /// Finds the highest existing number for the same base name and increments.
+        /// E.g., "Outfit" with existing "Outfit 01", "Outfit 02" → "Outfit 03"
+        /// </summary>
+        internal static string GenerateSequentialName(string sourceName, IEnumerable<string> existingNames)
+        {
+            string baseName = ExtractBaseName(sourceName);
+
+            int maxNumber = 0;
+            string escapedBase = Regex.Escape(baseName);
+            var pattern = new Regex($@"^{escapedBase}\s+(\d{{2,}})$");
+
+            foreach (var existing in existingNames)
+            {
+                var match = pattern.Match(existing);
+                if (match.Success)
+                {
+                    int num = int.Parse(match.Groups[1].Value);
+                    if (num > maxNumber)
+                        maxNumber = num;
+                }
+            }
+
+            return $"{baseName} {maxNumber + 1:00}";
+        }
+
+        /// <summary>
+        /// Copia los datos de un frame a otro con nombre específico
+        /// </summary>
+        internal static void CopyFrameDataTo(MRAgruparObjetos source, MRAgruparObjetos destination, string newFrameName)
         {
             if (source == null || destination == null) return;
 
-            // Copiar nombre
-            destination.FrameName = source.FrameName + " (Copy)";
+            destination.FrameName = newFrameName;
 
-            // Copiar ObjectReferences
             foreach (var objRef in source.ObjectReferences)
             {
                 if (objRef?.GameObject != null)
@@ -247,7 +308,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 }
             }
 
-            // Copiar MaterialReferences
             foreach (var matRef in source.MaterialReferences)
             {
                 if (matRef?.TargetRenderer != null)
@@ -259,7 +319,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                 }
             }
 
-            // Copiar BlendshapeReferences
             foreach (var blendRef in source.BlendshapeReferences)
             {
                 if (blendRef?.TargetRenderer != null)
