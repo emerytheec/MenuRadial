@@ -5,11 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
-## [0.8.51] - 2026-02-21
+## [0.8.52] - 2026-02-21
 
 ### Corregido
-- **PhysBones de pelucas no se vinculan a frames**: GetKnownArmatures() ahora detecta pelucas via WigDetector ademas de ropas de MRCoserRopa, permitiendo que PhysBoneScanner asigne el contexto correcto a PhysBones de pelucas no registradas como ropa
-- **Pelucas sin armature (MA BoneProxy)**: PhysBoneScanner ahora maneja armatures nulas usando Root.transform como pseudo-armature, permitiendo que PhysBones dentro de pelucas con MA BoneProxy se detecten correctamente en vez de caer al contexto "Avatar"
+- **Revertido v0.8.51 — PhysBones agrupados incorrectamente**: La integracion de WigDetector en GetKnownArmatures() causaba que todos los PhysBones se agruparan en un solo contenedor. Al pasar null como clothings a WigDetector, este re-escaneaba todos los hijos del avatar sin filtrar ropas ya detectadas, creando contextos duplicados. El mecanismo de pseudo-armature (Root.transform) tambien causaba colisiones en la creacion de contenedores. Se revierte completamente a la logica original de v0.8.50
+
+## [0.8.51] - 2026-02-21 [REVERTIDO]
+
+### Corregido
+- ~~PhysBones de pelucas no se vinculan a frames~~
+- ~~Pelucas sin armature (MA BoneProxy)~~
 
 ## [0.8.50] - 2026-02-21
 

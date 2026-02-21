@@ -191,23 +191,17 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                 }
             }
 
-            // 3. Armatures conocidas externamente (ej: de MRCoserRopa, WigDetector)
+            // 3. Armatures conocidas externamente (ej: de MRCoserRopa)
             if (knownArmatures != null)
             {
                 foreach (var known in knownArmatures)
                 {
-                    if (known.Root == null) continue;
-
-                    // Usar Root.transform como pseudo-armature si no tiene armature propia
-                    // (ej: pelucas con MA BoneProxy sin armature independiente)
-                    Transform armatureTransform = known.Armature != null
-                        ? known.Armature
-                        : known.Root.transform;
+                    if (known.Root == null || known.Armature == null) continue;
 
                     bool alreadyDetected = false;
                     foreach (var existing in _detectedArmatures)
                     {
-                        if (existing.ArmatureTransform == armatureTransform)
+                        if (existing.ArmatureTransform == known.Armature)
                         {
                             alreadyDetected = true;
                             break;
@@ -219,7 +213,7 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers
                         _detectedArmatures.Add(new ArmatureContext
                         {
                             ContextRoot = known.Root,
-                            ArmatureTransform = armatureTransform,
+                            ArmatureTransform = known.Armature,
                             IsAvatarContext = false,
                             ContextName = known.Name
                         });
