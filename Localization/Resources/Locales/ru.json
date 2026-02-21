@@ -289,7 +289,21 @@
         "ndmfEnabledInfo": "MR: {0} одежд(а) готово - {1} костей",
         "ndmfDisabledInfo": "Слияние будет выполнено автоматически при:",
         "ndmfScope": "  - Входе в Play Mode\n  - Загрузке аватара в VRChat",
-        "ndmfSceneSafe": "Включённая одежда не имеет валидных привязок костей.\nУбедитесь, что одежда имеет арматуру с humanoid костями."
+        "ndmfSceneSafe": "Включённая одежда не имеет валидных привязок костей.\nУбедитесь, что одежда имеет арматуру с humanoid костями.",
+        "zoneFullBody": "Всё тело",
+        "zoneTorso": "Торс",
+        "zoneHead": "Голова",
+        "zoneUpperLimb": "Руки/Кисти",
+        "zoneLowerLimb": "Ноги/Стопы",
+        "zoneHip": "Бёдра",
+        "zoneFullBodyShort": "Тело",
+        "zoneTorsoShort": "Торс",
+        "zoneHeadShort": "Голова",
+        "zoneUpperLimbShort": "Руки",
+        "zoneLowerLimbShort": "Ноги",
+        "zoneHipShort": "Бёдра",
+        "zoneLabel": "Зона: {0}",
+        "zoneWigLabel": "Парик - Зона: {0}"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",
@@ -610,7 +624,10 @@
         "restoreGroupTooltip": "Восстановить оригинальные разрешения этой группы",
         "stepDownTooltip": "Уменьшить разрешения этой группы на один шаг",
         "confirmRestoreGroup": "Восстановить оригинальные разрешения этой группы?",
-        "confirmReduceGroup": "Уменьшить разрешения этой группы на один шаг?"
+        "confirmReduceGroup": "Уменьшить разрешения этой группы на один шаг?",
+        "includeWigs": "Включить парики",
+        "includeWigsTooltip": "Включить текстуры обнаруженных париков",
+        "wig": "Парик"
     },
     "organizaPB": {
         "title": "MR Organiza PhysBones",

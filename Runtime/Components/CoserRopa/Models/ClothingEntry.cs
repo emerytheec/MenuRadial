@@ -25,6 +25,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         [SerializeField] private string _modularAvatarComponentType = "";
         [SerializeField] private bool _hasMAShapeChanger = false;
 
+        [SerializeField] private StitchZone _stitchZone = StitchZone.FullBody;
+        [SerializeField] private bool _isWig = false;
+
         /// <summary>
         /// GameObject raiz de la ropa
         /// </summary>
@@ -164,6 +167,113 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         {
             get => _hasMAShapeChanger;
             set => _hasMAShapeChanger = value;
+        }
+
+        /// <summary>
+        /// Zona del cuerpo donde se cose la ropa (clasificada por huesos detectados)
+        /// </summary>
+        public StitchZone StitchZone
+        {
+            get => _stitchZone;
+            set => _stitchZone = value;
+        }
+
+        /// <summary>
+        /// Indica si esta ropa fue identificada como peluca por WigDetector
+        /// </summary>
+        public bool IsWig
+        {
+            get => _isWig;
+            set => _isWig = value;
+        }
+
+        /// <summary>
+        /// Determina la zona de cosido basada en los huesos mapeados.
+        /// Analiza los HumanBodyBones de los mapeos válidos.
+        /// </summary>
+        public static StitchZone DetermineStitchZone(List<BoneMapping> boneMappings)
+        {
+            if (boneMappings == null || boneMappings.Count == 0)
+                return StitchZone.FullBody;
+
+            bool hasTorso = false;
+            bool hasHips = false;
+            bool hasHead = false;
+            bool hasNeck = false;
+            bool hasUpperLimb = false;
+            bool hasLowerLimb = false;
+
+            foreach (var mapping in boneMappings)
+            {
+                if (!mapping.IsValid)
+                    continue;
+
+                var bone = mapping.BoneType;
+
+                switch (bone)
+                {
+                    case HumanBodyBones.Spine:
+                    case HumanBodyBones.Chest:
+                    case HumanBodyBones.UpperChest:
+                        hasTorso = true;
+                        break;
+
+                    case HumanBodyBones.Hips:
+                        hasHips = true;
+                        break;
+
+                    case HumanBodyBones.Head:
+                        hasHead = true;
+                        break;
+
+                    case HumanBodyBones.Neck:
+                        hasNeck = true;
+                        break;
+
+                    case HumanBodyBones.LeftShoulder:
+                    case HumanBodyBones.RightShoulder:
+                    case HumanBodyBones.LeftUpperArm:
+                    case HumanBodyBones.RightUpperArm:
+                    case HumanBodyBones.LeftLowerArm:
+                    case HumanBodyBones.RightLowerArm:
+                    case HumanBodyBones.LeftHand:
+                    case HumanBodyBones.RightHand:
+                        hasUpperLimb = true;
+                        break;
+
+                    case HumanBodyBones.LeftUpperLeg:
+                    case HumanBodyBones.RightUpperLeg:
+                    case HumanBodyBones.LeftLowerLeg:
+                    case HumanBodyBones.RightLowerLeg:
+                    case HumanBodyBones.LeftFoot:
+                    case HumanBodyBones.RightFoot:
+                    case HumanBodyBones.LeftToes:
+                    case HumanBodyBones.RightToes:
+                        hasLowerLimb = true;
+                        break;
+                }
+            }
+
+            // Clasificación por prioridad
+            if ((hasTorso || hasHips) && (hasUpperLimb || hasLowerLimb))
+                return StitchZone.FullBody;
+
+            if (hasTorso && !hasUpperLimb && !hasLowerLimb)
+                return StitchZone.Torso;
+
+            if ((hasHead || hasNeck) && !hasTorso && !hasHips && !hasUpperLimb && !hasLowerLimb)
+                return StitchZone.Head;
+
+            if (hasUpperLimb && !hasTorso && !hasHips && !hasLowerLimb)
+                return StitchZone.UpperLimb;
+
+            if (hasLowerLimb && !hasTorso && !hasHips && !hasUpperLimb)
+                return StitchZone.LowerLimb;
+
+            if (hasHips && !hasTorso && !hasUpperLimb && !hasLowerLimb)
+                return StitchZone.Hip;
+
+            return StitchZone.FullBody;
         }
 
         /// <summary>

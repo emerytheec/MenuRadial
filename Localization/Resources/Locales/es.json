@@ -296,7 +296,21 @@
         "ndmfEnabledInfo": "MR: {0} ropa(s) lista(s) - {1} huesos",
         "ndmfDisabledInfo": "El merge se ejecutara automaticamente al:",
         "ndmfScope": "  - Entrar en Play Mode\n  - Subir el avatar a VRChat",
-        "ndmfSceneSafe": "Las ropas habilitadas no tienen mapeos de huesos validos.\nVerifica que las ropas tengan armature con huesos humanoid."
+        "ndmfSceneSafe": "Las ropas habilitadas no tienen mapeos de huesos validos.\nVerifica que las ropas tengan armature con huesos humanoid.",
+        "zoneFullBody": "Cuerpo Completo",
+        "zoneTorso": "Torso",
+        "zoneHead": "Cabeza",
+        "zoneUpperLimb": "Brazos/Manos",
+        "zoneLowerLimb": "Piernas/Pies",
+        "zoneHip": "Cadera",
+        "zoneFullBodyShort": "Cuerpo",
+        "zoneTorsoShort": "Torso",
+        "zoneHeadShort": "Cabeza",
+        "zoneUpperLimbShort": "Manos",
+        "zoneLowerLimbShort": "Pies",
+        "zoneHipShort": "Cadera",
+        "zoneLabel": "Zona: {0}",
+        "zoneWigLabel": "Peluca - Zona: {0}"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",
@@ -617,7 +631,10 @@
         "restoreGroupTooltip": "Restaurar resoluciones originales de este grupo",
         "stepDownTooltip": "Reducir resoluciones de este grupo un paso",
         "confirmRestoreGroup": "¿Restaurar resoluciones originales de este grupo?",
-        "confirmReduceGroup": "¿Reducir resoluciones de este grupo un paso?"
+        "confirmReduceGroup": "¿Reducir resoluciones de este grupo un paso?",
+        "includeWigs": "Incluir Pelucas",
+        "includeWigsTooltip": "Incluir texturas de pelucas detectadas",
+        "wig": "Peluca"
     },
     "organizaPB": {
         "title": "MR Organiza PhysBones",

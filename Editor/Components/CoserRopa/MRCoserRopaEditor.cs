@@ -36,6 +36,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         private static readonly Color SelectedBgColor = new Color(0.24f, 0.48f, 0.9f, 0.4f);
         private static readonly Color WarningColor = new Color(0.9f, 0.7f, 0.2f);
         private static readonly Color ModularAvatarColor = new Color(0.4f, 0.7f, 1f); // Azul para MA
+        private static readonly Color WigColor = new Color(0.9f, 0.5f, 0.9f); // Magenta para pelucas
 
         // Auto-detección de cambios en jerarquía
         private int _lastAvatarChildCount = -1;
@@ -332,10 +333,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
             else
             {
-                GUI.contentColor = clothing.Enabled
-                    ? (clothing.HasValidMappings ? EnabledColor : WarningColor)
-                    : DisabledColor;
-                EditorGUI.LabelField(bonesRect, MRLocalization.Get(L.CoserRopaExtra.BONE_COUNT, clothing.MappedBoneCount), EditorStyles.miniLabel);
+                if (clothing.IsWig)
+                {
+                    GUI.contentColor = WigColor;
+                    EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} {GetZoneShortLabel(clothing.StitchZone)}", EditorStyles.miniLabel);
+                }
+                else
+                {
+                    GUI.contentColor = clothing.Enabled
+                        ? (clothing.HasValidMappings ? EnabledColor : WarningColor)
+                        : DisabledColor;
+                    EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} {GetZoneShortLabel(clothing.StitchZone)}", EditorStyles.miniLabel);
+                }
             }
             GUI.contentColor = originalColor;
 
@@ -437,6 +446,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Info (solo para prendas sin MA)
             EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.BONE_STATS, selected.MappedBoneCount, selected.TotalBoneCount), EditorStyles.miniLabel);
+
+            // Zona de cosido
+            if (selected.IsWig)
+            {
+                GUI.contentColor = WigColor;
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.ZONE_WIG_LABEL, GetZoneFullLabel(selected.StitchZone)), EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+            }
+            else
+            {
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.ZONE_LABEL, GetZoneFullLabel(selected.StitchZone)), EditorStyles.miniLabel);
+            }
 
             // Detectar y mostrar prefijos/sufijos
             DrawBoneNamingInfo(selected);
@@ -787,6 +808,38 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
 
             menu.ShowAsContext();
+        }
+
+        #endregion
+
+        #region Zone Helpers
+
+        private string GetZoneShortLabel(StitchZone zone)
+        {
+            return zone switch
+            {
+                StitchZone.FullBody => MRLocalization.Get(L.CoserRopaExtra.ZONE_FULL_BODY_SHORT),
+                StitchZone.Torso => MRLocalization.Get(L.CoserRopaExtra.ZONE_TORSO_SHORT),
+                StitchZone.Head => MRLocalization.Get(L.CoserRopaExtra.ZONE_HEAD_SHORT),
+                StitchZone.UpperLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_UPPER_LIMB_SHORT),
+                StitchZone.LowerLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_LOWER_LIMB_SHORT),
+                StitchZone.Hip => MRLocalization.Get(L.CoserRopaExtra.ZONE_HIP_SHORT),
+                _ => ""
+            };
+        }
+
+        private string GetZoneFullLabel(StitchZone zone)
+        {
+            return zone switch
+            {
+                StitchZone.FullBody => MRLocalization.Get(L.CoserRopaExtra.ZONE_FULL_BODY),
+                StitchZone.Torso => MRLocalization.Get(L.CoserRopaExtra.ZONE_TORSO),
+                StitchZone.Head => MRLocalization.Get(L.CoserRopaExtra.ZONE_HEAD),
+                StitchZone.UpperLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_UPPER_LIMB),
+                StitchZone.LowerLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_LOWER_LIMB),
+                StitchZone.Hip => MRLocalization.Get(L.CoserRopaExtra.ZONE_HIP),
+                _ => ""
+            };
         }
 
         #endregion

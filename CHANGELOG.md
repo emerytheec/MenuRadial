@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.49] - 2026-02-21
+
+### Agregado
+- **StitchZone**: Nuevo enum que clasifica zonas de cosido (FullBody, Torso, Head, UpperLimb, LowerLimb, Hip) basado en los HumanBodyBones detectados en bone mappings
+- **ClothingEntry.DetermineStitchZone()**: Metodo estatico que analiza bone mappings para auto-clasificar la zona corporal de cada prenda
+- **ClothingEntry.IsWig**: Campo para marcar prendas identificadas como pelucas por WigDetector
+- **TextureGroupType.Wig**: Nuevo tipo de grupo de texturas para separar pelucas del Avatar Base en MRPesoTexturas
+- **MRPesoTexturas.IncludeWigs**: Toggle para incluir/excluir texturas de pelucas en el escaneo
+- **ScanWigs()**: MRPesoTexturasEditor ahora escanea pelucas via WigDetector y crea grupos separados, excluyendolas del Avatar Base y ropas
+- **Zona en UI de CoserRopa**: La lista de ropas muestra la zona de cosido y las pelucas se resaltan en magenta
+- **Localizacion**: 17 nuevas keys en 6 idiomas para zonas de cosido y pelucas en PesoTexturas
+
+### Corregido
+- **Pelucas con MA BoneProxy no detectadas**: La deteccion de MA ahora se ejecuta ANTES del chequeo de huesos humanoid, permitiendo que pelucas con huesos no-humanoid (hair_001, etc.) pasen si tienen MA configurado
+- **Solo MergeArmature marcaba HasModularAvatar**: Ahora cualquier componente MA (incluyendo BoneProxy) marca la prenda como gestionada por MA
+- **Segundo pase de deteccion MA**: Nuevo metodo DetectMAFilteredChildren() detecta hijos directos del avatar con MA cuyos huesos SMR apuntan al armature del avatar (filtrados por el loop principal)
+- **Umbral de huesos humanoid**: Reducido de 3 a 1 para detectar pelucas y accesorios con pocos huesos
+
 ## [0.8.48] - 2026-02-20
 
 ### Corregido

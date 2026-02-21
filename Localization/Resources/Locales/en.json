@@ -289,7 +289,21 @@
         "ndmfEnabledInfo": "MR: {0} clothing(s) ready - {1} bones",
         "ndmfDisabledInfo": "The merge will run automatically when:",
         "ndmfScope": "  - Entering Play Mode\n  - Uploading avatar to VRChat",
-        "ndmfSceneSafe": "Enabled clothing items have no valid bone mappings.\nVerify that clothing has armature with humanoid bones."
+        "ndmfSceneSafe": "Enabled clothing items have no valid bone mappings.\nVerify that clothing has armature with humanoid bones.",
+        "zoneFullBody": "Full Body",
+        "zoneTorso": "Torso",
+        "zoneHead": "Head",
+        "zoneUpperLimb": "Arms/Hands",
+        "zoneLowerLimb": "Legs/Feet",
+        "zoneHip": "Hip",
+        "zoneFullBodyShort": "Body",
+        "zoneTorsoShort": "Torso",
+        "zoneHeadShort": "Head",
+        "zoneUpperLimbShort": "Hands",
+        "zoneLowerLimbShort": "Feet",
+        "zoneHipShort": "Hip",
+        "zoneLabel": "Zone: {0}",
+        "zoneWigLabel": "Wig - Zone: {0}"
     },
     "unifyMaterial": {
         "header": "MR Unify Materials",
@@ -610,7 +624,10 @@
         "restoreGroupTooltip": "Restore original resolutions for this group",
         "stepDownTooltip": "Reduce resolutions for this group by one step",
         "confirmRestoreGroup": "Restore original resolutions for this group?",
-        "confirmReduceGroup": "Reduce resolutions for this group by one step?"
+        "confirmReduceGroup": "Reduce resolutions for this group by one step?",
+        "includeWigs": "Include Wigs",
+        "includeWigsTooltip": "Include detected wig textures",
+        "wig": "Wig"
     },
     "organizaPB": {
         "title": "MR Organize PhysBones",

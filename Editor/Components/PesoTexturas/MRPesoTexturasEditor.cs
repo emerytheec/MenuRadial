@@ -5,6 +5,8 @@ using UnityEditor;
 using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using Bender_Dios.MenuRadial.Components.PesoTexturas.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
+using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 using Bender_Dios.MenuRadial.Components.AlternativeMaterial;
 using Bender_Dios.MenuRadial.Components.UnifyMaterial;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
@@ -165,6 +167,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             {
                 Undo.RecordObject(_target, "Toggle Incluir Mat. Alternativos");
                 _target.IncludeAlternativeMaterials = newIncludeAltMaterials;
+                EditorUtility.SetDirty(_target);
+            }
+
+            // Incluir pelucas
+            EditorGUI.BeginChangeCheck();
+            bool newIncludeWigs = EditorGUILayout.Toggle(
+                new GUIContent(MRLocalization.Get(L.PesoTexturas.INCLUDE_WIGS), MRLocalization.Get(L.PesoTexturas.INCLUDE_WIGS_TOOLTIP)),
+                _target.IncludeWigs);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_target, "Toggle Incluir Pelucas");
+                _target.IncludeWigs = newIncludeWigs;
                 EditorUtility.SetDirty(_target);
             }
 
@@ -599,6 +613,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 TextureGroupType.AvatarBase => MRLocalization.Get(L.PesoTexturas.AVATAR_BASE),
                 TextureGroupType.Clothing => MRLocalization.Get(L.PesoTexturas.CLOTHING),
                 TextureGroupType.AlternativeMaterials => MRLocalization.Get(L.PesoTexturas.ALT_MATERIALS),
+                TextureGroupType.Wig => MRLocalization.Get(L.PesoTexturas.WIG),
                 _ => MRLocalization.Get(L.MenuRadialEditor.UNKNOWN)
             };
             EditorGUILayout.LabelField(MRLocalization.Get(L.PesoTexturas.TYPE_LABEL, typeLabel), EditorStyles.miniLabel);
@@ -740,6 +755,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             _target.ClearScanResults();
 
             var processedPaths = new HashSet<string>();
+            var wigRoots = new HashSet<GameObject>();
 
             // Obtener los GUIDs de materiales referenciados en las animaciones
             // Solo las texturas de estos materiales se incluiran en el build de VRChat
@@ -749,20 +765,26 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 referencedMaterialGuids = AnimationMaterialAnalyzer.GetReferencedMaterialGuids(_target.AvatarRoot);
             }
 
-            // Escanear avatar base
+            // Escanear pelucas primero (para excluirlas del base y ropas)
+            if (_target.IncludeWigs)
+            {
+                ScanWigs(processedPaths, wigRoots);
+            }
+
+            // Escanear avatar base (excluyendo pelucas)
             if (_target.IncludeAvatarBase)
             {
-                var avatarGroup = ScanAvatarBase(processedPaths, referencedMaterialGuids);
+                var avatarGroup = ScanAvatarBase(processedPaths, referencedMaterialGuids, wigRoots);
                 if (avatarGroup != null && avatarGroup.TextureCount > 0)
                 {
                     _target.AddTextureGroup(avatarGroup);
                 }
             }
 
-            // Escanear ropas (incluye materiales alternativos si esta habilitado)
+            // Escanear ropas (excluyendo pelucas, incluye materiales alternativos si esta habilitado)
             if (_target.IncludeClothing)
             {
-                ScanClothings(processedPaths, referencedMaterialGuids);
+                ScanClothings(processedPaths, referencedMaterialGuids, wigRoots);
             }
 
             // Escanear otros assets (meshes, animaciones, materiales, audio)
@@ -774,6 +796,53 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             Debug.Log($"[MRPesoTexturas] Escaneo completado: {_target.TotalTextureCount} texturas ({_target.TotalSizeLabel}), " +
                       $"Otros assets: {_target.TotalNonTextureSizeLabel}, " +
                       $"Total Bundle: {_target.TotalBundleSizeLabel}");
+        }
+
+        /// <summary>
+        /// Escanea texturas de pelucas detectadas por WigDetector.
+        /// Llena wigRoots para que sean excluidas del avatar base y ropas.
+        /// </summary>
+        private void ScanWigs(HashSet<string> processedPaths, HashSet<GameObject> wigRoots)
+        {
+            var coserRopa = _target.AvatarRoot.GetComponentInChildren<MRCoserRopa>();
+            List<ClothingEntry> clothings = coserRopa?.DetectedClothings;
+
+            var wigs = WigDetector.DetectWigs(_target.AvatarRoot, clothings);
+
+            foreach (var wig in wigs)
+            {
+                if (wig.Root != null)
+                    wigRoots.Add(wig.Root);
+
+                var group = new TextureGroupEntry(
+                    wig.Name,
+                    wig.Root,
+                    TextureGroupType.Wig);
+
+                // Escanear texturas solo de los meshes de la peluca
+                if (wig.Meshes != null)
+                {
+                    foreach (var smr in wig.Meshes)
+                    {
+                        if (smr == null)
+                            continue;
+
+                        var materials = smr.sharedMaterials;
+                        if (materials == null)
+                            continue;
+
+                        foreach (var material in materials)
+                        {
+                            ScanMaterialForGroup(material, group, processedPaths);
+                        }
+                    }
+                }
+
+                if (group.TextureCount > 0)
+                {
+                    _target.AddTextureGroup(group);
+                }
+            }
         }
 
         /// <summary>
@@ -804,7 +873,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             _target.AudioSize = assetResult.Audio.TotalSize;
         }
 
-        private TextureGroupEntry ScanAvatarBase(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids)
+        private TextureGroupEntry ScanAvatarBase(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids, HashSet<GameObject> wigRoots)
         {
             var group = new TextureGroupEntry(
                 _target.AvatarRoot.name,
@@ -823,6 +892,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     {
                         clothingObjects.Add(clothing.GameObject);
                     }
+                }
+            }
+
+            // Agregar pelucas al set de exclusion
+            if (wigRoots != null)
+            {
+                foreach (var wigRoot in wigRoots)
+                {
+                    clothingObjects.Add(wigRoot);
                 }
             }
 
@@ -943,7 +1021,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             return false;
         }
 
-        private void ScanClothings(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids)
+        private void ScanClothings(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids, HashSet<GameObject> wigRoots)
         {
             var coserRopa = _target.AvatarRoot.GetComponentInChildren<MRCoserRopa>();
             if (coserRopa == null)
@@ -955,6 +1033,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             foreach (var clothing in coserRopa.DetectedClothings)
             {
                 if (clothing.GameObject == null)
+                    continue;
+
+                // Saltar ropas que son pelucas (ya escaneadas en ScanWigs)
+                if (wigRoots != null && wigRoots.Contains(clothing.GameObject))
                     continue;
 
                 var group = new TextureGroupEntry(

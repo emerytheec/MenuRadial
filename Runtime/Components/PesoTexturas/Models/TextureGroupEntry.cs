@@ -23,7 +23,12 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas.Models
         /// <summary>
         /// Texturas de materiales alternativos (MRUnificarMateriales/MRAgruparMateriales)
         /// </summary>
-        AlternativeMaterials
+        AlternativeMaterials,
+
+        /// <summary>
+        /// Texturas de pelucas detectadas por WigDetector
+        /// </summary>
+        Wig
     }
 
     /// <summary>

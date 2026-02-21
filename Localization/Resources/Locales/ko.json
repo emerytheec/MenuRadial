@@ -289,7 +289,21 @@
         "ndmfEnabledInfo": "MR: {0}개 의상 준비 완료 - {1}개 본",
         "ndmfDisabledInfo": "병합은 다음 시점에 자동으로 실행됩니다:",
         "ndmfScope": "  - Play 모드 진입 시\n  - 아바타를 VRChat에 업로드 시",
-        "ndmfSceneSafe": "활성화된 의상에 유효한 본 매핑이 없습니다.\n의상에 Humanoid 본이 포함된 아마추어가 있는지 확인하세요."
+        "ndmfSceneSafe": "활성화된 의상에 유효한 본 매핑이 없습니다.\n의상에 Humanoid 본이 포함된 아마추어가 있는지 확인하세요.",
+        "zoneFullBody": "전신",
+        "zoneTorso": "몸통",
+        "zoneHead": "머리",
+        "zoneUpperLimb": "팔/손",
+        "zoneLowerLimb": "다리/발",
+        "zoneHip": "엉덩이",
+        "zoneFullBodyShort": "전신",
+        "zoneTorsoShort": "몸통",
+        "zoneHeadShort": "머리",
+        "zoneUpperLimbShort": "손",
+        "zoneLowerLimbShort": "발",
+        "zoneHipShort": "엉덩이",
+        "zoneLabel": "영역: {0}",
+        "zoneWigLabel": "가발 - 영역: {0}"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",
@@ -610,7 +624,10 @@
         "restoreGroupTooltip": "이 그룹의 원래 해상도를 복원합니다",
         "stepDownTooltip": "이 그룹의 해상도를 한 단계 줄입니다",
         "confirmRestoreGroup": "이 그룹의 원래 해상도를 복원하시겠습니까?",
-        "confirmReduceGroup": "이 그룹의 해상도를 한 단계 줄이시겠습니까?"
+        "confirmReduceGroup": "이 그룹의 해상도를 한 단계 줄이시겠습니까?",
+        "includeWigs": "가발 포함",
+        "includeWigsTooltip": "감지된 가발 텍스처 포함",
+        "wig": "가발"
     },
     "organizaPB": {
         "title": "MR Organiza PhysBones",

@@ -568,6 +568,9 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string STEP_DOWN_TOOLTIP = "pesoTexturas.stepDownTooltip";
             public const string CONFIRM_RESTORE_GROUP = "pesoTexturas.confirmRestoreGroup";
             public const string CONFIRM_REDUCE_GROUP = "pesoTexturas.confirmReduceGroup";
+            public const string INCLUDE_WIGS = "pesoTexturas.includeWigs";
+            public const string INCLUDE_WIGS_TOOLTIP = "pesoTexturas.includeWigsTooltip";
+            public const string WIG = "pesoTexturas.wig";
         }
 
         /// <summary>
@@ -790,6 +793,22 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string NDMF_DISABLED_INFO = "coserRopa.ndmfDisabledInfo";
             public const string NDMF_SCOPE = "coserRopa.ndmfScope";
             public const string NDMF_SCENE_SAFE = "coserRopa.ndmfSceneSafe";
+
+            // StitchZone labels
+            public const string ZONE_FULL_BODY = "coserRopa.zoneFullBody";
+            public const string ZONE_TORSO = "coserRopa.zoneTorso";
+            public const string ZONE_HEAD = "coserRopa.zoneHead";
+            public const string ZONE_UPPER_LIMB = "coserRopa.zoneUpperLimb";
+            public const string ZONE_LOWER_LIMB = "coserRopa.zoneLowerLimb";
+            public const string ZONE_HIP = "coserRopa.zoneHip";
+            public const string ZONE_FULL_BODY_SHORT = "coserRopa.zoneFullBodyShort";
+            public const string ZONE_TORSO_SHORT = "coserRopa.zoneTorsoShort";
+            public const string ZONE_HEAD_SHORT = "coserRopa.zoneHeadShort";
+            public const string ZONE_UPPER_LIMB_SHORT = "coserRopa.zoneUpperLimbShort";
+            public const string ZONE_LOWER_LIMB_SHORT = "coserRopa.zoneLowerLimbShort";
+            public const string ZONE_HIP_SHORT = "coserRopa.zoneHipShort";
+            public const string ZONE_LABEL = "coserRopa.zoneLabel";
+            public const string ZONE_WIG_LABEL = "coserRopa.zoneWigLabel";
         }
     }
 }

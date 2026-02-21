@@ -923,6 +923,9 @@ namespace Bender_Dios.MenuRadial.Localization
             public string stepDownTooltip;
             public string confirmRestoreGroup;
             public string confirmReduceGroup;
+            public string includeWigs;
+            public string includeWigsTooltip;
+            public string wig;
 
             // OrganizaPB
             public string sdkLabel;
@@ -1088,6 +1091,22 @@ namespace Bender_Dios.MenuRadial.Localization
             public string ndmfDisabledInfo;
             public string ndmfScope;
             public string ndmfSceneSafe;
+
+            // StitchZone
+            public string zoneFullBody;
+            public string zoneTorso;
+            public string zoneHead;
+            public string zoneUpperLimb;
+            public string zoneLowerLimb;
+            public string zoneHip;
+            public string zoneFullBodyShort;
+            public string zoneTorsoShort;
+            public string zoneHeadShort;
+            public string zoneUpperLimbShort;
+            public string zoneLowerLimbShort;
+            public string zoneHipShort;
+            public string zoneLabel;
+            public string zoneWigLabel;
         }
 
         #endregion

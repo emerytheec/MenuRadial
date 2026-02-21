@@ -289,7 +289,21 @@
         "ndmfEnabledInfo": "MR: {0} 着の衣装が準備完了 - {1} ボーン",
         "ndmfDisabledInfo": "マージは以下の時に自動実行されます:",
         "ndmfScope": "  - Play Modeに入る時\n  - VRChatにアバターをアップロードする時",
-        "ndmfSceneSafe": "有効な衣装に有効なボーンマッピングがありません。\n衣装にHumanoidボーンを持つアーマチュアがあることを確認してください。"
+        "ndmfSceneSafe": "有効な衣装に有効なボーンマッピングがありません。\n衣装にHumanoidボーンを持つアーマチュアがあることを確認してください。",
+        "zoneFullBody": "全身",
+        "zoneTorso": "胴体",
+        "zoneHead": "頭部",
+        "zoneUpperLimb": "腕/手",
+        "zoneLowerLimb": "脚/足",
+        "zoneHip": "腰",
+        "zoneFullBodyShort": "全身",
+        "zoneTorsoShort": "胴体",
+        "zoneHeadShort": "頭部",
+        "zoneUpperLimbShort": "手",
+        "zoneLowerLimbShort": "足",
+        "zoneHipShort": "腰",
+        "zoneLabel": "ゾーン: {0}",
+        "zoneWigLabel": "ウィッグ - ゾーン: {0}"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",
@@ -610,7 +624,10 @@
         "restoreGroupTooltip": "このグループの元の解像度を復元",
         "stepDownTooltip": "このグループの解像度を1段階縮小",
         "confirmRestoreGroup": "このグループの元の解像度を復元しますか？",
-        "confirmReduceGroup": "このグループの解像度を1段階縮小しますか？"
+        "confirmReduceGroup": "このグループの解像度を1段階縮小しますか？",
+        "includeWigs": "ウィッグを含む",
+        "includeWigsTooltip": "検出されたウィッグのテクスチャを含む",
+        "wig": "ウィッグ"
     },
     "organizaPB": {
         "title": "MR Organiza PhysBones",

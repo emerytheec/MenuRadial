@@ -5,6 +5,7 @@ using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 // Detector de Modular Avatar para prioridad de cosido
 
@@ -412,10 +413,14 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
             {
                 var candidate = kvp.Value;
 
-                // Verificar que tenga huesos humanoid
-                if (!HasHumanoidBones(candidate))
+                // Detectar si tiene Modular Avatar configurado (antes del chequeo de huesos,
+                // porque pelucas con MA BoneProxy pueden no tener huesos humanoid)
+                var maResult = ModularAvatarDetector.Instance.DetectModularAvatar(candidate.Root);
+
+                // Verificar que tenga huesos humanoid O tenga MA configurado
+                if (!HasHumanoidBones(candidate) && !maResult.HasModularAvatar)
                 {
-                    Debug.Log($"[MRCoserRopa] '{candidate.Root.name}' descartado: no tiene huesos humanoid");
+                    Debug.Log($"[MRCoserRopa] '{candidate.Root.name}' descartado: no tiene huesos humanoid ni Modular Avatar");
                     continue;
                 }
 
@@ -428,9 +433,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                     Enabled = true
                 };
 
-                // Detectar si tiene Modular Avatar configurado
-                var maResult = ModularAvatarDetector.Instance.DetectModularAvatar(candidate.Root);
-                if (maResult.HasMergeArmature)
+                // Marcar como MA si tiene MergeArmature o BoneProxy
+                if (maResult.HasModularAvatar)
                 {
                     entry.HasModularAvatar = true;
                     entry.ModularAvatarComponentType = maResult.PrimaryComponent;
@@ -446,6 +450,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
 
                 // Detectar mapeos de huesos
                 DetectBoneMappingsForClothing(entry);
+
+                // Clasificar zona de cosido
+                entry.StitchZone = ClothingEntry.DetermineStitchZone(entry.BoneMappings);
 
                 // Solo agregar si tiene mapeos validos O si tiene MA (para mostrar en la lista)
                 if (entry.MappedBoneCount > 0 || entry.HasModularAvatar)
@@ -469,10 +476,101 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 }
             }
 
+            // Segundo pase: detectar hijos directos con Modular Avatar que fueron filtrados
+            // (e.g., pelucas con MA BoneProxy cuyos huesos SMR apuntan al armature del avatar)
+            DetectMAFilteredChildren(clothingCandidates);
+
             Debug.Log($"[MRCoserRopa] Total: {_detectedClothings.Count} ropas detectadas");
+
+            // Cross-referenciar con WigDetector para marcar pelucas
+            CrossReferenceWigs();
 
             // Configurar visibilidad por defecto: roots activos, meshes desactivados
             SetDefaultClothingVisibility();
+        }
+
+        /// <summary>
+        /// Segundo pase de deteccion: busca hijos directos del avatar con Modular Avatar
+        /// que fueron filtrados por el loop principal de SMR.
+        /// Esto ocurre cuando pelucas/accesorios usan MA BoneProxy y sus huesos SMR
+        /// apuntan al armature del avatar en vez de tener armature propio.
+        /// </summary>
+        private void DetectMAFilteredChildren(Dictionary<GameObject, ClothingCandidate> clothingCandidates)
+        {
+            if (!ModularAvatarDetector.Instance.IsModularAvatarAvailable)
+                return;
+
+            // Recopilar GameObjects ya detectados (solo los que SÍ se agregaron a la lista)
+            var alreadyDetected = new HashSet<GameObject>();
+            foreach (var clothing in _detectedClothings)
+            {
+                if (clothing.GameObject != null)
+                    alreadyDetected.Add(clothing.GameObject);
+            }
+
+            // Iterar hijos directos del avatar
+            for (int i = 0; i < _avatarRoot.transform.childCount; i++)
+            {
+                var child = _avatarRoot.transform.GetChild(i);
+                if (child == null) continue;
+
+                // Saltar el armature del avatar
+                if (_avatarReference != null && child == _avatarReference.ArmatureRoot)
+                    continue;
+
+                // Saltar si ya fue detectado
+                if (alreadyDetected.Contains(child.gameObject))
+                    continue;
+
+                // Verificar si tiene componentes de Modular Avatar
+                var maResult = ModularAvatarDetector.Instance.DetectModularAvatar(child.gameObject);
+                if (!maResult.HasModularAvatar)
+                    continue;
+
+                // Crear entry para este item con MA
+                // El constructor de ClothingEntry ya crea ArmatureReference internamente
+                var entry = new ClothingEntry(child.gameObject)
+                {
+                    Enabled = true,
+                    HasModularAvatar = true,
+                    ModularAvatarComponentType = maResult.PrimaryComponent
+                };
+
+                // Detectar si tiene MA Shape Changer
+                if (maResult.HasShapeChanger || maResult.HasBlendshapeControl)
+                {
+                    entry.HasMAShapeChanger = true;
+                }
+
+                // Intentar detectar mapeos de huesos (puede no encontrar si usa BoneProxy)
+                DetectBoneMappingsForClothing(entry);
+
+                // Clasificar zona de cosido
+                entry.StitchZone = ClothingEntry.DetermineStitchZone(entry.BoneMappings);
+
+                _detectedClothings.Add(entry);
+                Debug.Log($"[MRCoserRopa] Ropa detectada (2do pase MA): '{child.name}' ({maResult.PrimaryComponent})");
+            }
+        }
+
+        /// <summary>
+        /// Cross-referencia las ropas detectadas con WigDetector para marcar pelucas.
+        /// </summary>
+        private void CrossReferenceWigs()
+        {
+            if (_avatarRoot == null || _detectedClothings.Count == 0)
+                return;
+
+            var wigs = WigDetector.DetectWigs(_avatarRoot, _detectedClothings);
+
+            foreach (var wig in wigs)
+            {
+                if (wig.ClothingEntryIndex >= 0 && wig.ClothingEntryIndex < _detectedClothings.Count)
+                {
+                    _detectedClothings[wig.ClothingEntryIndex].IsWig = true;
+                    Debug.Log($"[MRCoserRopa] '{_detectedClothings[wig.ClothingEntryIndex].Name}' marcada como peluca (score={wig.Score})");
+                }
+            }
         }
 
         /// <summary>
@@ -635,8 +733,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 }
             }
 
-            // Requerir al menos 3 huesos humanoid para considerarlo ropa valida
-            return humanoidCount >= 3;
+            // Requerir al menos 1 hueso humanoid para considerarlo ropa valida
+            // (pelucas y accesorios tienen pocos huesos: Head, Neck, etc.)
+            return humanoidCount >= 1;
         }
 
         /// <summary>
@@ -662,6 +761,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 clothing.ArmatureReference,
                 clothing.BonePrefix,
                 clothing.BoneSuffix);
+
+            // Recalcular zona de cosido
+            clothing.StitchZone = ClothingEntry.DetermineStitchZone(clothing.BoneMappings);
         }
 
         /// <summary>

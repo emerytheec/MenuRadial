@@ -289,7 +289,21 @@
         "ndmfEnabledInfo": "MR: {0} 件服装就绪 - {1} 个骨骼",
         "ndmfDisabledInfo": "合并将在以下时间自动运行:",
         "ndmfScope": "  - 进入 Play 模式时\n  - 上传模型到 VRChat 时",
-        "ndmfSceneSafe": "已启用的服装没有有效的骨骼映射。\n请验证服装是否具有含 Humanoid 骨骼的骨架。"
+        "ndmfSceneSafe": "已启用的服装没有有效的骨骼映射。\n请验证服装是否具有含 Humanoid 骨骼的骨架。",
+        "zoneFullBody": "全身",
+        "zoneTorso": "躯干",
+        "zoneHead": "头部",
+        "zoneUpperLimb": "手臂/手",
+        "zoneLowerLimb": "腿/脚",
+        "zoneHip": "臀部",
+        "zoneFullBodyShort": "全身",
+        "zoneTorsoShort": "躯干",
+        "zoneHeadShort": "头部",
+        "zoneUpperLimbShort": "手",
+        "zoneLowerLimbShort": "脚",
+        "zoneHipShort": "臀部",
+        "zoneLabel": "区域: {0}",
+        "zoneWigLabel": "假发 - 区域: {0}"
     },
     "unifyMaterial": {
         "header": "MR 统一材质",
@@ -610,7 +624,10 @@
         "restoreGroupTooltip": "恢复此分组的原始分辨率",
         "stepDownTooltip": "将此分组的分辨率降低一级",
         "confirmRestoreGroup": "是否恢复此分组的原始分辨率？",
-        "confirmReduceGroup": "是否将此分组的分辨率降低一级？"
+        "confirmReduceGroup": "是否将此分组的分辨率降低一级？",
+        "includeWigs": "包含假发",
+        "includeWigsTooltip": "包含检测到的假发纹理",
+        "wig": "假发"
     },
     "organizaPB": {
         "title": "MR 整理 PhysBones",

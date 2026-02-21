@@ -40,6 +40,10 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         [Tooltip("Incluir texturas de materiales alternativos (MRUnificarMateriales, MRAgruparMateriales)")]
         private bool _includeAlternativeMaterials = true;
 
+        [SerializeField]
+        [Tooltip("Incluir texturas de pelucas detectadas")]
+        private bool _includeWigs = true;
+
         [Header("Grupos de Texturas")]
         [SerializeField]
         private List<TextureGroupEntry> _textureGroups = new List<TextureGroupEntry>();
@@ -124,6 +128,15 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         {
             get => _includeAlternativeMaterials;
             set => _includeAlternativeMaterials = value;
+        }
+
+        /// <summary>
+        /// Incluir texturas de pelucas detectadas
+        /// </summary>
+        public bool IncludeWigs
+        {
+            get => _includeWigs;
+            set => _includeWigs = value;
         }
 
         /// <summary>
