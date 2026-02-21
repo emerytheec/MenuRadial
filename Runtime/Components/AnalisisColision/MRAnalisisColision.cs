@@ -419,10 +419,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             int count = 0;
             foreach (var entry in _scanResult.GetProblematicOnClothingRoot())
             {
-                if (entry.Disable())
+                if (entry.Destroy())
                 {
                     count++;
-                    Debug.Log($"[MRAnalisisColision] Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}'");
+                    Debug.Log($"[MRAnalisisColision] Eliminado {entry.ShortTypeName} en '{entry.GameObjectName}'");
                 }
             }
 
@@ -448,7 +448,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             int count = 0;
             foreach (var entry in _scanResult.ProblematicEntries)
             {
-                if (entry.IsValid && entry.IsEnabled && entry.Disable())
+                if (entry.IsValid && entry.IsEnabled && entry.Destroy())
                 {
                     count++;
                 }
@@ -478,10 +478,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 // Verificar si es un componente critico Y esta en raiz de ropa
                 if (IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnClothingRoot)
                 {
-                    if (entry.Disable())
+                    if (entry.Destroy())
                     {
                         count++;
-                        Debug.Log($"[MRAnalisisColision] Desactivado (critico) {entry.ShortTypeName} en '{entry.GameObjectName}'");
+                        Debug.Log($"[MRAnalisisColision] Eliminado (critico) {entry.ShortTypeName} en '{entry.GameObjectName}'");
                     }
                 }
             }
@@ -526,7 +526,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             int count = 0;
             foreach (var entry in _scanResult.GetUserDecisionToDisable())
             {
-                if (entry.Disable())
+                if (entry.Destroy())
                 {
                     count++;
                 }
@@ -536,9 +536,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Desactiva los componentes problematicos que el usuario marco para desactivar.
+        /// Destruye los componentes problematicos que el usuario marco para desactivar.
         /// </summary>
-        /// <returns>Cantidad de componentes desactivados.</returns>
+        /// <returns>Cantidad de componentes destruidos.</returns>
         public int DisableUserSelectedProblematic()
         {
             if (_scanResult == null || !_scanResult.HasProblematic)
@@ -547,7 +547,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             int count = 0;
             foreach (var entry in _scanResult.GetProblematicToDisable())
             {
-                if (entry.Disable())
+                if (entry.Destroy())
                 {
                     count++;
                 }
@@ -822,10 +822,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 if (!IsMenuComponent(entry.ComponentTypeName))
                     continue;
 
-                // Desactivar en Edit Mode
+                // Destruir en Edit Mode
                 if (entry.IsEnabled)
                 {
-                    entry.Disable();
+                    entry.Destroy();
                 }
 
                 // Marcar para destrucción en NDMF (UserWantsDisabled = true significa "desactivar/destruir")

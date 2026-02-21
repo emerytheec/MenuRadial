@@ -47,6 +47,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
             // Solo mostrar el resto si hay avatar
             if (_target.AvatarRoot != null)
             {
+                // Eliminar MA Mesh Settings automaticamente si existen
+                AutoDestroyMAMeshSettings();
+
                 EditorGUILayout.Space(8);
 
                 // Configuracion
@@ -79,8 +82,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
                 EditorGUILayout.Space(8);
 
-                // Advertencia de MA Mesh Settings
-                DrawMAMeshSettingsWarning();
+                // Info de MA Mesh Settings eliminados
+                DrawMAMeshSettingsInfo();
 
                 EditorGUILayout.Space(8);
 
@@ -769,33 +772,41 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
         #endregion
 
-        #region MA Mesh Settings Warning
+        #region MA Mesh Settings
 
-        private void DrawMAMeshSettingsWarning()
+        /// <summary>
+        /// Contador de MA Mesh Settings eliminados en la ultima accion.
+        /// Se muestra como info en el inspector.
+        /// </summary>
+        [System.NonSerialized] private int _lastMAMeshSettingsDestroyed;
+
+        /// <summary>
+        /// Detecta y elimina MA Mesh Settings automaticamente.
+        /// Se llama cada vez que se dibuja el inspector con avatar asignado.
+        /// </summary>
+        private void AutoDestroyMAMeshSettings()
         {
-            if (_target.AvatarRoot == null)
-                return;
+            if (_target.AvatarRoot == null) return;
+            if (!ModularAvatarDetector.Instance.HasMeshSettings(_target.AvatarRoot)) return;
 
-            // Verificar si hay MA Mesh Settings en el avatar
-            bool hasMAMeshSettings = ModularAvatarDetector.Instance.HasMeshSettings(_target.AvatarRoot);
+            _lastMAMeshSettingsDestroyed = ModularAvatarDetector.Instance.DestroyMeshSettingsComponents(_target.AvatarRoot);
+        }
 
-            if (hasMAMeshSettings)
+        private void DrawMAMeshSettingsInfo()
+        {
+            if (_lastMAMeshSettingsDestroyed > 0)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = new Color(0.4f, 0.7f, 1f); // Azul MA
-                EditorGUILayout.LabelField("[MA] Modular Avatar Mesh Settings detectado", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("MA Mesh Settings eliminados", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
-                    "Se han encontrado componentes MA Mesh Settings en el avatar.\n" +
-                    "Pueden entrar en conflicto con MRAjustarBounds.\n" +
-                    "Considera desactivarlos manualmente si usas este componente.",
+                    $"Se eliminaron {_lastMAMeshSettingsDestroyed} componente(s) MA Mesh Settings.\n" +
+                    "MR Ajustar Bounds recalcula los bounds desde cero,\n" +
+                    "MA Mesh Settings interfiere con este calculo.",
                     EditorStyles.wordWrappedMiniLabel);
-
-                // Contar componentes
-                var components = ModularAvatarDetector.Instance.GetMeshSettingsComponents(_target.AvatarRoot);
-                EditorGUILayout.LabelField($"Componentes detectados: {components.Length}", EditorStyles.miniLabel);
 
                 EditorGUILayout.EndVertical();
             }

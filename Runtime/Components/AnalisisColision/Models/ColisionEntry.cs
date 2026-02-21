@@ -248,6 +248,28 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         }
 
         /// <summary>
+        /// Destruye el componente de la escena.
+        /// Soporta Undo en Editor para revertir con Ctrl+Z.
+        /// </summary>
+        /// <returns>True si se destruyo exitosamente.</returns>
+        public bool Destroy()
+        {
+            if (_component == null) return false;
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.Undo.DestroyObjectImmediate(_component);
+            else
+                UnityEngine.Object.DestroyImmediate(_component);
+#else
+            UnityEngine.Object.DestroyImmediate(_component);
+#endif
+
+            _component = null;
+            return true;
+        }
+
+        /// <summary>
         /// Restaura el componente a su estado original.
         /// </summary>
         /// <returns>True si se restauro exitosamente.</returns>

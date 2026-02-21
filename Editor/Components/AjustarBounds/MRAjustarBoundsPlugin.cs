@@ -7,6 +7,7 @@ using nadena.dev.ndmf;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.AjustarBounds.Controllers;
 using Bender_Dios.MenuRadial.Components.AjustarBounds.Models;
+using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.AjustarBounds.MRAjustarBoundsPlugin))]
 
@@ -70,6 +71,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
         private void ProcessBounds(MRAjustarBounds ajustarBounds, GameObject avatarRoot)
         {
+            // Eliminar MA Mesh Settings del clon (interfieren con bounds)
+            int destroyed = ModularAvatarDetector.Instance.DestroyMeshSettingsComponents(avatarRoot);
+            if (destroyed > 0)
+                Debug.Log($"[MRAjustarBounds NDMF] Eliminados {destroyed} MA Mesh Settings del clon");
+
             var calculator = new BoundsCalculator();
 
             // Detectar rootBone (Hips) en el clon

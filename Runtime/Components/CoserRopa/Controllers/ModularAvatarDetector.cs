@@ -61,7 +61,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             // ShapeChanger removido: no causa conflictos reales con MR, MA lo procesa correctamente
             "ModularAvatarVertexFilter",        // Filtra vertices por eje
             "VertexFilterByAxisComponent",      // Filtro de vertices por eje (nombre real)
-            "ModularAvatarBlendshapeSync"       // Sincroniza blendshapes en Edit Mode (afecta al body)
+            "ModularAvatarBlendshapeSync",      // Sincroniza blendshapes en Edit Mode (afecta al body)
+            "ModularAvatarBoneProxy"            // Re-emparenta todo el objeto, interfiere con MRCoserRopa
         };
 
         /// <summary>
@@ -75,8 +76,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             "ModularAvatarParameters",          // Parametros VRChat
             "ModularAvatarMenuInstaller",       // Instalador de menus
             "ModularAvatarMenuGroup",           // Grupo de menu
-            "ModularAvatarMenuItem",            // Item de menu
-            "ModularAvatarBoneProxy"            // Proxy de huesos
+            "ModularAvatarMenuItem"             // Item de menu
         };
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         public static readonly string[] MA_COMPATIBLE = new[]
         {
             "ModularAvatarMergeArmature",       // MRCoserRopa lo respeta
-            "ModularAvatarMeshSettings"         // MRAjustarBounds lo desactiva por defecto
+            "ModularAvatarMeshSettings"         // MRAjustarBounds lo elimina al escanear
         };
 
         /// <summary>
@@ -421,22 +421,31 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         }
 
         /// <summary>
-        /// Desactiva todos los componentes MA Mesh Settings en un GameObject.
-        /// Retorna la cantidad de componentes desactivados.
+        /// Destruye todos los componentes MA Mesh Settings en un GameObject.
+        /// Retorna la cantidad de componentes destruidos.
+        /// Usar desde Editor con Undo para que sea reversible (Ctrl+Z).
         /// </summary>
-        public int DisableMeshSettingsComponents(GameObject gameObject)
+        public int DestroyMeshSettingsComponents(GameObject gameObject)
         {
             var components = GetMeshSettingsComponents(gameObject);
             int count = 0;
 
             foreach (var component in components)
             {
-                if (component is MonoBehaviour mb && mb.enabled)
-                {
-                    mb.enabled = false;
-                    count++;
-                    Debug.Log($"[ModularAvatarDetector] Desactivado MA Mesh Settings en '{component.gameObject.name}'");
-                }
+                if (component == null) continue;
+
+                Debug.Log($"[ModularAvatarDetector] Eliminado MA Mesh Settings en '{component.gameObject.name}'");
+
+                #if UNITY_EDITOR
+                if (UnityEditor.Undo.isProcessing)
+                    UnityEngine.Object.DestroyImmediate(component);
+                else
+                    UnityEditor.Undo.DestroyObjectImmediate(component);
+                #else
+                UnityEngine.Object.DestroyImmediate(component);
+                #endif
+
+                count++;
             }
 
             return count;
