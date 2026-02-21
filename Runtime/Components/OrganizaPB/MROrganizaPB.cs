@@ -467,7 +467,9 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         #region Private Methods
 
         /// <summary>
-        /// Obtiene armatures conocidas de MRCoserRopa si está disponible.
+        /// Obtiene armatures conocidas de MRCoserRopa y pelucas de WigDetector.
+        /// Las pelucas sin armature propia (MA BoneProxy) se registran con Armature=null
+        /// para que PhysBoneScanner las maneje con pseudo-armature.
         /// </summary>
         private IReadOnlyList<PhysBoneScanner.KnownArmature> GetKnownArmatures()
         {
@@ -476,22 +478,56 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 ? menuRadial.GetComponentInChildren<MRCoserRopa>()
                 : GetComponentInChildren<MRCoserRopa>();
 
-            if (coserRopa == null || coserRopa.DetectedClothings == null)
-                return null;
-
             var result = new List<PhysBoneScanner.KnownArmature>();
 
-            foreach (var clothing in coserRopa.DetectedClothings)
+            // Agregar armatures de ropas detectadas por MRCoserRopa
+            if (coserRopa != null && coserRopa.DetectedClothings != null)
             {
-                if (!clothing.IsValid) continue;
-                if (clothing.ArmatureReference?.ArmatureRoot == null) continue;
-
-                result.Add(new PhysBoneScanner.KnownArmature
+                foreach (var clothing in coserRopa.DetectedClothings)
                 {
-                    Root = clothing.GameObject,
-                    Armature = clothing.ArmatureReference.ArmatureRoot,
-                    Name = clothing.Name
-                });
+                    if (!clothing.IsValid) continue;
+                    if (clothing.ArmatureReference?.ArmatureRoot == null) continue;
+
+                    result.Add(new PhysBoneScanner.KnownArmature
+                    {
+                        Root = clothing.GameObject,
+                        Armature = clothing.ArmatureReference.ArmatureRoot,
+                        Name = clothing.Name
+                    });
+                }
+            }
+
+            // Agregar pelucas detectadas por WigDetector (Fuente 2: hijos no-ropa)
+            // Esto permite que PhysBoneScanner asigne el contexto correcto a PhysBones
+            // de pelucas no registradas por MRCoserRopa
+            if (_avatarRoot != null)
+            {
+                var wigs = WigDetector.DetectWigs(_avatarRoot, null);
+                foreach (var wig in wigs)
+                {
+                    // Saltar Fuente 3 (pelo del avatar base) — PBs mezclados con avatar
+                    if (wig.Root == _avatarRoot)
+                        continue;
+
+                    // Saltar si ya registrado por MRCoserRopa (misma raíz)
+                    bool alreadyRegistered = false;
+                    foreach (var existing in result)
+                    {
+                        if (existing.Root == wig.Root)
+                        {
+                            alreadyRegistered = true;
+                            break;
+                        }
+                    }
+                    if (alreadyRegistered) continue;
+
+                    result.Add(new PhysBoneScanner.KnownArmature
+                    {
+                        Root = wig.Root,
+                        Armature = wig.ArmatureRoot, // puede ser null (MA BoneProxy)
+                        Name = wig.Name
+                    });
+                }
             }
 
             return result.Count > 0 ? result : null;
