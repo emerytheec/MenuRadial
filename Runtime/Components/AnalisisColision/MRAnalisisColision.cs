@@ -487,7 +487,6 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             }
 
 #if UNITY_EDITOR
-            // Marcar la escena como modificada para que Unity guarde los cambios
             if (count > 0 && !Application.isPlaying)
             {
                 EditorSceneManager.MarkSceneDirty(gameObject.scene);

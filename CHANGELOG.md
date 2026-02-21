@@ -5,11 +5,15 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.8.54] - 2026-02-21
+
+### Corregido
+- **Revertir MA Bone Proxy a UserDecision**: Destruir BoneProxy en raiz causaba que pelucas y accesorios sin huesos humanoid desaparecieran de MRCoserRopa. BoneProxy es el mecanismo de union de estas piezas y no debe tocarse. Vuelve a ser decision del usuario
+
 ## [0.8.53] - 2026-02-21
 
 ### Cambiado
 - **MA Mesh Settings se elimina automaticamente**: MR Ajustar Bounds ahora destruye todos los componentes MA Mesh Settings al detectarlos (al abrir el inspector, escanear, o durante build NDMF). MA Mesh Settings interfiere con el calculo de bounds unificados. La eliminacion soporta Undo (Ctrl+Z)
-- **MA Bone Proxy en raiz de ropa ahora es Problematic**: Reclasificado de UserDecision a Problematic cuando esta en el GameObject raiz de una ropa. Un BoneProxy en la raiz re-emparenta toda la ropa, interfiriendo con MRCoserRopa. En hijos del armature sigue siendo UserDecision
 - **Componentes problematicos ahora se destruyen**: MR Analisis Colision ahora destruye (en vez de solo desactivar) los componentes problematicos y los marcados por el usuario, tanto en Edit Mode como en build NDMF. Componentes desactivados podian ser encontrados por MA via GetComponentsInChildren(true)
 
 ## [0.8.52] - 2026-02-21

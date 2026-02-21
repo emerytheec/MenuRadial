@@ -61,8 +61,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             // ShapeChanger removido: no causa conflictos reales con MR, MA lo procesa correctamente
             "ModularAvatarVertexFilter",        // Filtra vertices por eje
             "VertexFilterByAxisComponent",      // Filtro de vertices por eje (nombre real)
-            "ModularAvatarBlendshapeSync",      // Sincroniza blendshapes en Edit Mode (afecta al body)
-            "ModularAvatarBoneProxy"            // Re-emparenta todo el objeto, interfiere con MRCoserRopa
+            "ModularAvatarBlendshapeSync"       // Sincroniza blendshapes en Edit Mode (afecta al body)
         };
 
         /// <summary>
@@ -76,7 +75,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             "ModularAvatarParameters",          // Parametros VRChat
             "ModularAvatarMenuInstaller",       // Instalador de menus
             "ModularAvatarMenuGroup",           // Grupo de menu
-            "ModularAvatarMenuItem"             // Item de menu
+            "ModularAvatarMenuItem",            // Item de menu
+            "ModularAvatarBoneProxy"            // Proxy de huesos - usuario decide
         };
 
         /// <summary>
