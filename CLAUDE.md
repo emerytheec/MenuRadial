@@ -12,9 +12,15 @@ Sistema **MR (Menu Radial)** para avatares VRChat en Unity 2022.3.22f1. Genera a
 
 ## Estructura
 ```
-Assets/Bender_Dios/MenuRadial/   → Código fuente
-Assets/Bender_Dios/Generated/    → Archivos generados
+Assets/Bender_Dios/MenuRadial/                → Código fuente (desarrollo)
+Packages/com.bender-dios.menu-radial/         → Ruta en distribución VPM
+Assets/Bender_Dios/Generated/                 → Archivos generados
 ```
+
+### Distribución VPM
+- El paquete se desarrolla en `Assets/` pero VPM lo instala en `Packages/com.bender-dios.menu-radial/`
+- **Iconos** (`[Icon]`): Usan ruta `Packages/` — no se ven en desarrollo, sí en distribución
+- **Localización**: `Resources.Load()` con reintento lazy para cubrir race conditions en primer import
 
 ## Assemblies
 | Assembly | Propósito |
@@ -147,6 +153,7 @@ var materials = renderer.materials;
 | `PieceEntry.cs` | Modelo de piezas + clasificación |
 | `WigDetector.cs` | Detección de pelucas |
 | `BoneWeightAnalyzer.cs` | Análisis de pesos de huesos |
+| `MRLocalization.cs` | Sistema de localización con reintento lazy para VPM |
 
 ---
 
@@ -236,6 +243,7 @@ DisableVRChatMergeNDMF = true;    // Desactiva merge
 - **Patrón**: `using L = ...MRLocalizationKeys; MRLocalization.Get(L.Section.KEY, args)`
 - **LocaleSection**: Clase plana en MRLocalization.cs — necesita un campo por cada key del JSON, sin él JsonUtility ignora el valor
 - **zh.json**: Usar `「」` en vez de `"` `"` (rompen JSON)
+- **Reintento lazy**: `Initialize()` NO marca `_isInitialized=true` si `_translations.Count==0`. `EnsureInitialized()` reintenta hasta `MAX_RETRIES=5` (cubre race conditions en primer import VPM)
 
 ---
 
@@ -276,6 +284,8 @@ public VRCAvatarDescriptor Avatar { get => _avatar; set => _avatar = value; }
 | Preview no se desactiva | `PreviewManager.ClearAll()` (es clase estática, no singleton) |
 | Memory leaks | Usar `sharedMaterials`, NUNCA `materials` |
 | Localización muestra [key] | Falta campo en LocaleSection de MRLocalization.cs |
+| Localización muestra [key] en VPM | `Resources.Load()` falló en primer import. Reintento lazy (MAX_RETRIES=5) lo resuelve automáticamente |
+| Iconos no se ven en VPM | Verificar que `[Icon]` usa ruta `Packages/com.bender-dios.menu-radial/...` |
 
 ---
 
