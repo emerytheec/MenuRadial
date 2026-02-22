@@ -41,32 +41,32 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// Detecta mapeos de huesos entre avatar y ropa.
         /// Usa detección multinivel: Humanoid API → Nombre exacto → Heurística
         /// </summary>
-        public List<BoneMapping> DetectBoneMappings(ArmatureReference avatar, ArmatureReference clothing)
+        public List<BoneMapping> DetectBoneMappings(ArmatureReference avatar, ArmatureReference piece)
         {
-            return DetectBoneMappings(avatar, clothing, null, null);
+            return DetectBoneMappings(avatar, piece, null, null);
         }
 
         /// <summary>
-        /// Detecta mapeos de huesos entre avatar y ropa con soporte para prefijo/sufijo.
-        /// Usa detección multinivel: Humanoid API → Nombre exacto → Heurística
+        /// Detecta mapeos de huesos entre avatar y pieza con soporte para prefijo/sufijo.
+        /// Usa deteccion multinivel: Humanoid API → Nombre exacto → Heuristica
         /// </summary>
         /// <param name="avatar">Armature del avatar</param>
-        /// <param name="clothing">Armature de la ropa</param>
-        /// <param name="bonePrefix">Prefijo a eliminar de los nombres de huesos de la ropa</param>
-        /// <param name="boneSuffix">Sufijo a eliminar de los nombres de huesos de la ropa</param>
-        public List<BoneMapping> DetectBoneMappings(ArmatureReference avatar, ArmatureReference clothing, string bonePrefix, string boneSuffix)
+        /// <param name="piece">Armature de la pieza</param>
+        /// <param name="bonePrefix">Prefijo a eliminar de los nombres de huesos de la pieza</param>
+        /// <param name="boneSuffix">Sufijo a eliminar de los nombres de huesos de la pieza</param>
+        public List<BoneMapping> DetectBoneMappings(ArmatureReference avatar, ArmatureReference piece, string bonePrefix, string boneSuffix)
         {
             var mappings = new List<BoneMapping>();
 
-            if (avatar == null || clothing == null)
+            if (avatar == null || piece == null)
             {
-                Debug.LogWarning("[HumanoidBoneMapper] Avatar o Clothing es null");
+                Debug.LogWarning("[HumanoidBoneMapper] Avatar o pieza es null");
                 return mappings;
             }
 
-            if (avatar.RootObject == null || clothing.RootObject == null)
+            if (avatar.RootObject == null || piece.RootObject == null)
             {
-                Debug.LogWarning("[HumanoidBoneMapper] RootObject de avatar o clothing es null");
+                Debug.LogWarning("[HumanoidBoneMapper] RootObject de avatar o pieza es null");
                 return mappings;
             }
 
@@ -74,20 +74,20 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
             Debug.Log($"[HumanoidBoneMapper] Detectando huesos con base de datos mejorada...");
             Debug.Log($"  Avatar: {avatar.RootObject.name}, Humanoid: {avatar.IsHumanoid}");
-            Debug.Log($"  Ropa: {clothing.RootObject.name}, Humanoid: {clothing.IsHumanoid}");
+            Debug.Log($"  Pieza: {piece.RootObject.name}, Humanoid: {piece.IsHumanoid}");
             if (hasCustomNaming)
             {
                 Debug.Log($"  Prefijo: \"{bonePrefix ?? ""}\", Sufijo: \"{boneSuffix ?? ""}\"");
             }
 
-            // Determinar donde buscar huesos en la ropa
-            Transform clothingSearchRoot = GetClothingSearchRoot(clothing);
+            // Determinar donde buscar huesos en la pieza
+            Transform pieceSearchRoot = GetPieceSearchRoot(piece);
 
-            // Construir cache de todos los huesos en la ropa (con nombres procesados si hay prefijo/sufijo)
-            var clothingBoneCache = BuildBoneCache(clothingSearchRoot, bonePrefix, boneSuffix);
-            Debug.Log($"  Huesos en ropa: {clothingBoneCache.Count}");
+            // Construir cache de todos los huesos en la pieza (con nombres procesados si hay prefijo/sufijo)
+            var pieceBoneCache = BuildBoneCache(pieceSearchRoot, bonePrefix, boneSuffix);
+            Debug.Log($"  Huesos en pieza: {pieceBoneCache.Count}");
 
-            // Estadísticas de métodos usados
+            // Estadisticas de metodos usados
             int humanoidMatches = 0;
             int exactNameMatches = 0;
             int heuristicMatches = 0;
@@ -107,19 +107,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
                 if (avatarBone == null)
                     continue;
 
-                // Buscar hueso correspondiente en ropa (3 niveles)
-                Transform clothingBone = null;
-                BoneMappingMethod clothingMethod = BoneMappingMethod.None;
+                // Buscar hueso correspondiente en pieza (3 niveles)
+                Transform pieceBone = null;
+                BoneMappingMethod pieceMethod = BoneMappingMethod.None;
 
-                // Nivel 1: Humanoid API (si la ropa es humanoid)
-                if (clothing.IsHumanoid && clothing.Animator != null)
+                // Nivel 1: Humanoid API (si la pieza es humanoid)
+                if (piece.IsHumanoid && piece.Animator != null)
                 {
                     try
                     {
-                        clothingBone = clothing.Animator.GetBoneTransform(boneType);
-                        if (clothingBone != null)
+                        pieceBone = piece.Animator.GetBoneTransform(boneType);
+                        if (pieceBone != null)
                         {
-                            clothingMethod = BoneMappingMethod.HumanoidMapping;
+                            pieceMethod = BoneMappingMethod.HumanoidMapping;
                             humanoidMatches++;
                         }
                     }
@@ -127,29 +127,29 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
                 }
 
                 // Nivel 2: Nombre exacto del hueso del avatar
-                if (clothingBone == null)
+                if (pieceBone == null)
                 {
-                    clothingBone = FindBoneByExactName(clothingBoneCache, avatarBone.name);
-                    if (clothingBone != null)
+                    pieceBone = FindBoneByExactName(pieceBoneCache, avatarBone.name);
+                    if (pieceBone != null)
                     {
-                        clothingMethod = BoneMappingMethod.NameMatching;
+                        pieceMethod = BoneMappingMethod.NameMatching;
                         exactNameMatches++;
                     }
                 }
 
-                // Nivel 3: Heurística con BoneNameDatabase
-                if (clothingBone == null)
+                // Nivel 3: Heuristica con BoneNameDatabase
+                if (pieceBone == null)
                 {
-                    clothingBone = FindBoneByHeuristic(clothingBoneCache, boneType, avatarBone.name);
-                    if (clothingBone != null)
+                    pieceBone = FindBoneByHeuristic(pieceBoneCache, boneType, avatarBone.name);
+                    if (pieceBone != null)
                     {
-                        clothingMethod = BoneMappingMethod.NameMatching;
+                        pieceMethod = BoneMappingMethod.NameMatching;
                         heuristicMatches++;
                     }
                 }
 
-                var mapping = new BoneMapping(boneType, avatarBone, clothingBone,
-                    clothingBone != null ? clothingMethod : BoneMappingMethod.None);
+                var mapping = new BoneMapping(boneType, avatarBone, pieceBone,
+                    pieceBone != null ? pieceMethod : BoneMappingMethod.None);
                 mappings.Add(mapping);
             }
 
@@ -162,7 +162,127 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         }
 
         /// <summary>
-        /// Obtiene un hueso específico usando Humanoid API o búsqueda por nombre.
+        /// Detecta mapeos de huesos filtrados por zona de cosido.
+        /// Solo mapea huesos que pertenecen a la zona especificada.
+        /// </summary>
+        /// <param name="avatar">Armature del avatar</param>
+        /// <param name="piece">Armature de la pieza</param>
+        /// <param name="bonePrefix">Prefijo a eliminar</param>
+        /// <param name="boneSuffix">Sufijo a eliminar</param>
+        /// <param name="filterZone">Zona para filtrar huesos</param>
+        public List<BoneMapping> DetectBoneMappings(ArmatureReference avatar, ArmatureReference piece,
+            string bonePrefix, string boneSuffix, StitchZone filterZone)
+        {
+            // Obtener todos los mapeos sin filtro
+            var allMappings = DetectBoneMappings(avatar, piece, bonePrefix, boneSuffix);
+
+            if (filterZone == StitchZone.FullBody || filterZone == StitchZone.None)
+                return allMappings;
+
+            // Obtener huesos que pertenecen a esta zona
+            var zoneBones = GetBonesForZone(filterZone);
+            if (zoneBones.Count == 0)
+                return allMappings;
+
+            // Filtrar solo los huesos de la zona
+            var filtered = allMappings.Where(m => zoneBones.Contains(m.BoneType)).ToList();
+
+            Debug.Log($"[HumanoidBoneMapper] Filtrado por zona {filterZone}: {filtered.Count(m => m.IsValid)}/{filtered.Count} mapeos");
+
+            return filtered;
+        }
+
+        /// <summary>
+        /// Retorna los HumanBodyBones que pertenecen a una zona de cosido.
+        /// </summary>
+        public static HashSet<HumanBodyBones> GetBonesForZone(StitchZone zone)
+        {
+            var bones = new HashSet<HumanBodyBones>();
+
+            switch (zone)
+            {
+                case StitchZone.Head:
+                    bones.Add(HumanBodyBones.Head);
+                    bones.Add(HumanBodyBones.Neck);
+                    break;
+
+                case StitchZone.Torso:
+                    bones.Add(HumanBodyBones.Spine);
+                    bones.Add(HumanBodyBones.Chest);
+                    bones.Add(HumanBodyBones.UpperChest);
+                    bones.Add(HumanBodyBones.Neck);
+                    break;
+
+                case StitchZone.Chest:
+                    bones.Add(HumanBodyBones.Chest);
+                    bones.Add(HumanBodyBones.UpperChest);
+                    break;
+
+                case StitchZone.Hip:
+                    bones.Add(HumanBodyBones.Hips);
+                    break;
+
+                case StitchZone.UpperLimb:
+                    bones.Add(HumanBodyBones.LeftShoulder);
+                    bones.Add(HumanBodyBones.RightShoulder);
+                    bones.Add(HumanBodyBones.LeftUpperArm);
+                    bones.Add(HumanBodyBones.RightUpperArm);
+                    bones.Add(HumanBodyBones.LeftLowerArm);
+                    bones.Add(HumanBodyBones.RightLowerArm);
+                    bones.Add(HumanBodyBones.LeftHand);
+                    bones.Add(HumanBodyBones.RightHand);
+                    break;
+
+                case StitchZone.LowerLimb:
+                    bones.Add(HumanBodyBones.LeftUpperLeg);
+                    bones.Add(HumanBodyBones.RightUpperLeg);
+                    bones.Add(HumanBodyBones.LeftLowerLeg);
+                    bones.Add(HumanBodyBones.RightLowerLeg);
+                    bones.Add(HumanBodyBones.LeftFoot);
+                    bones.Add(HumanBodyBones.RightFoot);
+                    bones.Add(HumanBodyBones.LeftToes);
+                    bones.Add(HumanBodyBones.RightToes);
+                    break;
+
+                case StitchZone.RightHand:
+                    bones.Add(HumanBodyBones.RightShoulder);
+                    bones.Add(HumanBodyBones.RightUpperArm);
+                    bones.Add(HumanBodyBones.RightLowerArm);
+                    bones.Add(HumanBodyBones.RightHand);
+                    break;
+
+                case StitchZone.LeftHand:
+                    bones.Add(HumanBodyBones.LeftShoulder);
+                    bones.Add(HumanBodyBones.LeftUpperArm);
+                    bones.Add(HumanBodyBones.LeftLowerArm);
+                    bones.Add(HumanBodyBones.LeftHand);
+                    break;
+
+                case StitchZone.RightFoot:
+                    bones.Add(HumanBodyBones.RightUpperLeg);
+                    bones.Add(HumanBodyBones.RightLowerLeg);
+                    bones.Add(HumanBodyBones.RightFoot);
+                    bones.Add(HumanBodyBones.RightToes);
+                    break;
+
+                case StitchZone.LeftFoot:
+                    bones.Add(HumanBodyBones.LeftUpperLeg);
+                    bones.Add(HumanBodyBones.LeftLowerLeg);
+                    bones.Add(HumanBodyBones.LeftFoot);
+                    bones.Add(HumanBodyBones.LeftToes);
+                    break;
+
+                case StitchZone.FullBody:
+                case StitchZone.None:
+                    // Sin filtro — retorna vacío para indicar "todos"
+                    break;
+            }
+
+            return bones;
+        }
+
+        /// <summary>
+        /// Obtiene un hueso especifico usando Humanoid API o busqueda por nombre.
         /// </summary>
         public Transform GetBone(Animator animator, HumanBodyBones boneType)
         {
@@ -270,17 +390,17 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         #region Private Methods
 
         /// <summary>
-        /// Obtiene el transform raíz desde donde buscar huesos en la ropa.
+        /// Obtiene el transform raiz desde donde buscar huesos en la pieza.
         /// </summary>
-        private Transform GetClothingSearchRoot(ArmatureReference clothing)
+        private Transform GetPieceSearchRoot(ArmatureReference piece)
         {
-            if (clothing.ArmatureRoot != null)
-                return clothing.ArmatureRoot;
+            if (piece.ArmatureRoot != null)
+                return piece.ArmatureRoot;
 
-            if (clothing.Animator != null)
-                return clothing.Animator.transform;
+            if (piece.Animator != null)
+                return piece.Animator.transform;
 
-            return clothing.RootObject?.transform;
+            return piece.RootObject?.transform;
         }
 
         /// <summary>

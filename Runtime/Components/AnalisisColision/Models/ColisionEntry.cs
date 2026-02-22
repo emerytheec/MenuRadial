@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -38,13 +39,15 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         [Tooltip("Si el componente estaba habilitado originalmente")]
         private bool _wasOriginallyEnabled;
 
+        [FormerlySerializedAs("_isOnClothingRoot")]
         [SerializeField]
-        [Tooltip("Si esta en la raiz de una prenda de ropa detectada")]
-        private bool _isOnClothingRoot;
+        [Tooltip("Si esta en la raiz de una pieza detectada")]
+        private bool _isOnPieceRoot;
 
+        [FormerlySerializedAs("_clothingName")]
         [SerializeField]
-        [Tooltip("Nombre de la prenda de ropa si aplica")]
-        private string _clothingName;
+        [Tooltip("Nombre de la pieza si aplica")]
+        private string _pieceRootName;
 
         [SerializeField]
         [Tooltip("Nombre del GameObject donde está el componente (guardado para persistencia)")]
@@ -110,21 +113,21 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         }
 
         /// <summary>
-        /// Si el componente esta en la raiz de una prenda de ropa detectada por MRCoserRopa.
+        /// Si el componente esta en la raiz de una pieza detectada por MRCoserRopa.
         /// </summary>
-        public bool IsOnClothingRoot
+        public bool IsOnPieceRoot
         {
-            get => _isOnClothingRoot;
-            set => _isOnClothingRoot = value;
+            get => _isOnPieceRoot;
+            set => _isOnPieceRoot = value;
         }
 
         /// <summary>
-        /// Nombre de la prenda de ropa donde se encontro el componente.
+        /// Nombre de la pieza donde se encontro el componente.
         /// </summary>
-        public string ClothingName
+        public string PieceRootName
         {
-            get => _clothingName;
-            set => _clothingName = value;
+            get => _pieceRootName;
+            set => _pieceRootName = value;
         }
 
         /// <summary>
@@ -204,8 +207,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             // Compatibles: no aplica (solo informativos)
             _userWantsDisabled = category == ColisionCategory.Problematic;
             _wasOriginallyEnabled = component is MonoBehaviour mb ? mb.enabled : true;
-            _isOnClothingRoot = false;
-            _clothingName = "";
+            _isOnPieceRoot = false;
+            _pieceRootName = "";
             // Guardar el nombre del GameObject para que persista incluso si la referencia se rompe
             _gameObjectName = component != null ? component.gameObject.name : "";
         }

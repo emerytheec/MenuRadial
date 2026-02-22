@@ -303,7 +303,36 @@
         "zoneLowerLimbShort": "Ноги",
         "zoneHipShort": "Бёдра",
         "zoneLabel": "Зона: {0}",
-        "zoneWigLabel": "Парик - Зона: {0}"
+        "zoneWigLabel": "Парик - Зона: {0}",
+
+        "pieceTypeLabel": "Тип",
+        "pieceTypeRopa": "Одежда",
+        "pieceTypePelo": "Волосы",
+        "pieceTypePieza": "Деталь",
+
+        "disableMAToggle": "Отключить MA (MR обработает эту деталь)",
+        "disableMAWigWarning": "ВНИМАНИЕ: Отключение MA на парике может привести к его исчезновению. BoneProxy — это механизм прикрепления париков к аватару.",
+        "disableMAMRWillProcess": "MA отключён для этой детали. MR сшивает кости при сборке.",
+
+        "manualZoneLabel": "Зона сшивания",
+        "manualZoneAuto": "(Авто)",
+        "manualZoneActive": "(вручную)",
+
+        "ndmfDisableMAInfo": "MR: {0} деталь(ей) с отключённым MA (MR обработает)",
+        "ndmfNoPiecesEnabled": "Включите хотя бы одну деталь для автоматической обработки.",
+
+        "zoneRightHand": "Правая рука",
+        "zoneLeftHand": "Левая рука",
+        "zoneRightFoot": "Правая нога",
+        "zoneLeftFoot": "Левая нога",
+        "zoneChest": "Грудь",
+        "zoneNone": "Без зоны",
+        "zoneRightHandShort": "ПрРука",
+        "zoneLeftHandShort": "ЛвРука",
+        "zoneRightFootShort": "ПрНога",
+        "zoneLeftFootShort": "ЛвНога",
+        "zoneChestShort": "Грудь",
+        "zoneNoneShort": "---"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",

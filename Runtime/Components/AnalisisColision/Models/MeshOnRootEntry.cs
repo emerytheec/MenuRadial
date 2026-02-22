@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
 {
@@ -20,9 +21,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         [Tooltip("Renderer detectado en la raíz de la ropa")]
         private Renderer _renderer;
 
+        [FormerlySerializedAs("_clothingRootName")]
         [SerializeField]
-        [Tooltip("Nombre del GameObject raíz de la ropa")]
-        private string _clothingRootName;
+        [Tooltip("Nombre del GameObject raíz de la pieza")]
+        private string _pieceRootName;
 
         [SerializeField]
         [Tooltip("Nombre del mesh/renderer")]
@@ -50,12 +52,12 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         }
 
         /// <summary>
-        /// Nombre del GameObject raíz de la ropa donde se encontró el mesh.
+        /// Nombre del GameObject raíz de la pieza donde se encontró el mesh.
         /// </summary>
-        public string ClothingRootName
+        public string PieceRootName
         {
-            get => _clothingRootName;
-            set => _clothingRootName = value;
+            get => _pieceRootName;
+            set => _pieceRootName = value;
         }
 
         /// <summary>
@@ -103,10 +105,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         {
         }
 
-        public MeshOnRootEntry(Renderer renderer, GameObject clothingRoot, string hierarchyPath)
+        public MeshOnRootEntry(Renderer renderer, GameObject pieceRoot, string hierarchyPath)
         {
             _renderer = renderer;
-            _clothingRootName = clothingRoot != null ? clothingRoot.name : "";
+            _pieceRootName = pieceRoot != null ? pieceRoot.name : "";
             _meshName = renderer != null ? renderer.gameObject.name : "";
             _rendererType = renderer != null ? renderer.GetType().Name : "";
             _hierarchyPath = hierarchyPath;
@@ -132,7 +134,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
 
         public override string ToString()
         {
-            return $"Mesh '{_meshName}' en raíz de ropa '{_clothingRootName}'";
+            return $"Mesh '{_meshName}' en raíz de pieza '{_pieceRootName}'";
         }
 
         #endregion

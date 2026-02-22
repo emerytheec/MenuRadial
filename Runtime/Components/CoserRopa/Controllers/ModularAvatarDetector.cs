@@ -266,6 +266,237 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         }
 
         /// <summary>
+        /// Obtiene el destino de un MA BoneProxy en un GameObject via reflexion.
+        /// Lee la propiedad 'target' (Transform) y el campo 'boneReference' (HumanBodyBones).
+        /// Solo busca en el propio GameObject, no en hijos.
+        /// </summary>
+        /// <param name="gameObject">GameObject que puede tener BoneProxy</param>
+        /// <returns>Nombre legible del destino (ej: "Head", "Hips") o "" si no tiene</returns>
+        public string GetBoneProxyTarget(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return "";
+
+            EnsureTypesResolved();
+
+            if (!_maTypes.TryGetValue("ModularAvatarBoneProxy", out var bpType))
+                return "";
+
+            // Buscar solo en el propio GameObject primero, luego en hijos
+            var comp = gameObject.GetComponent(bpType);
+            if (comp == null)
+            {
+                // Fallback: buscar en hijos si no esta en la raiz
+                var components = gameObject.GetComponentsInChildren(bpType, true);
+                if (components.Length == 0)
+                    return "";
+                comp = components[0];
+            }
+
+            return ReadBoneProxyTarget(comp);
+        }
+
+        /// <summary>
+        /// Lee el target de un componente BoneProxy via reflexion.
+        /// </summary>
+        private string ReadBoneProxyTarget(Component comp)
+        {
+            if (comp == null) return "";
+
+            // Intentar leer propiedad 'target' primero (MA usa property, no field)
+            var targetProp = comp.GetType().GetProperty("target",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (targetProp != null)
+            {
+                var targetObj = targetProp.GetValue(comp);
+                var target = targetObj != null ? targetObj as Transform : null;
+                if (target != null)
+                    return target.name;
+            }
+
+            // Fallback: intentar como campo
+            var targetField = comp.GetType().GetField("target",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (targetField != null)
+            {
+                var targetObj = targetField.GetValue(comp);
+                var target = targetObj != null ? targetObj as Transform : null;
+                if (target != null)
+                    return target.name;
+            }
+
+            // Intentar leer boneReference (HumanBodyBones enum)
+            var boneRefField = comp.GetType().GetField("boneReference",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (boneRefField != null)
+            {
+                var value = boneRefField.GetValue(comp);
+                if (value is HumanBodyBones bone)
+                    return bone.ToString();
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// Obtiene el destino de un MA MergeArmature en un GameObject via reflexion.
+        /// Lee la propiedad 'mergeTarget' (Transform) o 'mergeTargetObject' (Transform).
+        /// Solo busca en el propio GameObject, no en hijos.
+        /// </summary>
+        /// <param name="gameObject">GameObject que puede tener MergeArmature</param>
+        /// <returns>Nombre legible del destino (ej: "Armature") o "" si no tiene</returns>
+        public string GetMergeArmatureTarget(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return "";
+
+            EnsureTypesResolved();
+
+            if (!_maTypes.TryGetValue("ModularAvatarMergeArmature", out var maType))
+                return "";
+
+            // Buscar solo en el propio GameObject primero, luego en hijos
+            var comp = gameObject.GetComponent(maType);
+            if (comp == null)
+            {
+                var components = gameObject.GetComponentsInChildren(maType, true);
+                if (components.Length == 0)
+                    return "";
+                comp = components[0];
+            }
+
+            return ReadMergeArmatureTarget(comp);
+        }
+
+        /// <summary>
+        /// Lee el target de un componente MergeArmature via reflexion.
+        /// </summary>
+        private string ReadMergeArmatureTarget(Component comp)
+        {
+            if (comp == null) return "";
+
+            // Intentar propiedad mergeTarget
+            string[] targetNames = { "mergeTarget", "mergeTargetObject" };
+            foreach (var name in targetNames)
+            {
+                var prop = comp.GetType().GetProperty(name,
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (prop != null)
+                {
+                    var targetObj = prop.GetValue(comp);
+                    var target = targetObj != null ? targetObj as Transform : null;
+                    if (target != null)
+                        return target.name;
+                }
+
+                // Fallback: campo
+                var field = comp.GetType().GetField(name,
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    var targetObj = field.GetValue(comp);
+                    var target = targetObj != null ? targetObj as Transform : null;
+                    if (target != null)
+                        return target.name;
+                }
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// Obtiene informacion legible del destino MA.
+        /// Prioriza MergeArmature sobre BoneProxy ya que MergeArmature
+        /// es el componente principal de cosido.
+        /// </summary>
+        /// <param name="gameObject">GameObject a verificar</param>
+        /// <returns>Nombre del destino (ej: "Armature", "Head") o "" si no tiene MA</returns>
+        public string GetMATargetInfo(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return "";
+
+            // Priorizar MergeArmature sobre BoneProxy:
+            // Si tiene MergeArmature, ese es el destino principal de cosido.
+            // BoneProxy en hijos puede apuntar a destinos secundarios (ej: Head para accesorio)
+            // que no representan el destino real de la pieza.
+            bool hasMerge = HasMergeArmature(gameObject);
+            if (hasMerge)
+            {
+                var maTarget = GetMergeArmatureTarget(gameObject);
+                // Si MergeArmature existe pero target es null/vacío, retornar "Armature"
+                // en vez de caer al BoneProxy que mostraría "Head" engañosamente
+                return !string.IsNullOrEmpty(maTarget) ? maTarget : "Armature";
+            }
+
+            var bpTarget = GetBoneProxyTarget(gameObject);
+            if (!string.IsNullOrEmpty(bpTarget))
+                return bpTarget;
+
+            return "";
+        }
+
+        /// <summary>
+        /// Verifica si un MA BoneProxy apunta a Head.
+        /// </summary>
+        public bool IsBoneProxyToHead(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return false;
+
+            var target = GetBoneProxyTarget(gameObject);
+            if (string.IsNullOrEmpty(target))
+                return false;
+
+            string normalized = target.ToLowerInvariant()
+                .Replace("_", "").Replace(".", "").Replace("-", "").Replace(" ", "");
+            return normalized == "head" || normalized.EndsWith("head");
+        }
+
+        /// <summary>
+        /// Destruye componentes de armature de MA (MergeArmature y BoneProxy) en un GameObject.
+        /// Usado cuando el usuario elige que MR cosa en vez de MA.
+        /// </summary>
+        /// <param name="gameObject">GameObject a procesar</param>
+        /// <returns>Cantidad de componentes destruidos</returns>
+        public int DestroyArmatureComponents(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return 0;
+
+            EnsureTypesResolved();
+
+            int count = 0;
+
+            foreach (var componentName in MA_ARMATURE_COMPONENTS)
+            {
+                if (!_maTypes.TryGetValue(componentName, out var type))
+                    continue;
+
+                var components = gameObject.GetComponentsInChildren(type, true);
+                foreach (var component in components)
+                {
+                    if (component == null) continue;
+
+                    Debug.Log($"[ModularAvatarDetector] Eliminado {componentName} en '{component.gameObject.name}' (DisableMA)");
+
+                    #if UNITY_EDITOR
+                    if (UnityEditor.Undo.isProcessing)
+                        UnityEngine.Object.DestroyImmediate(component);
+                    else
+                        UnityEditor.Undo.DestroyObjectImmediate(component);
+                    #else
+                    UnityEngine.Object.DestroyImmediate(component);
+                    #endif
+
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
         /// Detecta si un GameObject tiene componentes de Modular Avatar que manejan armatures.
         /// Estos son: ModularAvatarMergeArmature, ModularAvatarBoneProxy
         /// </summary>
@@ -676,11 +907,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// Desactiva componentes problematicos en un GameObject.
         /// </summary>
         /// <param name="gameObject">GameObject a procesar</param>
-        /// <param name="onlyOnClothingRoots">Si es true, solo desactiva componentes en raices de ropa</param>
-        /// <param name="clothingRoots">Lista de GameObjects que son raices de ropa</param>
+        /// <param name="onlyOnPieceRoots">Si es true, solo desactiva componentes en raices de pieza</param>
+        /// <param name="pieceRoots">Lista de GameObjects que son raices de pieza</param>
         /// <returns>Cantidad de componentes desactivados</returns>
-        public int DisableProblematicComponents(GameObject gameObject, bool onlyOnClothingRoots = false,
-            System.Collections.Generic.List<GameObject> clothingRoots = null)
+        public int DisableProblematicComponents(GameObject gameObject, bool onlyOnPieceRoots = false,
+            System.Collections.Generic.List<GameObject> pieceRoots = null)
         {
             EnsureTypesResolved();
 
@@ -699,11 +930,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
                 {
                     if (component == null) continue;
 
-                    // Si solo queremos los que estan en raiz de ropa
-                    if (onlyOnClothingRoots && clothingRoots != null)
+                    // Si solo queremos los que estan en raiz de pieza
+                    if (onlyOnPieceRoots && pieceRoots != null)
                     {
-                        bool isOnClothingRoot = clothingRoots.Contains(component.gameObject);
-                        if (!isOnClothingRoot) continue;
+                        bool isOnPieceRoot = pieceRoots.Contains(component.gameObject);
+                        if (!isOnPieceRoot) continue;
                     }
 
                     if (component is MonoBehaviour mb && mb.enabled)
@@ -826,6 +1057,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// Nombre del componente principal detectado
         /// </summary>
         public string PrimaryComponent { get; set; } = "";
+
+        /// <summary>
+        /// Informacion del destino MA (ej: "Head", "Armature")
+        /// </summary>
+        public string TargetInfo { get; set; } = "";
 
         /// <summary>
         /// Número total de componentes de MA encontrados

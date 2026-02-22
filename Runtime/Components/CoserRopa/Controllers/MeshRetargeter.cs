@@ -127,19 +127,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// <summary>
         /// Retargetea meshes usando una lista de BoneMappings.
         /// </summary>
-        public int RetargetMeshes(GameObject clothingRoot, List<BoneMapping> mappings)
+        public int RetargetMeshes(GameObject pieceRoot, List<BoneMapping> mappings)
         {
             var boneDict = new Dictionary<Transform, Transform>();
 
             foreach (var mapping in mappings)
             {
-                if (mapping.IsValid && mapping.ClothingBone != null && mapping.AvatarBone != null)
+                if (mapping.IsValid && mapping.PieceBone != null && mapping.AvatarBone != null)
                 {
-                    boneDict[mapping.ClothingBone] = mapping.AvatarBone;
+                    boneDict[mapping.PieceBone] = mapping.AvatarBone;
                 }
             }
 
-            return RetargetMeshes(clothingRoot, boneDict);
+            return RetargetMeshes(pieceRoot, boneDict);
         }
 
         #endregion

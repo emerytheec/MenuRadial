@@ -303,7 +303,36 @@
         "zoneLowerLimbShort": "足",
         "zoneHipShort": "腰",
         "zoneLabel": "ゾーン: {0}",
-        "zoneWigLabel": "ウィッグ - ゾーン: {0}"
+        "zoneWigLabel": "ウィッグ - ゾーン: {0}",
+
+        "pieceTypeLabel": "タイプ",
+        "pieceTypeRopa": "衣装",
+        "pieceTypePelo": "髪",
+        "pieceTypePieza": "パーツ",
+
+        "disableMAToggle": "MAを無効化（MRがこのパーツを処理）",
+        "disableMAWigWarning": "警告：ウィッグのMAを無効にすると消える可能性があります。BoneProxyはウィッグをアバターに接続する仕組みです。",
+        "disableMAMRWillProcess": "このパーツのMAは無効です。MRがビルド時にボーンを縫合します。",
+
+        "manualZoneLabel": "縫合ゾーン",
+        "manualZoneAuto": "（自動）",
+        "manualZoneActive": "（手動）",
+
+        "ndmfDisableMAInfo": "MR: {0}個のパーツでMA無効（MRが処理）",
+        "ndmfNoPiecesEnabled": "自動処理するには少なくとも1つのパーツを有効にしてください。",
+
+        "zoneRightHand": "右手",
+        "zoneLeftHand": "左手",
+        "zoneRightFoot": "右足",
+        "zoneLeftFoot": "左足",
+        "zoneChest": "胸",
+        "zoneNone": "ゾーンなし",
+        "zoneRightHandShort": "右手",
+        "zoneLeftHandShort": "左手",
+        "zoneRightFootShort": "右足",
+        "zoneLeftFootShort": "左足",
+        "zoneChestShort": "胸",
+        "zoneNoneShort": "---"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",

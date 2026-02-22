@@ -303,7 +303,36 @@
         "zoneLowerLimbShort": "脚",
         "zoneHipShort": "臀部",
         "zoneLabel": "区域: {0}",
-        "zoneWigLabel": "假发 - 区域: {0}"
+        "zoneWigLabel": "假发 - 区域: {0}",
+
+        "pieceTypeLabel": "类型",
+        "pieceTypeRopa": "服装",
+        "pieceTypePelo": "头发",
+        "pieceTypePieza": "部件",
+
+        "disableMAToggle": "禁用 MA（MR 将处理此部件）",
+        "disableMAWigWarning": "警告：在假发上禁用 MA 可能导致其消失。BoneProxy 是将假发连接到虚拟形象的机制。",
+        "disableMAMRWillProcess": "此部件的 MA 已禁用。MR 将在构建时缝合骨骼。",
+
+        "manualZoneLabel": "缝合区域",
+        "manualZoneAuto": "（自动）",
+        "manualZoneActive": "（手动）",
+
+        "ndmfDisableMAInfo": "MR：{0} 个部件已禁用 MA（MR 将处理）",
+        "ndmfNoPiecesEnabled": "请启用至少一个部件以进行自动处理。",
+
+        "zoneRightHand": "右手",
+        "zoneLeftHand": "左手",
+        "zoneRightFoot": "右脚",
+        "zoneLeftFoot": "左脚",
+        "zoneChest": "胸部",
+        "zoneNone": "无区域",
+        "zoneRightHandShort": "右手",
+        "zoneLeftHandShort": "左手",
+        "zoneRightFootShort": "右脚",
+        "zoneLeftFootShort": "左脚",
+        "zoneChestShort": "胸",
+        "zoneNoneShort": "---"
     },
     "unifyMaterial": {
         "header": "MR 统一材质",

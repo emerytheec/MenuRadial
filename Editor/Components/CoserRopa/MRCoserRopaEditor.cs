@@ -4,6 +4,7 @@ using UnityEditorInternal;
 using System.Linq;
 using System.Collections.Generic;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
+using Bender_Dios.MenuRadial.Components.CoserRopa.Controllers;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
 using Bender_Dios.MenuRadial.Editor.Components.Frame.Modules;
 using Bender_Dios.MenuRadial.Localization;
@@ -19,9 +20,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
     public class MRCoserRopaEditor : UnityEditor.Editor
     {
         private MRCoserRopa _target;
-        private SerializedProperty _detectedClothingsProp;
+        private SerializedProperty _detectedPiecesProp;
         private SerializedProperty _selectedIndexProp;
-        private ReorderableList _clothingList;
+        private ReorderableList _pieceList;
         private bool _showNamingFoldout = false;
 
         // Constantes de diseño
@@ -45,22 +46,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         private void OnEnable()
         {
             _target = (MRCoserRopa)target;
-            _detectedClothingsProp = serializedObject.FindProperty("_detectedClothings");
-            _selectedIndexProp = serializedObject.FindProperty("_selectedClothingIndex");
+            _detectedPiecesProp = serializedObject.FindProperty("_detectedPieces");
+            _selectedIndexProp = serializedObject.FindProperty("_selectedPieceIndex");
 
             InitializeReorderableList();
         }
 
         private void InitializeReorderableList()
         {
-            _clothingList = new ReorderableList(serializedObject, _detectedClothingsProp, false, true, true, true)
+            _pieceList = new ReorderableList(serializedObject, _detectedPiecesProp, false, true, true, true)
             {
                 drawHeaderCallback = DrawListHeader,
                 drawElementCallback = DrawListElement,
                 elementHeight = ITEM_HEIGHT + 4f,
-                onAddCallback = OnAddClothing,
-                onRemoveCallback = OnRemoveClothing,
-                onSelectCallback = OnSelectClothing,
+                onAddCallback = OnAddPiece,
+                onRemoveCallback = OnRemovePiece,
+                onSelectCallback = OnSelectPiece,
                 drawElementBackgroundCallback = DrawElementBackground
             };
         }
@@ -84,9 +85,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 _lastAvatarChildCount = _target.AvatarRoot.transform.childCount;
 
                 // Aplicar visibilidad por defecto a ropas existentes
-                if (_target.DetectedClothingCount > 0)
+                if (_target.DetectedPieceCount > 0)
                 {
-                    _target.SetDefaultClothingVisibility();
+                    _target.SetDefaultPieceVisibility();
                     EditorUtility.SetDirty(_target);
                 }
                 return;
@@ -124,10 +125,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 EditorGUILayout.Space(8);
 
                 // Lista de ropas (ReorderableList)
-                DrawClothingList();
+                DrawPieceList();
 
                 // Detalles de la ropa seleccionada
-                DrawSelectedClothingDetails();
+                DrawSelectedPieceDetails();
 
                 EditorGUILayout.Space(8);
 
@@ -184,13 +185,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
         #region ReorderableList
 
-        private void DrawClothingList()
+        private void DrawPieceList()
         {
             // Header con boton refrescar
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField(
-                    MRLocalization.Get(L.CoserRopa.DETECTED_CLOTHINGS, _target.DetectedClothingCount),
+                    MRLocalization.Get(L.CoserRopa.DETECTED_CLOTHINGS, _target.DetectedPieceCount),
                     EditorStyles.boldLabel);
 
                 GUILayout.FlexibleSpace();
@@ -204,26 +205,26 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
 
             // Sincronizar indice
-            _clothingList.index = _target.SelectedClothingIndex;
+            _pieceList.index = _target.SelectedPieceIndex;
 
             // Dibujar lista
-            _clothingList.DoLayoutList();
+            _pieceList.DoLayoutList();
 
             // Botones de seleccion rapida
-            if (_target.DetectedClothingCount > 0)
+            if (_target.DetectedPieceCount > 0)
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button(MRLocalization.Get(L.CoserRopa.SELECT_ALL), EditorStyles.miniButtonLeft))
                     {
                         Undo.RecordObject(_target, "Seleccionar todas");
-                        _target.EnableAllClothings();
+                        _target.EnableAllPieces();
                         EditorUtility.SetDirty(_target);
                     }
                     if (GUILayout.Button(MRLocalization.Get(L.CoserRopa.DESELECT_ALL), EditorStyles.miniButtonRight))
                     {
                         Undo.RecordObject(_target, "Deseleccionar todas");
-                        _target.DisableAllClothings();
+                        _target.DisableAllPieces();
                         EditorUtility.SetDirty(_target);
                     }
                 }
@@ -232,12 +233,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
         private void DrawListHeader(Rect rect)
         {
-            EditorGUI.LabelField(rect, MRLocalization.Get(L.CoserRopaExtra.CLOTHING_LIST_HEADER, _target.EnabledClothingCount, _target.DetectedClothingCount));
+            EditorGUI.LabelField(rect, MRLocalization.Get(L.CoserRopaExtra.CLOTHING_LIST_HEADER, _target.EnabledPieceCount, _target.DetectedPieceCount));
         }
 
         private void DrawElementBackground(Rect rect, int index, bool isActive, bool isFocused)
         {
-            if (index < 0 || index >= _target.DetectedClothingCount) return;
+            if (index < 0 || index >= _target.DetectedPieceCount) return;
 
             if (isActive || isFocused)
             {
@@ -245,146 +246,196 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
         }
 
+        /// <summary>
+        /// Obtiene nombres localizados para el popup de PieceType
+        /// </summary>
+        private string[] GetPieceTypePopupNames()
+        {
+            return new[] {
+                MRLocalization.Get(L.CoserRopaExtra.PIECE_TYPE_ROPA),
+                MRLocalization.Get(L.CoserRopaExtra.PIECE_TYPE_PELO),
+                MRLocalization.Get(L.CoserRopaExtra.PIECE_TYPE_PIEZA)
+            };
+        }
+
+        /// <summary>
+        /// Colores por PieceType para el popup
+        /// </summary>
+        private static readonly Color[] PieceTypeColors = {
+            new Color(0.6f, 0.8f, 1f),  // Ropa - azul claro
+            new Color(1f, 0.7f, 0.9f),  // Pelo - rosa
+            new Color(0.8f, 0.8f, 0.8f) // Pieza - gris
+        };
+
         private void DrawListElement(Rect rect, int index, bool isActive, bool isFocused)
         {
-            if (index >= _target.DetectedClothingCount) return;
+            if (index >= _target.DetectedPieceCount) return;
 
-            var clothing = _target.DetectedClothings[index];
-            if (clothing == null) return;
+            var piece = _target.DetectedPieces[index];
+            if (piece == null) return;
 
             rect.y += 2f;
             rect.height = ITEM_HEIGHT;
 
-            // Layout: [Toggle] "Ropa N" [ObjectField] [Huesos] [X]
-            const float LABEL_WIDTH = 55f;
+            // Layout: [Check 18px][Tipo 65px][GameObject flex][MA 40px][→Target 75px][Zona 75px][X 20px]
+            const float TYPE_WIDTH = 65f;
+            const float MA_WIDTH = 40f;
+            const float TARGET_WIDTH = 75f;
+            const float ZONE_WIDTH = 75f;
             const float OBJECT_FIELD_MIN = 80f;
 
             float x = rect.x;
+            Color originalColor = GUI.contentColor;
+            Color originalBgColor = GUI.backgroundColor;
 
-            // Toggle habilitado
+            // --- Checkbox ---
             var toggleRect = new Rect(x, rect.y, TOGGLE_WIDTH, rect.height);
             EditorGUI.BeginChangeCheck();
-            var enabled = EditorGUI.Toggle(toggleRect, clothing.Enabled);
+            var enabled = EditorGUI.Toggle(toggleRect, piece.Enabled);
             if (EditorGUI.EndChangeCheck())
             {
-                Undo.RecordObject(_target, "Toggle ropa");
-                _target.SetClothingEnabled(index, enabled);
+                Undo.RecordObject(_target, "Toggle pieza");
+                _target.SetPieceEnabled(index, enabled);
                 EditorUtility.SetDirty(_target);
             }
             x += TOGGLE_WIDTH + 2f;
 
-            // Color segun estado
-            Color originalColor = GUI.contentColor;
-            bool isSelected = (index == _target.SelectedClothingIndex);
-
-            if (isSelected)
+            // --- PieceType button with numbered label ---
+            var typeRect = new Rect(x, rect.y, TYPE_WIDTH, rect.height);
+            GUI.backgroundColor = PieceTypeColors[(int)piece.PieceType];
+            string numberedLabel = GetNumberedPieceTypeLabel(index);
+            if (GUI.Button(typeRect, numberedLabel, EditorStyles.miniButton))
             {
-                GUI.contentColor = EnabledColor;
+                ShowPieceTypeMenu(index);
             }
-            else
-            {
-                GUI.contentColor = clothing.Enabled ? Color.white : DisabledColor;
-            }
+            GUI.backgroundColor = originalBgColor;
+            x += TYPE_WIDTH + 2f;
 
-            // Label "Ropa N"
-            var labelRect = new Rect(x, rect.y, LABEL_WIDTH, rect.height);
-            EditorGUI.LabelField(labelRect, MRLocalization.Get(L.CoserRopaExtra.CLOTHING_LABEL, index + 1));
-            x += LABEL_WIDTH;
-
-            GUI.contentColor = originalColor;
-
-            // ObjectField (permite click para seleccionar en jerarquia y drag para cambiar)
-            float objectFieldWidth = rect.width - TOGGLE_WIDTH - LABEL_WIDTH - BONES_INFO_WIDTH - DELETE_BUTTON_WIDTH - 20f;
+            // --- ObjectField (flex width) ---
+            float objectFieldWidth = rect.width - TOGGLE_WIDTH - TYPE_WIDTH - MA_WIDTH - TARGET_WIDTH - ZONE_WIDTH - DELETE_BUTTON_WIDTH - 22f;
             objectFieldWidth = Mathf.Max(objectFieldWidth, OBJECT_FIELD_MIN);
             var objectFieldRect = new Rect(x, rect.y, objectFieldWidth, rect.height);
 
+            GUI.contentColor = piece.Enabled ? Color.white : DisabledColor;
             EditorGUI.BeginChangeCheck();
             var newGameObject = (GameObject)EditorGUI.ObjectField(
-                objectFieldRect, clothing.GameObject, typeof(GameObject), true);
-            if (EditorGUI.EndChangeCheck() && newGameObject != clothing.GameObject)
+                objectFieldRect, piece.GameObject, typeof(GameObject), true);
+            if (EditorGUI.EndChangeCheck() && newGameObject != piece.GameObject)
             {
-                Undo.RecordObject(_target, "Cambiar ropa");
-                // Actualizar el GameObject de la ropa
+                Undo.RecordObject(_target, "Cambiar pieza");
                 if (newGameObject != null)
                 {
-                    clothing.GameObject = newGameObject;
-                    clothing.ArmatureReference = new ArmatureReference(newGameObject);
-                    _target.DetectBoneMappingsForClothing(clothing);
+                    piece.GameObject = newGameObject;
+                    piece.ArmatureReference = new ArmatureReference(newGameObject);
+                    _target.DetectBoneMappingsForPiece(piece);
                 }
                 EditorUtility.SetDirty(_target);
             }
-            x += objectFieldWidth + 5f;
+            GUI.contentColor = originalColor;
+            x += objectFieldWidth + 2f;
 
-            // Info de huesos o MA
-            var bonesRect = new Rect(x, rect.y, BONES_INFO_WIDTH, rect.height);
-
-            if (clothing.HasModularAvatar)
+            // --- MA label ---
+            var maRect = new Rect(x, rect.y, MA_WIDTH, rect.height);
+            if (piece.HasModularAvatar)
             {
-                // Mostrar que tiene Modular Avatar
-                GUI.contentColor = ModularAvatarColor;
-                string maLabel = clothing.HasMAShapeChanger ? "MA+SC" : "MA";
-                EditorGUI.LabelField(bonesRect, maLabel, EditorStyles.miniLabel);
-            }
-            else if (clothing.HasMAShapeChanger)
-            {
-                // Solo tiene Shape Changer (sin Merge Armature)
-                GUI.contentColor = ModularAvatarColor;
-                EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount}+SC", EditorStyles.miniLabel);
+                string maLabel = piece.ModularAvatarComponentType.Contains("BoneProxy") ? "BP" : "MA";
+                GUI.contentColor = piece.DisableMA ? DisabledColor : ModularAvatarColor;
+                EditorGUI.LabelField(maRect, maLabel, EditorStyles.miniLabel);
             }
             else
             {
-                if (clothing.IsWig)
+                GUI.contentColor = DisabledColor;
+                EditorGUI.LabelField(maRect, "\u2014", EditorStyles.miniLabel);
+            }
+            GUI.contentColor = originalColor;
+            x += MA_WIDTH + 2f;
+
+            // --- MA Target ---
+            var targetRect = new Rect(x, rect.y, TARGET_WIDTH, rect.height);
+            if (piece.HasModularAvatar && !string.IsNullOrEmpty(piece.MATargetInfo))
+            {
+                GUI.contentColor = piece.DisableMA ? DisabledColor : ModularAvatarColor;
+                EditorGUI.LabelField(targetRect, $"\u2192{piece.MATargetInfo}", EditorStyles.miniLabel);
+            }
+            else
+            {
+                GUI.contentColor = DisabledColor;
+                EditorGUI.LabelField(targetRect, "\u2014", EditorStyles.miniLabel);
+            }
+            GUI.contentColor = originalColor;
+            x += TARGET_WIDTH + 2f;
+
+            // --- Zone dropdown ---
+            var zoneRect = new Rect(x, rect.y, ZONE_WIDTH, rect.height);
+            var effectiveZone = piece.EffectiveStitchZone;
+
+            // Build zone popup options: (Auto) + 12 zones
+            string[] zoneShortNames = GetZoneShortPopupNames();
+            int currentZoneIdx = piece.HasManualStitchZone ? (int)piece.ManualStitchZone + 1 : 0;
+            GUI.backgroundColor = piece.HasManualStitchZone ? new Color(0.5f, 0.9f, 0.5f) : originalBgColor;
+            EditorGUI.BeginChangeCheck();
+            int newZoneIdx = EditorGUI.Popup(zoneRect, currentZoneIdx, zoneShortNames, EditorStyles.miniButton);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_target, "Cambiar zona");
+                if (newZoneIdx == 0)
                 {
-                    GUI.contentColor = WigColor;
-                    EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} {GetZoneShortLabel(clothing.StitchZone)}", EditorStyles.miniLabel);
+                    piece.HasManualStitchZone = false;
                 }
                 else
                 {
-                    GUI.contentColor = clothing.Enabled
-                        ? (clothing.HasValidMappings ? EnabledColor : WarningColor)
-                        : DisabledColor;
-                    EditorGUI.LabelField(bonesRect, $"{clothing.MappedBoneCount} {GetZoneShortLabel(clothing.StitchZone)}", EditorStyles.miniLabel);
+                    piece.HasManualStitchZone = true;
+                    piece.ManualStitchZone = (StitchZone)(newZoneIdx - 1);
                 }
+                // Re-clasificar PieceType si no es manual
+                if (!piece.PieceTypeManuallySet)
+                {
+                    bool maToHead = piece.HasModularAvatar &&
+                        ModularAvatarDetector.Instance.IsBoneProxyToHead(piece.GameObject);
+                    piece.PieceType = PieceEntry.DeterminePieceType(
+                        piece.EffectiveStitchZone, piece.IsWig, maToHead, piece.Name, piece.AllMeshesHeadWeighted);
+                }
+                EditorUtility.SetDirty(_target);
             }
-            GUI.contentColor = originalColor;
+            GUI.backgroundColor = originalBgColor;
 
-            // Boton eliminar (rojo)
+            // --- Delete button ---
             var deleteRect = new Rect(rect.x + rect.width - DELETE_BUTTON_WIDTH - 2f, rect.y + 1f, DELETE_BUTTON_WIDTH, rect.height - 2f);
             GUI.color = new Color(1f, 0.4f, 0.4f);
             if (GUI.Button(deleteRect, "X", EditorStyles.miniButton))
             {
-                Undo.RecordObject(_target, "Quitar ropa");
-                _target.RemoveClothing(index);
+                Undo.RecordObject(_target, "Quitar pieza");
+                _target.RemovePiece(index);
                 EditorUtility.SetDirty(_target);
             }
             GUI.color = Color.white;
         }
 
-        private void OnAddClothing(ReorderableList list)
+        private void OnAddPiece(ReorderableList list)
         {
             // Agregar entrada vacia (el usuario arrastrara el objeto al ObjectField)
-            Undo.RecordObject(_target, "Agregar ropa");
+            Undo.RecordObject(_target, "Agregar pieza");
 
-            var newEntry = new ClothingEntry();
-            _target.DetectedClothings.Add(newEntry);
+            var newEntry = new PieceEntry();
+            _target.DetectedPieces.Add(newEntry);
 
             // Seleccionar la nueva entrada
-            _target.SelectedClothingIndex = _target.DetectedClothingCount - 1;
+            _target.SelectedPieceIndex = _target.DetectedPieceCount - 1;
 
             EditorUtility.SetDirty(_target);
         }
 
-        private void OnRemoveClothing(ReorderableList list)
+        private void OnRemovePiece(ReorderableList list)
         {
-            if (list.index >= 0 && list.index < _target.DetectedClothingCount)
+            if (list.index >= 0 && list.index < _target.DetectedPieceCount)
             {
-                Undo.RecordObject(_target, "Quitar ropa");
-                _target.RemoveClothing(list.index);
+                Undo.RecordObject(_target, "Quitar pieza");
+                _target.RemovePiece(list.index);
                 EditorUtility.SetDirty(_target);
             }
         }
 
-        private void OnSelectClothing(ReorderableList list)
+        private void OnSelectPiece(ReorderableList list)
         {
             _selectedIndexProp.intValue = list.index;
             serializedObject.ApplyModifiedProperties();
@@ -392,13 +443,35 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
         #endregion
 
-        #region Selected Clothing Details
+        #region Selected Piece Details
 
         private Vector2 _mappingsScrollPos;
 
-        private void DrawSelectedClothingDetails()
+        /// <summary>
+        /// Obtiene nombres localizados para el popup de StitchZone.
+        /// Orden debe coincidir con el enum StitchZone.
+        /// </summary>
+        private string[] GetStitchZonePopupNames()
         {
-            var selected = _target.SelectedClothing;
+            return new[] {
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_FULL_BODY),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_TORSO),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_HEAD),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_UPPER_LIMB),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_LOWER_LIMB),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_HIP),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_HAND),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_HAND),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_FOOT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_FOOT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_CHEST),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_NONE)
+            };
+        }
+
+        private void DrawSelectedPieceDetails()
+        {
+            var selected = _target.SelectedPiece;
             if (selected == null) return;
 
             EditorGUILayout.Space(5);
@@ -408,30 +481,98 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             // Titulo
             EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.DETAILS_TITLE, selected.Name), EditorStyles.boldLabel);
 
-            // Mostrar si tiene Modular Avatar
+            // --- Tipo de pieza con boton Auto ---
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.PIECE_TYPE_LABEL), GUILayout.Width(EditorGUIUtility.labelWidth));
+            GUI.backgroundColor = PieceTypeColors[(int)selected.PieceType];
+            string[] pieceTypeNames = GetPieceTypePopupNames();
+            EditorGUI.BeginChangeCheck();
+            var newPieceType = (PieceType)EditorGUILayout.Popup((int)selected.PieceType, pieceTypeNames, GUILayout.Width(70));
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_target, "Cambiar tipo pieza");
+                selected.PieceType = newPieceType;
+                selected.PieceTypeManuallySet = true;
+                EditorUtility.SetDirty(_target);
+            }
+            GUI.backgroundColor = Color.white;
+
+            if (selected.PieceTypeManuallySet)
+            {
+                if (GUILayout.Button("Auto", EditorStyles.miniButton, GUILayout.Width(40)))
+                {
+                    Undo.RecordObject(_target, "Auto-clasificar tipo pieza");
+                    selected.PieceTypeManuallySet = false;
+                    bool maToHead = selected.HasModularAvatar &&
+                        ModularAvatarDetector.Instance.IsBoneProxyToHead(selected.GameObject);
+                    selected.PieceType = PieceEntry.DeterminePieceType(
+                        selected.EffectiveStitchZone, selected.IsWig, maToHead, selected.Name, selected.AllMeshesHeadWeighted);
+                    EditorUtility.SetDirty(_target);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // --- Info MA: tipo + destino + DisableMA toggle ---
             if (selected.HasModularAvatar)
             {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                // MA tipo y destino
                 EditorGUILayout.BeginHorizontal();
-                GUI.contentColor = ModularAvatarColor;
-                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.MA_DETECTED), EditorStyles.boldLabel);
+                GUI.contentColor = selected.DisableMA ? DisabledColor : ModularAvatarColor;
+                string maTypeLabel = selected.ModularAvatarComponentType.Contains("BoneProxy") ? "BoneProxy" : "MergeArmature";
+                string maTargetStr = !string.IsNullOrEmpty(selected.MATargetInfo) ? $" \u2192 {selected.MATargetInfo}" : "";
+                EditorGUILayout.LabelField($"MA: {maTypeLabel}{maTargetStr}", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
                 EditorGUILayout.EndHorizontal();
 
-                string maMessage = MRLocalization.Get(L.CoserRopaExtra.MA_WILL_PROCESS, selected.ModularAvatarComponentType);
-
-                if (selected.HasMAShapeChanger)
+                // Toggle DisableMA
+                EditorGUI.BeginChangeCheck();
+                var disableMA = EditorGUILayout.ToggleLeft(
+                    MRLocalization.Get(L.CoserRopaExtra.DISABLE_MA_TOGGLE),
+                    selected.DisableMA);
+                if (EditorGUI.EndChangeCheck())
                 {
-                    maMessage += "\n\n" + MRLocalization.Get(L.CoserRopaExtra.MA_MERGE_ARMATURE);
+                    Undo.RecordObject(_target, "Toggle DisableMA");
+                    selected.DisableMA = disableMA;
+                    EditorUtility.SetDirty(_target);
                 }
 
-                EditorGUILayout.HelpBox(maMessage, MessageType.Info);
+                // Warning para pelo
+                if (selected.DisableMA && selected.PieceType == PieceType.Pelo)
+                {
+                    EditorGUILayout.HelpBox(
+                        MRLocalization.Get(L.CoserRopaExtra.DISABLE_MA_WIG_WARNING),
+                        MessageType.Warning);
+                }
+
+                // Info de procesamiento
+                if (!selected.DisableMA)
+                {
+                    EditorGUILayout.HelpBox(
+                        MRLocalization.Get(L.CoserRopaExtra.MA_WILL_PROCESS, selected.ModularAvatarComponentType),
+                        MessageType.Info);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox(
+                        MRLocalization.Get(L.CoserRopaExtra.DISABLE_MA_MR_WILL_PROCESS),
+                        MessageType.Info);
+                }
 
                 EditorGUILayout.EndVertical();
-                return; // No mostrar más detalles para prendas con MA
+
+                // Si MA activo (no desactivado), no mostrar mas detalles de cosido
+                if (!selected.DisableMA)
+                {
+                    EditorGUILayout.EndVertical();
+                    return;
+                }
             }
 
             // Mostrar si solo tiene MA Shape Changer (sin Merge Armature)
-            if (selected.HasMAShapeChanger)
+            if (selected.HasMAShapeChanger && !selected.HasModularAvatar)
             {
                 EditorGUILayout.BeginHorizontal();
                 GUI.contentColor = ModularAvatarColor;
@@ -444,19 +585,54 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                     MessageType.Warning);
             }
 
-            // Info (solo para prendas sin MA)
+            // Info de huesos
             EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.BONE_STATS, selected.MappedBoneCount, selected.TotalBoneCount), EditorStyles.miniLabel);
 
-            // Zona de cosido
-            if (selected.IsWig)
+            // --- Zona de cosido manual ---
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.MANUAL_ZONE_LABEL), GUILayout.Width(EditorGUIUtility.labelWidth));
+
+            // Popup con todas las zonas + opcion "(Auto)" al inicio
+            string[] stitchZoneNames = GetStitchZonePopupNames();
+            string[] zoneOptions = new string[stitchZoneNames.Length + 1];
+            zoneOptions[0] = MRLocalization.Get(L.CoserRopaExtra.MANUAL_ZONE_AUTO);
+            for (int i = 0; i < stitchZoneNames.Length; i++)
+                zoneOptions[i + 1] = stitchZoneNames[i];
+
+            int currentZoneIndex = selected.HasManualStitchZone ? (int)selected.ManualStitchZone + 1 : 0;
+            EditorGUI.BeginChangeCheck();
+            int newZoneIndex = EditorGUILayout.Popup(currentZoneIndex, zoneOptions, GUILayout.Width(100));
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_target, "Cambiar zona manual");
+                if (newZoneIndex == 0)
+                {
+                    selected.HasManualStitchZone = false;
+                }
+                else
+                {
+                    selected.HasManualStitchZone = true;
+                    selected.ManualStitchZone = (StitchZone)(newZoneIndex - 1);
+                }
+                EditorUtility.SetDirty(_target);
+            }
+
+            // Mostrar zona actual (auto o manual)
+            string zoneInfo = selected.HasManualStitchZone
+                ? MRLocalization.Get(L.CoserRopaExtra.MANUAL_ZONE_ACTIVE)
+                : $"({GetZoneFullLabel(selected.StitchZone)})";
+            GUI.contentColor = selected.HasManualStitchZone ? EnabledColor : DisabledColor;
+            EditorGUILayout.LabelField(zoneInfo, EditorStyles.miniLabel);
+            GUI.contentColor = Color.white;
+
+            EditorGUILayout.EndHorizontal();
+
+            // Zona wig label
+            if (selected.IsWig && !selected.HasManualStitchZone)
             {
                 GUI.contentColor = WigColor;
                 EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.ZONE_WIG_LABEL, GetZoneFullLabel(selected.StitchZone)), EditorStyles.miniLabel);
                 GUI.contentColor = Color.white;
-            }
-            else
-            {
-                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.ZONE_LABEL, GetZoneFullLabel(selected.StitchZone)), EditorStyles.miniLabel);
             }
 
             // Detectar y mostrar prefijos/sufijos
@@ -477,21 +653,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         /// <summary>
         /// Muestra campos editables para prefijo/sufijo de nombres de huesos
         /// </summary>
-        private void DrawBoneNamingInfo(ClothingEntry clothing)
+        private void DrawBoneNamingInfo(PieceEntry piece)
         {
             EditorGUILayout.Space(3);
 
             // Detectar automáticamente para mostrar como placeholder/sugerencia
-            var detectedPrefix = DetectCommonPrefix(clothing);
-            var detectedSuffix = DetectCommonSuffix(clothing);
+            var detectedPrefix = DetectCommonPrefix(piece);
+            var detectedSuffix = DetectCommonSuffix(piece);
 
             // Foldout para la sección
-            bool showSection = clothing.HasCustomNaming ||
+            bool showSection = piece.HasCustomNaming ||
                                !string.IsNullOrEmpty(detectedPrefix) ||
                                !string.IsNullOrEmpty(detectedSuffix);
 
             string foldoutLabel = MRLocalization.Get(L.CoserRopaExtra.PREFIX_SECTION);
-            if (clothing.HasCustomNaming)
+            if (piece.HasCustomNaming)
                 foldoutLabel += " (configurado)";
             else if (showSection)
                 foldoutLabel += " (detectado)";
@@ -508,21 +684,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.PREFIX_REMOVE), GUILayout.Width(50));
 
             EditorGUI.BeginChangeCheck();
-            string newPrefix = EditorGUILayout.TextField(clothing.BonePrefix);
+            string newPrefix = EditorGUILayout.TextField(piece.BonePrefix);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(_target, "Cambiar prefijo");
-                clothing.BonePrefix = newPrefix;
+                piece.BonePrefix = newPrefix;
                 EditorUtility.SetDirty(_target);
             }
 
             // Botón para usar el detectado
-            if (!string.IsNullOrEmpty(detectedPrefix) && detectedPrefix != clothing.BonePrefix)
+            if (!string.IsNullOrEmpty(detectedPrefix) && detectedPrefix != piece.BonePrefix)
             {
                 if (GUILayout.Button($"Usar: {detectedPrefix}", EditorStyles.miniButton, GUILayout.Width(120)))
                 {
                     Undo.RecordObject(_target, "Usar prefijo detectado");
-                    clothing.BonePrefix = detectedPrefix;
+                    piece.BonePrefix = detectedPrefix;
                     EditorUtility.SetDirty(_target);
                 }
             }
@@ -533,21 +709,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.SUFFIX_SECTION), GUILayout.Width(50));
 
             EditorGUI.BeginChangeCheck();
-            string newSuffix = EditorGUILayout.TextField(clothing.BoneSuffix);
+            string newSuffix = EditorGUILayout.TextField(piece.BoneSuffix);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(_target, "Cambiar sufijo");
-                clothing.BoneSuffix = newSuffix;
+                piece.BoneSuffix = newSuffix;
                 EditorUtility.SetDirty(_target);
             }
 
             // Botón para usar el detectado
-            if (!string.IsNullOrEmpty(detectedSuffix) && detectedSuffix != clothing.BoneSuffix)
+            if (!string.IsNullOrEmpty(detectedSuffix) && detectedSuffix != piece.BoneSuffix)
             {
                 if (GUILayout.Button($"Usar: {detectedSuffix}", EditorStyles.miniButton, GUILayout.Width(120)))
                 {
                     Undo.RecordObject(_target, "Usar sufijo detectado");
-                    clothing.BoneSuffix = detectedSuffix;
+                    piece.BoneSuffix = detectedSuffix;
                     EditorUtility.SetDirty(_target);
                 }
             }
@@ -558,12 +734,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             if (GUILayout.Button(MRLocalization.Get(L.CoserRopaExtra.SUFFIX_REMOVE), EditorStyles.miniButton))
             {
                 Undo.RecordObject(_target, "Re-detectar huesos");
-                _target.DetectBoneMappingsForClothing(clothing);
+                _target.DetectBoneMappingsForPiece(piece);
                 EditorUtility.SetDirty(_target);
             }
 
             // Mensaje informativo
-            if (clothing.HasCustomNaming)
+            if (piece.HasCustomNaming)
             {
                 GUI.contentColor = EnabledColor;
                 EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.PREFIX_KEEP), EditorStyles.wordWrappedMiniLabel);
@@ -582,14 +758,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         /// <summary>
         /// Detecta prefijo común en los nombres de huesos de la ropa
         /// </summary>
-        private string DetectCommonPrefix(ClothingEntry clothing)
+        private string DetectCommonPrefix(PieceEntry piece)
         {
-            var clothingBoneNames = clothing.BoneMappings
-                .Where(m => m.ClothingBone != null)
-                .Select(m => m.ClothingBone.name)
+            var pieceBoneNames = piece.BoneMappings
+                .Where(m => m.PieceBone != null)
+                .Select(m => m.PieceBone.name)
                 .ToList();
 
-            if (clothingBoneNames.Count < 3)
+            if (pieceBoneNames.Count < 3)
                 return null;
 
             // Buscar prefijos comunes conocidos
@@ -606,9 +782,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             foreach (var prefix in commonPrefixes)
             {
-                int matchCount = clothingBoneNames.Count(name => name.StartsWith(prefix));
+                int matchCount = pieceBoneNames.Count(name => name.StartsWith(prefix));
                 // Si más del 50% de los huesos tienen este prefijo, lo consideramos común
-                if (matchCount > clothingBoneNames.Count / 2)
+                if (matchCount > pieceBoneNames.Count / 2)
                 {
                     return prefix;
                 }
@@ -616,9 +792,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             // Intentar detectar prefijo personalizado
             // Buscar el prefijo más largo común entre los primeros huesos
-            if (clothingBoneNames.Count >= 2)
+            if (pieceBoneNames.Count >= 2)
             {
-                string first = clothingBoneNames[0];
+                string first = pieceBoneNames[0];
                 string commonPrefix = "";
 
                 for (int i = 1; i <= first.Length && i <= 20; i++)
@@ -628,8 +804,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                     if (!candidate.EndsWith("_") && !candidate.EndsWith("-") && !candidate.EndsWith(".") && !candidate.EndsWith(":"))
                         continue;
 
-                    int matchCount = clothingBoneNames.Count(name => name.StartsWith(candidate));
-                    if (matchCount > clothingBoneNames.Count / 2)
+                    int matchCount = pieceBoneNames.Count(name => name.StartsWith(candidate));
+                    if (matchCount > pieceBoneNames.Count / 2)
                     {
                         commonPrefix = candidate;
                     }
@@ -645,14 +821,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         /// <summary>
         /// Detecta sufijo común en los nombres de huesos de la ropa
         /// </summary>
-        private string DetectCommonSuffix(ClothingEntry clothing)
+        private string DetectCommonSuffix(PieceEntry piece)
         {
-            var clothingBoneNames = clothing.BoneMappings
-                .Where(m => m.ClothingBone != null)
-                .Select(m => m.ClothingBone.name)
+            var pieceBoneNames = piece.BoneMappings
+                .Where(m => m.PieceBone != null)
+                .Select(m => m.PieceBone.name)
                 .ToList();
 
-            if (clothingBoneNames.Count < 3)
+            if (pieceBoneNames.Count < 3)
                 return null;
 
             // Buscar sufijos comunes conocidos
@@ -668,8 +844,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             foreach (var suffix in commonSuffixes)
             {
-                int matchCount = clothingBoneNames.Count(name => name.EndsWith(suffix));
-                if (matchCount > clothingBoneNames.Count / 2)
+                int matchCount = pieceBoneNames.Count(name => name.EndsWith(suffix));
+                if (matchCount > pieceBoneNames.Count / 2)
                 {
                     return suffix;
                 }
@@ -678,7 +854,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             return null;
         }
 
-        private void DrawBoneMappingsEditor(ClothingEntry clothing)
+        private void DrawBoneMappingsEditor(PieceEntry piece)
         {
             // Header
             EditorGUILayout.BeginHorizontal();
@@ -692,9 +868,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             _mappingsScrollPos = EditorGUILayout.BeginScrollView(_mappingsScrollPos,
                 GUILayout.MaxHeight(200));
 
-            for (int i = 0; i < clothing.BoneMappings.Count; i++)
+            for (int i = 0; i < piece.BoneMappings.Count; i++)
             {
-                var mapping = clothing.BoneMappings[i];
+                var mapping = piece.BoneMappings[i];
                 DrawSingleMappingEditor(mapping);
             }
 
@@ -704,7 +880,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             EditorGUILayout.Space(3);
             if (GUILayout.Button(MRLocalization.Get(L.CoserRopaExtra.ADD_MAPPING), EditorStyles.miniButton))
             {
-                AddManualMappingFromAvatar(clothing);
+                AddManualMappingFromAvatar(piece);
             }
         }
 
@@ -727,14 +903,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             // ObjectField para hueso de la ROPA (clic para ping, drag para cambiar)
             EditorGUI.BeginChangeCheck();
             var newBone = (Transform)EditorGUILayout.ObjectField(
-                mapping.ClothingBone,
+                mapping.PieceBone,
                 typeof(Transform),
                 true);
 
-            if (EditorGUI.EndChangeCheck() && newBone != mapping.ClothingBone)
+            if (EditorGUI.EndChangeCheck() && newBone != mapping.PieceBone)
             {
                 Undo.RecordObject(_target, "Cambiar mapeo de hueso");
-                mapping.ClothingBone = newBone;
+                mapping.PieceBone = newBone;
                 mapping.MappingMethod = newBone != null
                     ? BoneMappingMethod.ManualAssignment
                     : BoneMappingMethod.None;
@@ -765,7 +941,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             EditorGUILayout.EndHorizontal();
         }
 
-        private void AddManualMappingFromAvatar(ClothingEntry clothing)
+        private void AddManualMappingFromAvatar(PieceEntry piece)
         {
             // Obtener huesos del avatar que no estan mapeados
             var avatarBones = _target.GetAvatarBones();
@@ -781,7 +957,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             foreach (var avatarBone in avatarBones)
             {
                 // Verificar que no este ya mapeado
-                bool alreadyMapped = clothing.BoneMappings.Any(m => m.AvatarBone == avatarBone);
+                bool alreadyMapped = piece.BoneMappings.Any(m => m.AvatarBone == avatarBone);
                 if (!alreadyMapped)
                 {
                     var capturedBone = avatarBone;
@@ -791,10 +967,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                         var mapping = new BoneMapping
                         {
                             AvatarBone = capturedBone,
-                            ClothingBone = null, // Usuario arrastrara el hueso de la ropa
+                            PieceBone = null, // Usuario arrastrara el hueso de la ropa
                             MappingMethod = BoneMappingMethod.ManualAssignment
                         };
-                        clothing.BoneMappings.Add(mapping);
+                        piece.BoneMappings.Add(mapping);
                         EditorUtility.SetDirty(_target);
                     });
                 }
@@ -824,6 +1000,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 StitchZone.UpperLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_UPPER_LIMB_SHORT),
                 StitchZone.LowerLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_LOWER_LIMB_SHORT),
                 StitchZone.Hip => MRLocalization.Get(L.CoserRopaExtra.ZONE_HIP_SHORT),
+                StitchZone.RightHand => MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_HAND_SHORT),
+                StitchZone.LeftHand => MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_HAND_SHORT),
+                StitchZone.RightFoot => MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_FOOT_SHORT),
+                StitchZone.LeftFoot => MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_FOOT_SHORT),
+                StitchZone.Chest => MRLocalization.Get(L.CoserRopaExtra.ZONE_CHEST_SHORT),
+                StitchZone.None => MRLocalization.Get(L.CoserRopaExtra.ZONE_NONE_SHORT),
                 _ => ""
             };
         }
@@ -838,8 +1020,98 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 StitchZone.UpperLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_UPPER_LIMB),
                 StitchZone.LowerLimb => MRLocalization.Get(L.CoserRopaExtra.ZONE_LOWER_LIMB),
                 StitchZone.Hip => MRLocalization.Get(L.CoserRopaExtra.ZONE_HIP),
+                StitchZone.RightHand => MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_HAND),
+                StitchZone.LeftHand => MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_HAND),
+                StitchZone.RightFoot => MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_FOOT),
+                StitchZone.LeftFoot => MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_FOOT),
+                StitchZone.Chest => MRLocalization.Get(L.CoserRopaExtra.ZONE_CHEST),
+                StitchZone.None => MRLocalization.Get(L.CoserRopaExtra.ZONE_NONE),
                 _ => ""
             };
+        }
+
+        /// <summary>
+        /// Obtiene nombres cortos localizados para el popup de zona en la lista.
+        /// Incluye "(Auto)" como primera opción, seguido de las 12 zonas.
+        /// </summary>
+        private string[] GetZoneShortPopupNames()
+        {
+            return new[] {
+                MRLocalization.Get(L.CoserRopaExtra.MANUAL_ZONE_AUTO),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_FULL_BODY_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_TORSO_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_HEAD_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_UPPER_LIMB_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_LOWER_LIMB_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_HIP_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_HAND_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_HAND_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_RIGHT_FOOT_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_LEFT_FOOT_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_CHEST_SHORT),
+                MRLocalization.Get(L.CoserRopaExtra.ZONE_NONE_SHORT)
+            };
+        }
+
+        /// <summary>
+        /// Genera etiqueta numerada para PieceType (ej: "Ropa 1", "Pelo 2").
+        /// Cuenta cuántas piezas del mismo tipo hay antes del índice dado.
+        /// </summary>
+        private string GetNumberedPieceTypeLabel(int index)
+        {
+            if (index < 0 || index >= _target.DetectedPieceCount)
+                return "";
+
+            var piece = _target.DetectedPieces[index];
+            var pieceType = piece.PieceType;
+            string[] typeNames = GetPieceTypePopupNames();
+            string typeName = typeNames[(int)pieceType];
+
+            // Contar cuántas piezas del mismo tipo hay en total
+            int sameTypeCount = 0;
+            int numberInType = 0;
+            for (int i = 0; i < _target.DetectedPieceCount; i++)
+            {
+                if (_target.DetectedPieces[i].PieceType == pieceType)
+                {
+                    sameTypeCount++;
+                    if (i < index)
+                        numberInType++;
+                }
+            }
+            numberInType++; // 1-based
+
+            // Solo numerar si hay más de 1 pieza del mismo tipo
+            if (sameTypeCount > 1)
+                return $"{typeName} {numberInType}";
+            return typeName;
+        }
+
+        /// <summary>
+        /// Muestra GenericMenu para cambiar PieceType de una pieza.
+        /// </summary>
+        private void ShowPieceTypeMenu(int index)
+        {
+            if (index < 0 || index >= _target.DetectedPieceCount) return;
+
+            var piece = _target.DetectedPieces[index];
+            string[] typeNames = GetPieceTypePopupNames();
+            var menu = new GenericMenu();
+
+            for (int i = 0; i < typeNames.Length; i++)
+            {
+                int capturedType = i;
+                bool isActive = (int)piece.PieceType == i;
+                menu.AddItem(new GUIContent(typeNames[i]), isActive, () =>
+                {
+                    Undo.RecordObject(_target, "Cambiar tipo pieza");
+                    piece.PieceType = (PieceType)capturedType;
+                    piece.PieceTypeManuallySet = true;
+                    EditorUtility.SetDirty(_target);
+                });
+            }
+
+            menu.ShowAsContext();
         }
 
         #endregion
@@ -849,28 +1121,66 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         private void DrawNDMFInfo()
         {
             // Resumen de estado
-            int enabledCount = _target.EnabledClothingCount;
+            int enabledCount = _target.EnabledPieceCount;
             int totalBones = _target.TotalMappedBones;
-            int maCount = _target.ModularAvatarClothingCount;
+            int maCount = _target.ModularAvatarPieceCount;
 
-            // Mostrar info de Modular Avatar si hay prendas con MA
-            if (maCount > 0)
+            // Separar piezas MA activas de las que tienen DisableMA
+            var maPieces = _target.ModularAvatarPieces;
+            int maActiveCount = 0;
+            int maDisabledCount = 0;
+            foreach (var piece in maPieces)
+            {
+                if (piece.DisableMA)
+                    maDisabledCount++;
+                else
+                    maActiveCount++;
+            }
+
+            // Mostrar info de Modular Avatar si hay prendas con MA activo
+            if (maActiveCount > 0)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = ModularAvatarColor;
-                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.NDMF_BEHAVIOR, maCount), EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.NDMF_BEHAVIOR, maActiveCount), EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
 
                 EditorGUILayout.LabelField(
                     MRLocalization.Get(L.CoserRopaExtra.NDMF_DURING_BUILD),
                     EditorStyles.wordWrappedMiniLabel);
 
-                // Listar las ropas con MA
-                foreach (var clothing in _target.ModularAvatarClothings)
+                foreach (var piece in maPieces)
                 {
-                    EditorGUILayout.LabelField($"  • {clothing.Name} ({clothing.ModularAvatarComponentType})",
-                        EditorStyles.miniLabel);
+                    if (!piece.DisableMA)
+                    {
+                        EditorGUILayout.LabelField($"  \u2022 {piece.Name} ({piece.ModularAvatarComponentType})",
+                            EditorStyles.miniLabel);
+                    }
+                }
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(4);
+            }
+
+            // Mostrar piezas con DisableMA (MR procesara)
+            if (maDisabledCount > 0)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                GUI.contentColor = EnabledColor;
+                EditorGUILayout.LabelField(MRLocalization.Get(L.CoserRopaExtra.NDMF_DISABLE_MA_INFO, maDisabledCount), EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+
+                foreach (var piece in maPieces)
+                {
+                    if (piece.DisableMA)
+                    {
+                        string label = piece.PieceType == PieceType.Pelo
+                            ? $"  \u26a0 {piece.Name} ({MRLocalization.Get(L.CoserRopaExtra.PIECE_TYPE_PELO)})"
+                            : $"  \u2022 {piece.Name}";
+                        EditorGUILayout.LabelField(label, EditorStyles.miniLabel);
+                    }
                 }
 
                 EditorGUILayout.EndVertical();
@@ -879,7 +1189,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
             if (enabledCount > 0 && totalBones > 0)
             {
-                // Estado listo para MRCoserRopa
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUI.contentColor = EnabledColor;
@@ -897,16 +1206,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
             else if (enabledCount > 0)
             {
-                // Ropas habilitadas pero sin mapeos
                 EditorGUILayout.HelpBox(
                     MRLocalization.Get(L.CoserRopaExtra.NDMF_SCENE_SAFE),
                     MessageType.Warning);
             }
-            else if (maCount == 0)
+            else if (maActiveCount == 0 && maDisabledCount == 0)
             {
-                // Sin ropas habilitadas (y sin MA)
                 EditorGUILayout.HelpBox(
-                    "Habilita al menos una ropa para que se procese automáticamente.",
+                    MRLocalization.Get(L.CoserRopaExtra.NDMF_NO_PIECES_ENABLED),
                     MessageType.Info);
             }
         }

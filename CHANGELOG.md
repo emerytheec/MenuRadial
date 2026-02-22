@@ -5,6 +5,29 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.54] - 2026-02-22
+
+### Cambiado
+- **Renombrar ClothingEntry a PieceEntry**: Toda la terminologia interna cambia de "clothing/ropa" a "piece/pieza" para reflejar que el sistema maneja ropa, pelucas y accesorios. Nuevo enum PieceType (Ropa, Pelo, Pieza) para clasificacion explicita
+- **Clasificacion inteligente de piezas**: DeterminePieceType() usa multiples senales para clasificar automaticamente: zona de cosido, WigDetector, MA BoneProxy, patrones de nombre y analisis de bone weights. Items con zona de cuerpo (FullBody, Torso, Chest, Hip, etc.) se clasifican como Ropa; zona Head con senales de pelo como Pelo; zona Head/None sin senales como Pieza
+- **Analisis de bone weights para pelucas**: Cuando una peluca tiene MergeArmature (esqueleto completo, zona FullBody), BoneWeightAnalyzer verifica si TODOS los meshes pesan en huesos de la cabeza. Si es asi, se clasifica como Pelo aunque tenga zona FullBody. Esto distingue pelucas reales de ropa con accesorios de cabeza
+- **MATargetInfo corregido para MergeArmature**: Cuando MergeArmature existe pero su target es vacio, ahora muestra "Armature" en vez de caer al fallback de BoneProxy que mostraba "Head" erroneamente
+- **Etiquetas numeradas en lista de piezas**: La columna de tipo ahora muestra "Ropa 1", "Pelo 2", "Pieza 1" con conteo por tipo. Usa GenericMenu con colores por tipo
+- **Zona de cosido editable**: La columna de zona en la lista de piezas ahora es un dropdown con opciones (Auto) + 12 zonas. Al cambiar zona se reclasifica el tipo automaticamente
+- **Destruccion de componentes en AnalisisColision**: entry.Destroy() reemplaza entry.Disable() — MA no puede encontrar componentes destruidos con GetComponentsInChildren(true)
+- **MA Mesh Settings auto-eliminado**: MRAjustarBounds destruye automaticamente MA Mesh Settings al detectarlo
+
+### Agregado
+- **PieceEntry.cs**: Nuevo modelo que reemplaza ClothingEntry con campos para PieceType, IsWig, AllMeshesHeadWeighted, HasManualStitchZone, ManualStitchZone y PieceTypeManuallySet
+- **PieceType.cs**: Enum con valores Ropa, Pelo, Pieza para clasificacion explicita de piezas
+- **25 campos de localizacion**: pieceTypeLabel/Ropa/Pelo/Pieza, disableMAToggle/WigWarning/MRWillProcess, manualZoneLabel/Auto/Active, ndmfDisableMAInfo/NoPiecesEnabled, zonas faltantes (RightHand, LeftHand, RightFoot, LeftFoot, Chest, None + variantes cortas)
+- **StitchZone extendido**: Nuevas zonas RightHand, LeftHand, RightFoot, LeftFoot, Chest, None para clasificacion mas granular
+
+### Corregido
+- **Pelucas con MergeArmature mal clasificadas**: Items con esqueleto completo (FullBody) ya no se clasifican automaticamente como Ropa — se verifica bone weights y nombre antes de descartar la clasificacion de WigDetector
+- **Zonas Chest/Hip/UpperLimb clasificadas como Pieza**: Ahora se clasifican correctamente como Ropa (IsBodyZone incluye todas las zonas corporales)
+- **Falsos positivos de WigDetector**: Ropa con accesorios de cabeza que pasaba WigDetector ahora se filtra por bone weights (meshes del cuerpo no pasan el threshold de 60% head weight)
+
 ## [0.8.54] - 2026-02-21
 
 ### Corregido

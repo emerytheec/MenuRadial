@@ -44,7 +44,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// <summary>
         /// Ejecuta el proceso de cosido o fusion segun el modo especificado
         /// </summary>
-        public StitchingResult ExecuteStitching(List<BoneMapping> mappings, StitchingMode mode, GameObject clothingRoot)
+        public StitchingResult ExecuteStitching(List<BoneMapping> mappings, StitchingMode mode, GameObject pieceRoot)
         {
             var result = new StitchingResult { Success = true };
             _undoStack.Clear();
@@ -64,11 +64,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
 #if UNITY_EDITOR
             // Verificar si la ropa es un prefab y desempaquetarlo
-            var firstClothingBone = validMappings.First().ClothingBone;
-            if (firstClothingBone != null)
+            var firstPieceBone = validMappings.First().PieceBone;
+            if (firstPieceBone != null)
             {
                 // Buscar la raiz mas externa del prefab
-                GameObject prefabRoot = UnityEditor.PrefabUtility.GetOutermostPrefabInstanceRoot(firstClothingBone.gameObject);
+                GameObject prefabRoot = UnityEditor.PrefabUtility.GetOutermostPrefabInstanceRoot(firstPieceBone.gameObject);
                 if (prefabRoot != null && UnityEditor.PrefabUtility.IsPartOfPrefabInstance(prefabRoot))
                 {
                     Debug.Log($"[BoneStitchingController] La ropa es un prefab. Desempaquetando '{prefabRoot.name}'...");
@@ -82,7 +82,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             // Ejecutar segun el modo
             if (mode == StitchingMode.Merge)
             {
-                return ExecuteMerge(validMappings, clothingRoot, result);
+                return ExecuteMerge(validMappings, pieceRoot, result);
             }
             else
             {
@@ -128,18 +128,18 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// Solo fusiona huesos HUMANOID. Los huesos no-humanoid y PhysBones se mueven pero no se fusionan.
         /// Similar a Modular Avatar Merge Armature
         /// </summary>
-        private StitchingResult ExecuteMerge(List<BoneMapping> validMappings, GameObject clothingRoot, StitchingResult result)
+        private StitchingResult ExecuteMerge(List<BoneMapping> validMappings, GameObject pieceRoot, StitchingResult result)
         {
-            if (clothingRoot == null)
+            if (pieceRoot == null)
             {
-                return StitchingResult.CreateFailure("Se requiere clothingRoot para modo Merge");
+                return StitchingResult.CreateFailure("Se requiere pieceRoot para modo Merge");
             }
 
             Debug.Log($"[BoneStitchingController] Modo FUSIONAR: Actualizando SkinnedMeshRenderers...");
 
             // PASO 0: Detectar cadenas de PhysBones que deben preservarse
-            var physBoneChains = _physBoneDetector.DetectPhysBoneChains(clothingRoot.transform);
-            var physBoneInfo = _physBoneDetector.GetPhysBoneInfo(clothingRoot.transform);
+            var physBoneChains = _physBoneDetector.DetectPhysBoneChains(pieceRoot.transform);
+            var physBoneInfo = _physBoneDetector.GetPhysBoneInfo(pieceRoot.transform);
 
             if (physBoneChains.Count > 0)
             {
@@ -153,22 +153,22 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
             foreach (var mapping in validMappings)
             {
-                if (mapping.ClothingBone != null && mapping.AvatarBone != null)
+                if (mapping.PieceBone != null && mapping.AvatarBone != null)
                 {
                     // NO mapear huesos que son parte de cadenas PhysBone
-                    if (physBoneChains.Contains(mapping.ClothingBone))
+                    if (physBoneChains.Contains(mapping.PieceBone))
                     {
-                        Debug.Log($"[BoneStitchingController] Hueso '{mapping.ClothingBone.name}' excluido del mapeo (PhysBone)");
+                        Debug.Log($"[BoneStitchingController] Hueso '{mapping.PieceBone.name}' excluido del mapeo (PhysBone)");
                         excludedPhysBones++;
                         continue;
                     }
 
-                    boneMap[mapping.ClothingBone] = mapping.AvatarBone;
+                    boneMap[mapping.PieceBone] = mapping.AvatarBone;
                 }
             }
 
             // Encontrar todos los SkinnedMeshRenderers en la ropa
-            var skinnedMeshRenderers = clothingRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            var skinnedMeshRenderers = pieceRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
 
             if (skinnedMeshRenderers.Length == 0)
             {
@@ -207,11 +207,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             Debug.Log($"[BoneStitchingController] Retargeteando meshes con recálculo de bind poses...");
 
             // Obtener estadísticas antes
-            var stats = _meshRetargeter.GetRetargetingStats(clothingRoot, boneMap);
+            var stats = _meshRetargeter.GetRetargetingStats(pieceRoot, boneMap);
             Debug.Log($"[BoneStitchingController] {stats}");
 
             // Retargetear todos los meshes
-            int totalRetargeted = _meshRetargeter.RetargetMeshes(clothingRoot, boneMap);
+            int totalRetargeted = _meshRetargeter.RetargetMeshes(pieceRoot, boneMap);
 
             result.BonesStitched = stats.TotalBonestoRetarget;
             result.BonesMerged = stats.TotalBonestoRetarget;
@@ -219,7 +219,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             result.PhysBonesPreserved = physBoneChains.Count;
 
             // PASO 4: Limpiar huesos no usados y armature
-            CleanupArmature(clothingRoot, nonHumanoidBonesInUse);
+            CleanupArmature(pieceRoot, nonHumanoidBonesInUse);
 
             Debug.Log($"[BoneStitchingController] Fusion completada: {totalRetargeted} SMRs retargeteados, {nonHumanoidBonesInUse.Count} huesos preservados ({physBoneChains.Count} PhysBones)");
 
@@ -241,16 +241,16 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
                 if (nonHumanoidBone == null) continue;
 
                 // Buscar el padre humanoid mas cercano en la jerarquia de la ropa
-                Transform clothingParent = nonHumanoidBone.parent;
+                Transform pieceParent = nonHumanoidBone.parent;
                 Transform avatarParent = null;
 
-                while (clothingParent != null)
+                while (pieceParent != null)
                 {
-                    if (boneMap.TryGetValue(clothingParent, out avatarParent))
+                    if (boneMap.TryGetValue(pieceParent, out avatarParent))
                     {
                         break; // Encontramos el padre humanoid
                     }
-                    clothingParent = clothingParent.parent;
+                    pieceParent = pieceParent.parent;
                 }
 
                 if (avatarParent != null)
@@ -276,19 +276,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// Ejecuta fusion DESPUES de haber cosido (modo manual paso 2)
         /// Detecta huesos con sufijo "(Ropa)" y actualiza SMR para usar el padre (hueso avatar)
         /// </summary>
-        public StitchingResult ExecuteMergeAfterStitch(GameObject clothingRoot)
+        public StitchingResult ExecuteMergeAfterStitch(GameObject pieceRoot)
         {
             var result = new StitchingResult { Success = true };
 
-            if (clothingRoot == null)
+            if (pieceRoot == null)
             {
-                return StitchingResult.CreateFailure("Se requiere clothingRoot");
+                return StitchingResult.CreateFailure("Se requiere pieceRoot");
             }
 
             Debug.Log($"[BoneStitchingController] Modo FUSIONAR DESPUES DE COSER...");
 
             // Encontrar todos los SkinnedMeshRenderers en la ropa
-            var skinnedMeshRenderers = clothingRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            var skinnedMeshRenderers = pieceRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
 
             if (skinnedMeshRenderers.Length == 0)
             {
@@ -417,11 +417,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// <summary>
         /// Verifica si hay huesos cosidos (con sufijo "(Ropa)") en la escena
         /// </summary>
-        public bool HasStitchedBones(GameObject clothingRoot)
+        public bool HasStitchedBones(GameObject pieceRoot)
         {
-            if (clothingRoot == null) return false;
+            if (pieceRoot == null) return false;
 
-            var smrs = clothingRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            var smrs = pieceRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             foreach (var smr in smrs)
             {
                 foreach (var bone in smr.bones)
@@ -438,9 +438,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// <summary>
         /// Limpia el armature: elimina huesos no usados y el armature si queda vacio
         /// </summary>
-        private void CleanupArmature(GameObject clothingRoot, HashSet<Transform> bonesInUse)
+        private void CleanupArmature(GameObject pieceRoot, HashSet<Transform> bonesInUse)
         {
-            Transform armature = FindArmatureRoot(clothingRoot);
+            Transform armature = FindArmatureRoot(pieceRoot);
             if (armature == null) return;
 
             // Recopilar todos los huesos en el armature
@@ -530,31 +530,31 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// </summary>
         private void StitchSingleBone(BoneMapping mapping, StitchingResult result)
         {
-            var clothingBone = mapping.ClothingBone;
+            var pieceBone = mapping.PieceBone;
             var avatarBone = mapping.AvatarBone;
 
             // Guardar estado original para undo (incluyendo nombre original)
-            string originalName = clothingBone.name;
-            _undoStack.Add((clothingBone, clothingBone.parent, clothingBone.GetSiblingIndex()));
+            string originalName = pieceBone.name;
+            _undoStack.Add((pieceBone, pieceBone.parent, pieceBone.GetSiblingIndex()));
 
 #if UNITY_EDITOR
             // Registrar para Undo antes de hacer cambios
-            UnityEditor.Undo.RecordObject(clothingBone.gameObject, $"Coser {mapping.BoneType}");
-            UnityEditor.Undo.RecordObject(clothingBone, $"Coser {mapping.BoneType}");
+            UnityEditor.Undo.RecordObject(pieceBone.gameObject, $"Coser {mapping.BoneType}");
+            UnityEditor.Undo.RecordObject(pieceBone, $"Coser {mapping.BoneType}");
 #endif
 
             // Renombrar hueso para rastreo
-            if (!clothingBone.name.EndsWith(CLOTHING_BONE_SUFFIX))
+            if (!pieceBone.name.EndsWith(CLOTHING_BONE_SUFFIX))
             {
-                clothingBone.name = clothingBone.name + CLOTHING_BONE_SUFFIX;
+                pieceBone.name = pieceBone.name + CLOTHING_BONE_SUFFIX;
             }
 
             // Reparentar el hueso de la ropa bajo el hueso del avatar
             // worldPositionStays=true mantiene la posicion/rotacion/escala world
-            clothingBone.SetParent(avatarBone, worldPositionStays: true);
+            pieceBone.SetParent(avatarBone, worldPositionStays: true);
 
 #if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(clothingBone.gameObject);
+            UnityEditor.EditorUtility.SetDirty(pieceBone.gameObject);
 #endif
 
             mapping.WasStitched = true;
@@ -568,10 +568,10 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// </summary>
         private bool IsAlreadyStitched(BoneMapping mapping)
         {
-            if (mapping.ClothingBone == null || mapping.AvatarBone == null)
+            if (mapping.PieceBone == null || mapping.AvatarBone == null)
                 return false;
 
-            return mapping.ClothingBone.parent == mapping.AvatarBone;
+            return mapping.PieceBone.parent == mapping.AvatarBone;
         }
 
         /// <summary>
@@ -581,8 +581,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         private List<BoneMapping> SortByHierarchyDepth(List<BoneMapping> mappings)
         {
             return mappings
-                .Where(m => m.ClothingBone != null)
-                .OrderBy(m => GetHierarchyDepth(m.ClothingBone))
+                .Where(m => m.PieceBone != null)
+                .OrderBy(m => GetHierarchyDepth(m.PieceBone))
                 .ToList();
         }
 
@@ -612,14 +612,14 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
 
             foreach (var mapping in mappings)
             {
-                if (mapping.ClothingBone == null) continue;
+                if (mapping.PieceBone == null) continue;
 
                 // Contar hijos directos que no son huesos humanoid
-                foreach (Transform child in mapping.ClothingBone)
+                foreach (Transform child in mapping.PieceBone)
                 {
                     // Si el hijo no esta en la lista de mapeos, es no-humanoid
                     bool isHumanoid = mappings.Any(m =>
-                        m.ClothingBone == child);
+                        m.PieceBone == child);
 
                     if (!isHumanoid)
                         count++;
@@ -632,7 +632,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         /// <summary>
         /// Valida si el cosido puede realizarse
         /// </summary>
-        public ValidationResult ValidateForStitching(ArmatureReference avatar, ArmatureReference clothing)
+        public ValidationResult ValidateForStitching(ArmatureReference avatar, ArmatureReference piece)
         {
             var result = new ValidationResult();
 
@@ -656,29 +656,29 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
             }
 
             // Validar ropa
-            if (clothing == null || clothing.RootObject == null)
+            if (piece == null || piece.RootObject == null)
             {
                 result.AddChild(ValidationResult.Error("Ropa no asignada"));
             }
             else
             {
-                if (clothing.Animator == null)
+                if (piece.Animator == null)
                 {
                     result.AddChild(ValidationResult.Warning(
-                        $"Ropa '{clothing.RootObject.name}' no tiene Animator. " +
+                        $"Ropa '{piece.RootObject.name}' no tiene Animator. " +
                         "Se buscara armature por nombre de huesos."));
                 }
-                else if (!clothing.IsHumanoid)
+                else if (!piece.IsHumanoid)
                 {
                     result.AddChild(ValidationResult.Warning(
-                        $"Ropa '{clothing.RootObject.name}' no esta configurada como Humanoid. " +
+                        $"Ropa '{piece.RootObject.name}' no esta configurada como Humanoid. " +
                         "Se usara busqueda por nombre de huesos como fallback."));
                 }
 
-                if (clothing.ArmatureRoot == null)
+                if (piece.ArmatureRoot == null)
                 {
                     result.AddChild(ValidationResult.Warning(
-                        $"No se encontro raiz de armature en '{clothing.RootObject.name}'."));
+                        $"No se encontro raiz de armature en '{piece.RootObject.name}'."));
                 }
             }
 

@@ -794,7 +794,27 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string NDMF_SCOPE = "coserRopa.ndmfScope";
             public const string NDMF_SCENE_SAFE = "coserRopa.ndmfSceneSafe";
 
-            // StitchZone labels
+            // PieceType labels
+            public const string PIECE_TYPE_LABEL = "coserRopa.pieceTypeLabel";
+            public const string PIECE_TYPE_ROPA = "coserRopa.pieceTypeRopa";
+            public const string PIECE_TYPE_PELO = "coserRopa.pieceTypePelo";
+            public const string PIECE_TYPE_PIEZA = "coserRopa.pieceTypePieza";
+
+            // DisableMA
+            public const string DISABLE_MA_TOGGLE = "coserRopa.disableMAToggle";
+            public const string DISABLE_MA_WIG_WARNING = "coserRopa.disableMAWigWarning";
+            public const string DISABLE_MA_MR_WILL_PROCESS = "coserRopa.disableMAMRWillProcess";
+
+            // Manual zone
+            public const string MANUAL_ZONE_LABEL = "coserRopa.manualZoneLabel";
+            public const string MANUAL_ZONE_AUTO = "coserRopa.manualZoneAuto";
+            public const string MANUAL_ZONE_ACTIVE = "coserRopa.manualZoneActive";
+
+            // NDMF extras
+            public const string NDMF_DISABLE_MA_INFO = "coserRopa.ndmfDisableMAInfo";
+            public const string NDMF_NO_PIECES_ENABLED = "coserRopa.ndmfNoPiecesEnabled";
+
+            // StitchZone labels (originales)
             public const string ZONE_FULL_BODY = "coserRopa.zoneFullBody";
             public const string ZONE_TORSO = "coserRopa.zoneTorso";
             public const string ZONE_HEAD = "coserRopa.zoneHead";
@@ -809,6 +829,20 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string ZONE_HIP_SHORT = "coserRopa.zoneHipShort";
             public const string ZONE_LABEL = "coserRopa.zoneLabel";
             public const string ZONE_WIG_LABEL = "coserRopa.zoneWigLabel";
+
+            // Zonas nuevas
+            public const string ZONE_RIGHT_HAND = "coserRopa.zoneRightHand";
+            public const string ZONE_LEFT_HAND = "coserRopa.zoneLeftHand";
+            public const string ZONE_RIGHT_FOOT = "coserRopa.zoneRightFoot";
+            public const string ZONE_LEFT_FOOT = "coserRopa.zoneLeftFoot";
+            public const string ZONE_CHEST = "coserRopa.zoneChest";
+            public const string ZONE_NONE = "coserRopa.zoneNone";
+            public const string ZONE_RIGHT_HAND_SHORT = "coserRopa.zoneRightHandShort";
+            public const string ZONE_LEFT_HAND_SHORT = "coserRopa.zoneLeftHandShort";
+            public const string ZONE_RIGHT_FOOT_SHORT = "coserRopa.zoneRightFootShort";
+            public const string ZONE_LEFT_FOOT_SHORT = "coserRopa.zoneLeftFootShort";
+            public const string ZONE_CHEST_SHORT = "coserRopa.zoneChestShort";
+            public const string ZONE_NONE_SHORT = "coserRopa.zoneNoneShort";
         }
     }
 }

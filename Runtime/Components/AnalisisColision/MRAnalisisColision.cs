@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -78,17 +79,19 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         [Tooltip("Desactivar automaticamente componentes problematicos en raiz de ropa")]
         private bool _autoDisableProblematicOnRoot = true;
 
+        [FormerlySerializedAs("_clothingRoots")]
         [SerializeField]
-        [Tooltip("Lista de GameObjects raiz de ropa (poblada por MRCoserRopa)")]
-        private List<GameObject> _clothingRoots = new List<GameObject>();
+        [Tooltip("Lista de GameObjects raiz de piezas (poblada por MRCoserRopa)")]
+        private List<GameObject> _pieceRoots = new List<GameObject>();
 
         [SerializeField]
         [Tooltip("Mostrar componentes compatibles en el inspector")]
         private bool _showCompatibleComponents = false;
 
+        [FormerlySerializedAs("_clothingWithMenuDisabled")]
         [SerializeField]
-        [Tooltip("Lista de nombres de prendas con menú desactivado")]
-        private List<string> _clothingWithMenuDisabled = new List<string>();
+        [Tooltip("Lista de nombres de piezas con menú desactivado")]
+        private List<string> _piecesWithMenuDisabled = new List<string>();
 
         #endregion
 
@@ -131,9 +134,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         public int ProblematicCount => _scanResult?.ProblematicCount ?? 0;
 
         /// <summary>
-        /// Cantidad de componentes problematicos en raiz de ropa.
+        /// Cantidad de componentes problematicos en raiz de pieza.
         /// </summary>
-        public int ProblematicOnRootCount => _scanResult?.ProblematicOnClothingRootCount ?? 0;
+        public int ProblematicOnRootCount => _scanResult?.ProblematicOnPieceRootCount ?? 0;
 
         /// <summary>
         /// Cantidad de componentes que requieren decision del usuario.
@@ -156,9 +159,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         public bool HasProblematic => _scanResult?.HasProblematic ?? false;
 
         /// <summary>
-        /// Si hay componentes problematicos en raiz de ropa.
+        /// Si hay componentes problematicos en raiz de pieza.
         /// </summary>
-        public bool HasProblematicOnRoot => _scanResult?.HasProblematicOnClothingRoot ?? false;
+        public bool HasProblematicOnRoot => _scanResult?.HasProblematicOnPieceRoot ?? false;
 
         /// <summary>
         /// Si hay componentes que requieren decision del usuario.
@@ -190,9 +193,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Lista de GameObjects raiz de ropa.
+        /// Lista de GameObjects raiz de piezas.
         /// </summary>
-        public List<GameObject> ClothingRoots => _clothingRoots;
+        public List<GameObject> PieceRoots => _pieceRoots;
 
         /// <summary>
         /// Si se deben mostrar los componentes compatibles en el inspector.
@@ -254,8 +257,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         {
             base.InitializeComponent();
             _scanResult ??= new ColisionScanResult();
-            _clothingRoots ??= new List<GameObject>();
-            _clothingWithMenuDisabled ??= new List<string>();
+            _pieceRoots ??= new List<GameObject>();
+            _piecesWithMenuDisabled ??= new List<string>();
         }
 
         #endregion
@@ -287,8 +290,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 return;
             }
 
-            // SIEMPRE escanear meshes en raíces de ropa (no depende de MA)
-            ScanMeshesOnClothingRoots();
+            // SIEMPRE escanear meshes en raíces de piezas (no depende de MA)
+            ScanMeshesOnPieceRoots();
 
             _scanResult.MAAvailable = IsMAAvailable;
 
@@ -324,10 +327,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 Debug.Log($"[MRAnalisisColision] Desactivados {criticalDisabled} componente(s) critico(s) automaticamente");
             }
 
-            // Desactivar automaticamente problematicos en raiz de ropa si esta habilitado
-            if (_autoDisableProblematicOnRoot && _scanResult.HasProblematicOnClothingRoot)
+            // Desactivar automaticamente problematicos en raiz de pieza si esta habilitado
+            if (_autoDisableProblematicOnRoot && _scanResult.HasProblematicOnPieceRoot)
             {
-                int disabled = DisableProblematicOnClothingRoots();
+                int disabled = DisableProblematicOnPieceRoots();
                 if (disabled > 0)
                 {
                     Debug.Log($"[MRAnalisisColision] Desactivados {disabled} componente(s) problematico(s) en raiz de ropa");
@@ -336,20 +339,20 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Escanea las raíces de ropa buscando meshes directamente en el GameObject raíz.
-        /// Esto es un error del autor de la ropa - los meshes deberían estar en GameObjects hijos.
+        /// Escanea las raíces de piezas buscando meshes directamente en el GameObject raíz.
+        /// Esto es un error del autor - los meshes deberían estar en GameObjects hijos.
         /// </summary>
-        private void ScanMeshesOnClothingRoots()
+        private void ScanMeshesOnPieceRoots()
         {
-            if (_clothingRoots == null || _clothingRoots.Count == 0)
+            if (_pieceRoots == null || _pieceRoots.Count == 0)
                 return;
 
-            foreach (var clothingRoot in _clothingRoots)
+            foreach (var pieceRoot in _pieceRoots)
             {
-                if (clothingRoot == null) continue;
+                if (pieceRoot == null) continue;
 
-                // Buscar Renderer directamente en el GameObject raíz de la ropa
-                var renderers = clothingRoot.GetComponents<Renderer>();
+                // Buscar Renderer directamente en el GameObject raíz de la pieza
+                var renderers = pieceRoot.GetComponents<Renderer>();
 
                 foreach (var renderer in renderers)
                 {
@@ -359,11 +362,11 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                     string hierarchyPath = GetHierarchyPath(renderer.transform);
 
                     // Crear entrada para este mesh problemático
-                    var entry = new MeshOnRootEntry(renderer, clothingRoot, hierarchyPath);
+                    var entry = new MeshOnRootEntry(renderer, pieceRoot, hierarchyPath);
                     _scanResult.AddMeshOnRoot(entry);
 
-                    Debug.LogWarning($"[MRAnalisisColision] Mesh en raíz de ropa: '{renderer.gameObject.name}' ({renderer.GetType().Name}) en '{clothingRoot.name}'. " +
-                                     "Esto es un error del autor de la ropa - el mesh debería estar en un GameObject hijo.");
+                    Debug.LogWarning($"[MRAnalisisColision] Mesh en raíz de pieza: '{renderer.gameObject.name}' ({renderer.GetType().Name}) en '{pieceRoot.name}'. " +
+                                     "Esto es un error del autor - el mesh debería estar en un GameObject hijo.");
                 }
             }
         }
@@ -390,34 +393,34 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Actualiza la lista de raices de ropa desde MRCoserRopa.
+        /// Actualiza la lista de raices de piezas desde MRCoserRopa.
         /// </summary>
-        public void UpdateClothingRoots(List<GameObject> roots)
+        public void UpdatePieceRoots(List<GameObject> roots)
         {
-            _clothingRoots.Clear();
+            _pieceRoots.Clear();
             if (roots != null)
             {
-                _clothingRoots.AddRange(roots);
+                _pieceRoots.AddRange(roots);
             }
 
             // Re-marcar entradas existentes
-            UpdateClothingRootFlags();
+            UpdatePieceRootFlags();
 
             // Limpiar entradas de menú desactivado que ya no existen
             CleanupOrphanedMenuDisabledEntries();
         }
 
         /// <summary>
-        /// Desactiva todos los componentes problematicos que estan en raiz de ropa.
+        /// Desactiva todos los componentes problematicos que estan en raiz de pieza.
         /// </summary>
         /// <returns>Cantidad de componentes desactivados.</returns>
-        public int DisableProblematicOnClothingRoots()
+        public int DisableProblematicOnPieceRoots()
         {
-            if (_scanResult == null || !_scanResult.HasProblematicOnClothingRoot)
+            if (_scanResult == null || !_scanResult.HasProblematicOnPieceRoot)
                 return 0;
 
             int count = 0;
-            foreach (var entry in _scanResult.GetProblematicOnClothingRoot())
+            foreach (var entry in _scanResult.GetProblematicOnPieceRoot())
             {
                 if (entry.Destroy())
                 {
@@ -475,8 +478,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 if (!entry.IsValid || !entry.IsEnabled)
                     continue;
 
-                // Verificar si es un componente critico Y esta en raiz de ropa
-                if (IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnClothingRoot)
+                // Verificar si es un componente critico Y esta en raiz de pieza
+                if (IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnPieceRoot)
                 {
                     if (entry.Destroy())
                     {
@@ -575,7 +578,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             }
 
             // Limpiar lista de menús desactivados ya que todo fue restaurado
-            _clothingWithMenuDisabled.Clear();
+            _piecesWithMenuDisabled.Clear();
 
 #if UNITY_EDITOR
             if (count > 0 && !Application.isPlaying)
@@ -594,7 +597,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         {
             _scanResult.Clear();
             // También limpiar lista de menús desactivados ya que el escaneo se reinicia
-            _clothingWithMenuDisabled.Clear();
+            _piecesWithMenuDisabled.Clear();
         }
 
         /// <summary>
@@ -764,46 +767,46 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         #region Menu Toggle Methods
 
         /// <summary>
-        /// Verifica si el menú está desactivado para una prenda específica.
+        /// Verifica si el menú está desactivado para una pieza específica.
         /// </summary>
-        /// <param name="clothingName">Nombre de la prenda.</param>
-        /// <returns>True si el menú está desactivado para esta prenda.</returns>
-        public bool IsMenuDisabledForClothing(string clothingName)
+        /// <param name="pieceName">Nombre de la pieza.</param>
+        /// <returns>True si el menú está desactivado para esta pieza.</returns>
+        public bool IsMenuDisabledForPiece(string pieceName)
         {
-            if (string.IsNullOrEmpty(clothingName)) return false;
-            return _clothingWithMenuDisabled.Contains(clothingName);
+            if (string.IsNullOrEmpty(pieceName)) return false;
+            return _piecesWithMenuDisabled.Contains(pieceName);
         }
 
         /// <summary>
-        /// Alterna el estado del menú (activo/desactivado) para una prenda específica.
+        /// Alterna el estado del menú (activo/desactivado) para una pieza específica.
         /// </summary>
-        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <param name="pieceName">Nombre de la pieza.</param>
         /// <returns>True si ahora el menú está desactivado, False si está activo.</returns>
-        public bool ToggleMenuForClothing(string clothingName)
+        public bool ToggleMenuForPiece(string pieceName)
         {
-            if (string.IsNullOrEmpty(clothingName)) return false;
+            if (string.IsNullOrEmpty(pieceName)) return false;
 
-            if (IsMenuDisabledForClothing(clothingName))
+            if (IsMenuDisabledForPiece(pieceName))
             {
-                EnableMenuComponentsForClothing(clothingName);
+                EnableMenuComponentsForPiece(pieceName);
                 return false;
             }
             else
             {
-                DisableMenuComponentsForClothing(clothingName);
+                DisableMenuComponentsForPiece(pieceName);
                 return true;
             }
         }
 
         /// <summary>
-        /// Desactiva todos los componentes de menú de MA para una prenda específica.
+        /// Desactiva todos los componentes de menú de MA para una pieza específica.
         /// Esto desactiva el componente en Edit Mode Y lo marca para destrucción en NDMF.
         /// </summary>
-        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <param name="pieceName">Nombre de la pieza.</param>
         /// <returns>Cantidad de componentes desactivados.</returns>
-        public int DisableMenuComponentsForClothing(string clothingName)
+        public int DisableMenuComponentsForPiece(string pieceName)
         {
-            if (string.IsNullOrEmpty(clothingName) || _scanResult == null)
+            if (string.IsNullOrEmpty(pieceName) || _scanResult == null)
                 return 0;
 
             int count = 0;
@@ -813,8 +816,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 if (!entry.IsValid)
                     continue;
 
-                // Verificar si pertenece a esta prenda
-                if (!BelongsToClothing(entry, clothingName))
+                // Verificar si pertenece a esta pieza
+                if (!BelongsToPiece(entry, pieceName))
                     continue;
 
                 // Verificar si es un componente de menú
@@ -831,13 +834,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 entry.UserWantsDisabled = true;
 
                 count++;
-                Debug.Log($"[MRAnalisisColision] Menú: Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (prenda: {clothingName})");
+                Debug.Log($"[MRAnalisisColision] Menú: Desactivado {entry.ShortTypeName} en '{entry.GameObjectName}' (pieza: {pieceName})");
             }
 
-            // Registrar que esta prenda tiene menú desactivado
-            if (!_clothingWithMenuDisabled.Contains(clothingName))
+            // Registrar que esta pieza tiene menú desactivado
+            if (!_piecesWithMenuDisabled.Contains(pieceName))
             {
-                _clothingWithMenuDisabled.Add(clothingName);
+                _piecesWithMenuDisabled.Add(pieceName);
             }
 
 #if UNITY_EDITOR
@@ -851,14 +854,14 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Restaura (activa) todos los componentes de menú de MA para una prenda específica.
+        /// Restaura (activa) todos los componentes de menú de MA para una pieza específica.
         /// Esto restaura el componente en Edit Mode Y lo desmarca para destrucción en NDMF.
         /// </summary>
-        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <param name="pieceName">Nombre de la pieza.</param>
         /// <returns>Cantidad de componentes restaurados.</returns>
-        public int EnableMenuComponentsForClothing(string clothingName)
+        public int EnableMenuComponentsForPiece(string pieceName)
         {
-            if (string.IsNullOrEmpty(clothingName) || _scanResult == null)
+            if (string.IsNullOrEmpty(pieceName) || _scanResult == null)
                 return 0;
 
             int count = 0;
@@ -868,8 +871,8 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 if (!entry.IsValid)
                     continue;
 
-                // Verificar si pertenece a esta prenda
-                if (!BelongsToClothing(entry, clothingName))
+                // Verificar si pertenece a esta pieza
+                if (!BelongsToPiece(entry, pieceName))
                     continue;
 
                 // Verificar si es un componente de menú
@@ -883,11 +886,11 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                 entry.UserWantsDisabled = false;
 
                 count++;
-                Debug.Log($"[MRAnalisisColision] Menú: Restaurado {entry.ShortTypeName} en '{entry.GameObjectName}' (prenda: {clothingName})");
+                Debug.Log($"[MRAnalisisColision] Menú: Restaurado {entry.ShortTypeName} en '{entry.GameObjectName}' (pieza: {pieceName})");
             }
 
             // Quitar de la lista de menús desactivados
-            _clothingWithMenuDisabled.Remove(clothingName);
+            _piecesWithMenuDisabled.Remove(pieceName);
 
 #if UNITY_EDITOR
             if (count > 0 && !Application.isPlaying)
@@ -900,38 +903,38 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Obtiene la cantidad de componentes de menú de MA en una prenda específica.
+        /// Obtiene la cantidad de componentes de menú de MA en una pieza específica.
         /// </summary>
-        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <param name="pieceName">Nombre de la pieza.</param>
         /// <returns>Cantidad de componentes de menú encontrados.</returns>
-        public int GetMenuComponentCountForClothing(string clothingName)
+        public int GetMenuComponentCountForPiece(string pieceName)
         {
-            if (string.IsNullOrEmpty(clothingName) || _scanResult == null)
+            if (string.IsNullOrEmpty(pieceName) || _scanResult == null)
                 return 0;
 
             return _scanResult.AllEntries
                 .Count(e => e.IsValid &&
-                            BelongsToClothing(e, clothingName) &&
+                            BelongsToPiece(e, pieceName) &&
                             IsMenuComponent(e.ComponentTypeName));
         }
 
         /// <summary>
-        /// Verifica si una entrada pertenece a una prenda específica.
-        /// Busca si el GameObject de la entrada es hijo (o es) del root de la prenda.
+        /// Verifica si una entrada pertenece a una pieza específica.
+        /// Busca si el GameObject de la entrada es hijo (o es) del root de la pieza.
         /// </summary>
-        private bool BelongsToClothing(ColisionEntry entry, string clothingName)
+        private bool BelongsToPiece(ColisionEntry entry, string pieceName)
         {
-            if (entry?.Component == null || string.IsNullOrEmpty(clothingName))
+            if (entry?.Component == null || string.IsNullOrEmpty(pieceName))
                 return false;
 
-            // Buscar el root de la prenda
-            var clothingRoot = _clothingRoots.FirstOrDefault(r => r != null && r.name == clothingName);
-            if (clothingRoot == null)
+            // Buscar el root de la pieza
+            var pieceRoot = _pieceRoots.FirstOrDefault(r => r != null && r.name == pieceName);
+            if (pieceRoot == null)
                 return false;
 
             // Verificar si el componente está en el root o es hijo del root
-            return entry.Component.gameObject == clothingRoot ||
-                   entry.Component.transform.IsChildOf(clothingRoot.transform);
+            return entry.Component.gameObject == pieceRoot ||
+                   entry.Component.transform.IsChildOf(pieceRoot.transform);
         }
 
         /// <summary>
@@ -956,15 +959,15 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         /// </summary>
         public void CleanupOrphanedMenuDisabledEntries()
         {
-            if (_clothingRoots == null || _clothingWithMenuDisabled == null)
+            if (_pieceRoots == null || _piecesWithMenuDisabled == null)
                 return;
 
-            var validClothingNames = _clothingRoots
+            var validPieceNames = _pieceRoots
                 .Where(r => r != null)
                 .Select(r => r.name)
                 .ToHashSet();
 
-            _clothingWithMenuDisabled.RemoveAll(name => !validClothingNames.Contains(name));
+            _piecesWithMenuDisabled.RemoveAll(name => !validPieceNames.Contains(name));
         }
 
         #endregion
@@ -986,12 +989,12 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                     maEntry.HierarchyPath
                 );
 
-                // Verificar si esta en raiz de ropa
-                UpdateEntryClothingInfo(entry);
+                // Verificar si esta en raiz de pieza
+                UpdateEntryPieceInfo(entry);
 
-                // Re-clasificar: componentes problematicos que NO estan en raiz de ropa
+                // Re-clasificar: componentes problematicos que NO estan en raiz de pieza
                 // deben ser UserDecision (el usuario decide si desactivarlos)
-                if (category == ColisionCategory.Problematic && !entry.IsOnClothingRoot)
+                if (category == ColisionCategory.Problematic && !entry.IsOnPieceRoot)
                 {
                     entry.Category = ColisionCategory.UserDecision;
                     // UserDecision: checkbox marcado (se mantiene activo)
@@ -1002,34 +1005,34 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
             }
         }
 
-        private void UpdateEntryClothingInfo(ColisionEntry entry)
+        private void UpdateEntryPieceInfo(ColisionEntry entry)
         {
-            if (entry?.Component == null || _clothingRoots == null)
+            if (entry?.Component == null || _pieceRoots == null)
                 return;
 
-            foreach (var root in _clothingRoots)
+            foreach (var root in _pieceRoots)
             {
                 if (root == null) continue;
 
                 if (entry.Component.gameObject == root)
                 {
-                    entry.IsOnClothingRoot = true;
-                    entry.ClothingName = root.name;
+                    entry.IsOnPieceRoot = true;
+                    entry.PieceRootName = root.name;
                     return;
                 }
             }
 
-            entry.IsOnClothingRoot = false;
-            entry.ClothingName = "";
+            entry.IsOnPieceRoot = false;
+            entry.PieceRootName = "";
         }
 
-        private void UpdateClothingRootFlags()
+        private void UpdatePieceRootFlags()
         {
             if (_scanResult == null) return;
 
             foreach (var entry in _scanResult.AllEntries)
             {
-                UpdateEntryClothingInfo(entry);
+                UpdateEntryPieceInfo(entry);
             }
         }
 

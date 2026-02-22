@@ -314,17 +314,17 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Cantidad de ropas detectadas.
         /// </summary>
-        public int DetectedClothingCount => CoserRopa?.DetectedClothingCount ?? 0;
+        public int DetectedPieceCount => CoserRopa?.DetectedPieceCount ?? 0;
 
         /// <summary>
         /// Cantidad de ropas habilitadas para coser.
         /// </summary>
-        public int EnabledClothingCount => CoserRopa?.EnabledClothingCount ?? 0;
+        public int EnabledPieceCount => CoserRopa?.EnabledPieceCount ?? 0;
 
         /// <summary>
         /// Si hay ropas listas para coser.
         /// </summary>
-        public bool HasClothingsToStitch => CoserRopa?.HasClothingsToStitch ?? false;
+        public bool HasPiecesToStitch => CoserRopa?.HasPiecesToStitch ?? false;
 
         /// <summary>
         /// Cantidad de PhysBones detectados.
@@ -430,7 +430,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             // Detectar ropas primero
             if (CoserRopa != null)
             {
-                CoserRopa.DetectClothingsInAvatar();
+                CoserRopa.DetectPiecesInAvatar();
             }
 
             // Configurar y escanear MRAnalisisColision DESPUÉS de detectar ropas
@@ -441,13 +441,13 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
                 if (CoserRopa != null)
                 {
-                    var clothingRoots = new System.Collections.Generic.List<GameObject>();
-                    foreach (var clothing in CoserRopa.DetectedClothings)
+                    var pieceRoots = new System.Collections.Generic.List<GameObject>();
+                    foreach (var piece in CoserRopa.DetectedPieces)
                     {
-                        if (clothing?.GameObject != null)
-                            clothingRoots.Add(clothing.GameObject);
+                        if (piece?.GameObject != null)
+                            pieceRoots.Add(piece.GameObject);
                     }
-                    AnalisisColision.UpdateClothingRoots(clothingRoots);
+                    AnalisisColision.UpdatePieceRoots(pieceRoots);
                 }
 
                 // Solo escanear si no tiene datos previos
@@ -582,7 +582,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             // 1. Detectar ropas (MRCoserRopa - el merge es automático via NDMF)
             if (CoserRopa != null)
             {
-                CoserRopa.DetectClothingsInAvatar();
+                CoserRopa.DetectPiecesInAvatar();
             }
 
             // 2. Escanear PhysBones (no organizar automáticamente - es destructivo)

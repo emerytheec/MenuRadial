@@ -152,7 +152,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             {
                 Debug.Log($"[MRAnalisisColision NDMF]   - {entry.ComponentTypeName}: " +
                     $"UserWantsDisabled={entry.UserWantsDisabled}, " +
-                    $"IsOnClothingRoot={entry.IsOnClothingRoot}, " +
+                    $"IsOnPieceRoot={entry.IsOnPieceRoot}, " +
                     $"IsValid={entry.IsValid}, " +
                     $"HasSearchableData={entry.HasSearchableData}, " +
                     $"GO='{entry.GameObjectName}', Path='{entry.HierarchyPath}'");
@@ -170,12 +170,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             }
 
             // Contar cuántas pasarán los filtros
-            int problematicOnRoot = result.GetProblematicOnClothingRoot().Count();
+            int problematicOnRoot = result.GetProblematicOnPieceRoot().Count();
             int userDecisionToDisable = result.GetUserDecisionToDisable().Count();
             int problematicToDisable = result.GetProblematicToDisable().Count();
 
             Debug.Log($"[MRAnalisisColision NDMF] --- FILTROS ---");
-            Debug.Log($"[MRAnalisisColision NDMF] GetProblematicOnClothingRoot(): {problematicOnRoot} entradas");
+            Debug.Log($"[MRAnalisisColision NDMF] GetProblematicOnPieceRoot(): {problematicOnRoot} entradas");
             Debug.Log($"[MRAnalisisColision NDMF] GetUserDecisionToDisable(): {userDecisionToDisable} entradas");
             Debug.Log($"[MRAnalisisColision NDMF] GetProblematicToDisable(): {problematicToDisable} entradas");
             Debug.Log($"[MRAnalisisColision NDMF] ====================================");
@@ -342,7 +342,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             if (analisis?.ScanResult == null) return 0;
 
             int count = 0;
-            var entries = analisis.ScanResult.GetProblematicOnClothingRoot().ToList();
+            var entries = analisis.ScanResult.GetProblematicOnPieceRoot().ToList();
 
             Debug.Log($"[MRAnalisisColision NDMF] Procesando {entries.Count} componente(s) problemático(s) en raíz de ropa...");
 

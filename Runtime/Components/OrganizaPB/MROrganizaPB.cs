@@ -476,21 +476,21 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
                 ? menuRadial.GetComponentInChildren<MRCoserRopa>()
                 : GetComponentInChildren<MRCoserRopa>();
 
-            if (coserRopa == null || coserRopa.DetectedClothings == null)
+            if (coserRopa == null || coserRopa.DetectedPieces == null)
                 return null;
 
             var result = new List<PhysBoneScanner.KnownArmature>();
 
-            foreach (var clothing in coserRopa.DetectedClothings)
+            foreach (var piece in coserRopa.DetectedPieces)
             {
-                if (!clothing.IsValid) continue;
-                if (clothing.ArmatureReference?.ArmatureRoot == null) continue;
+                if (!piece.IsValid) continue;
+                if (piece.ArmatureReference?.ArmatureRoot == null) continue;
 
                 result.Add(new PhysBoneScanner.KnownArmature
                 {
-                    Root = clothing.GameObject,
-                    Armature = clothing.ArmatureReference.ArmatureRoot,
-                    Name = clothing.Name
+                    Root = piece.GameObject,
+                    Armature = piece.ArmatureReference.ArmatureRoot,
+                    Name = piece.Name
                 });
             }
 

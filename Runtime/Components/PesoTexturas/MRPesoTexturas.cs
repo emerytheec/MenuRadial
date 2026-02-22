@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.PesoTexturas.Models;
@@ -32,9 +33,10 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         [Tooltip("Incluir texturas del avatar base (body, head, etc.)")]
         private bool _includeAvatarBase = true;
 
+        [FormerlySerializedAs("_includeClothing")]
         [SerializeField]
-        [Tooltip("Incluir texturas de ropas detectadas por MRCoserRopa")]
-        private bool _includeClothing = true;
+        [Tooltip("Incluir texturas de piezas detectadas por MRCoserRopa")]
+        private bool _includePieces = true;
 
         [SerializeField]
         [Tooltip("Incluir texturas de materiales alternativos (MRUnificarMateriales, MRAgruparMateriales)")]
@@ -115,10 +117,10 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         /// <summary>
         /// Incluir texturas de ropas
         /// </summary>
-        public bool IncludeClothing
+        public bool IncludePieces
         {
-            get => _includeClothing;
-            set => _includeClothing = value;
+            get => _includePieces;
+            set => _includePieces = value;
         }
 
         /// <summary>

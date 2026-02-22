@@ -148,13 +148,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             // Incluir ropas
             EditorGUI.BeginChangeCheck();
-            bool newIncludeClothing = EditorGUILayout.Toggle(
+            bool newIncludePieces = EditorGUILayout.Toggle(
                 new GUIContent(MRLocalization.Get(L.PesoTexturas.INCLUDE_CLOTHING), MRLocalization.Get(L.PesoTexturas.INCLUDE_CLOTHING_TOOLTIP)),
-                _target.IncludeClothing);
+                _target.IncludePieces);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(_target, "Toggle Incluir Ropas");
-                _target.IncludeClothing = newIncludeClothing;
+                _target.IncludePieces = newIncludePieces;
                 EditorUtility.SetDirty(_target);
             }
 
@@ -782,9 +782,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             }
 
             // Escanear ropas (excluyendo pelucas, incluye materiales alternativos si esta habilitado)
-            if (_target.IncludeClothing)
+            if (_target.IncludePieces)
             {
-                ScanClothings(processedPaths, referencedMaterialGuids, wigRoots);
+                ScanPieces(processedPaths, referencedMaterialGuids, wigRoots);
             }
 
             // Escanear otros assets (meshes, animaciones, materiales, audio)
@@ -805,9 +805,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         private void ScanWigs(HashSet<string> processedPaths, HashSet<GameObject> wigRoots)
         {
             var coserRopa = _target.AvatarRoot.GetComponentInChildren<MRCoserRopa>();
-            List<ClothingEntry> clothings = coserRopa?.DetectedClothings;
+            List<PieceEntry> pieces = coserRopa?.DetectedPieces;
 
-            var wigs = WigDetector.DetectWigs(_target.AvatarRoot, clothings);
+            var wigs = WigDetector.DetectWigs(_target.AvatarRoot, pieces);
 
             foreach (var wig in wigs)
             {
@@ -882,15 +882,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
 
             // Buscar MRCoserRopa para excluir ropas del avatar base
             var coserRopa = _target.AvatarRoot.GetComponentInChildren<MRCoserRopa>();
-            var clothingObjects = new HashSet<GameObject>();
+            var pieceObjects = new HashSet<GameObject>();
 
             if (coserRopa != null)
             {
-                foreach (var clothing in coserRopa.DetectedClothings)
+                foreach (var piece in coserRopa.DetectedPieces)
                 {
-                    if (clothing.GameObject != null)
+                    if (piece.GameObject != null)
                     {
-                        clothingObjects.Add(clothing.GameObject);
+                        pieceObjects.Add(piece.GameObject);
                     }
                 }
             }
@@ -900,7 +900,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             {
                 foreach (var wigRoot in wigRoots)
                 {
-                    clothingObjects.Add(wigRoot);
+                    pieceObjects.Add(wigRoot);
                 }
             }
 
@@ -913,19 +913,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     continue;
 
                 // Verificar si este renderer pertenece a una ropa
-                bool isClothing = false;
+                bool isPiece = false;
                 Transform current = renderer.transform;
                 while (current != null && current != _target.AvatarRoot.transform)
                 {
-                    if (clothingObjects.Contains(current.gameObject))
+                    if (pieceObjects.Contains(current.gameObject))
                     {
-                        isClothing = true;
+                        isPiece = true;
                         break;
                     }
                     current = current.parent;
                 }
 
-                if (isClothing)
+                if (isPiece)
                     continue;
 
                 // Escanear texturas de este renderer
@@ -942,7 +942,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Escanear materiales alternativos del avatar base
             if (_target.IncludeAlternativeMaterials)
             {
-                ScanAlternativeMaterialsForAvatarBase(group, clothingObjects, processedPaths, referencedMaterialGuids);
+                ScanAlternativeMaterialsForAvatarBase(group, pieceObjects, processedPaths, referencedMaterialGuids);
             }
 
             return group;
@@ -954,7 +954,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         /// </summary>
         private void ScanAlternativeMaterialsForAvatarBase(
             TextureGroupEntry group,
-            HashSet<GameObject> clothingObjects,
+            HashSet<GameObject> pieceObjects,
             HashSet<string> processedPaths,
             HashSet<string> referencedMaterialGuids)
         {
@@ -966,7 +966,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     continue;
 
                 // Verificar si el SourceGameObject es una ropa - si lo es, ignorar
-                if (clothingObjects.Contains(agrupar.SourceGameObject))
+                if (pieceObjects.Contains(agrupar.SourceGameObject))
                     continue;
 
                 // Verificar si el SourceGameObject esta dentro del avatar pero no es una ropa
@@ -1021,7 +1021,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             return false;
         }
 
-        private void ScanClothings(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids, HashSet<GameObject> wigRoots)
+        private void ScanPieces(HashSet<string> processedPaths, HashSet<string> referencedMaterialGuids, HashSet<GameObject> wigRoots)
         {
             var coserRopa = _target.AvatarRoot.GetComponentInChildren<MRCoserRopa>();
             if (coserRopa == null)
@@ -1030,22 +1030,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
             // Obtener todos los MRAgruparMateriales para buscar materiales alternativos
             var allAgruparMateriales = GetAllAgruparMateriales();
 
-            foreach (var clothing in coserRopa.DetectedClothings)
+            foreach (var piece in coserRopa.DetectedPieces)
             {
-                if (clothing.GameObject == null)
+                if (piece.GameObject == null)
                     continue;
 
                 // Saltar ropas que son pelucas (ya escaneadas en ScanWigs)
-                if (wigRoots != null && wigRoots.Contains(clothing.GameObject))
+                if (wigRoots != null && wigRoots.Contains(piece.GameObject))
                     continue;
 
                 var group = new TextureGroupEntry(
-                    clothing.Name,
-                    clothing.GameObject,
+                    piece.Name,
+                    piece.GameObject,
                     TextureGroupType.Clothing);
 
                 // 1. Escanear texturas actuales de la ropa
-                var textures = TextureScanner.ScanTextures(clothing.GameObject, processedPaths);
+                var textures = TextureScanner.ScanTextures(piece.GameObject, processedPaths);
                 foreach (var texture in textures)
                 {
                     group.AddTexture(texture);
@@ -1054,7 +1054,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                 // 2. Escanear texturas de materiales alternativos de esta ropa
                 if (_target.IncludeAlternativeMaterials)
                 {
-                    ScanAlternativeMaterialsForClothing(clothing.GameObject, group, allAgruparMateriales, processedPaths, referencedMaterialGuids);
+                    ScanAlternativeMaterialsForPiece(piece.GameObject, group, allAgruparMateriales, processedPaths, referencedMaterialGuids);
                 }
 
                 if (group.TextureCount > 0)
@@ -1097,8 +1097,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
         /// y los agrega al grupo de esa ropa.
         /// Solo incluye texturas de materiales que estan referenciados en animaciones.
         /// </summary>
-        private void ScanAlternativeMaterialsForClothing(
-            GameObject clothingObject,
+        private void ScanAlternativeMaterialsForPiece(
+            GameObject pieceObject,
             TextureGroupEntry group,
             List<MRAgruparMateriales> allAgruparMateriales,
             HashSet<string> processedPaths,
@@ -1110,7 +1110,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.PesoTexturas
                     continue;
 
                 // Verificar si este MRAgruparMateriales pertenece a esta ropa
-                if (agrupar.SourceGameObject != clothingObject)
+                if (agrupar.SourceGameObject != pieceObject)
                     continue;
 
                 // Escanear todos los materiales de los grupos

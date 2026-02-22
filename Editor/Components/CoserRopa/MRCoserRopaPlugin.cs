@@ -120,8 +120,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 }
 
                 // Verificar que tenemos datos válidos
-                var detectedClothings = coserRopa.DetectedClothings;
-                if (detectedClothings == null || detectedClothings.Count == 0)
+                var detectedPieces = coserRopa.DetectedPieces;
+                if (detectedPieces == null || detectedPieces.Count == 0)
                 {
                     Debug.LogWarning($"[MRCoserRopa NDMF] '{coserRopa.gameObject.name}' no tiene prendas de ropa configuradas");
                     continue;
@@ -131,30 +131,45 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 var avatarRoot = coserRopa.AvatarRoot ?? context.AvatarRootObject;
                 var avatarRef = new ArmatureReference(avatarRoot);
 
-                foreach (var clothingEntry in detectedClothings)
+                foreach (var pieceEntry in detectedPieces)
                 {
                     // Solo procesar ropas habilitadas
-                    if (clothingEntry == null || !clothingEntry.Enabled || clothingEntry.GameObject == null)
+                    if (pieceEntry == null || !pieceEntry.Enabled || pieceEntry.GameObject == null)
                     {
                         continue;
                     }
 
-                    // Verificar si tiene Modular Avatar configurado - MA tiene prioridad
-                    if (clothingEntry.HasModularAvatar)
+                    // Verificar si tiene Modular Avatar configurado
+                    if (pieceEntry.HasModularAvatar && !pieceEntry.DisableMA)
                     {
-                        Debug.Log($"[MRCoserRopa NDMF] Saltando '{clothingEntry.Name}': tiene Modular Avatar ({clothingEntry.ModularAvatarComponentType}). MA lo procesará.");
+                        Debug.Log($"[MRCoserRopa NDMF] Saltando '{pieceEntry.Name}': tiene Modular Avatar ({pieceEntry.ModularAvatarComponentType}). MA lo procesará.");
                         continue;
+                    }
+
+                    // Si DisableMA, destruir componentes MA en el clon para que MR pueda coser
+                    if (pieceEntry.DisableMA && pieceEntry.HasModularAvatar)
+                    {
+                        int destroyed = MADetector.Instance.DestroyArmatureComponents(pieceEntry.GameObject);
+                        Debug.Log($"[MRCoserRopa NDMF] DisableMA: eliminados {destroyed} componentes MA en '{pieceEntry.Name}'. MR procesará.");
+
+                        if (pieceEntry.PieceType == PieceType.Pelo)
+                        {
+                            Debug.LogWarning($"[MRCoserRopa NDMF] ADVERTENCIA: '{pieceEntry.Name}' es tipo Pelo. Desactivar MA puede causar pérdida de la peluca.");
+                        }
                     }
 
                     // Re-verificar MA en runtime por si se agregó después de la detección
-                    var maResult = MADetector.Instance.DetectModularAvatar(clothingEntry.GameObject);
-                    if (maResult.HasMergeArmature)
+                    if (!pieceEntry.DisableMA)
                     {
-                        Debug.Log($"[MRCoserRopa NDMF] Saltando '{clothingEntry.Name}': ModularAvatarMergeArmature detectado en runtime. MA lo procesará.");
-                        continue;
+                        var maResult = MADetector.Instance.DetectModularAvatar(pieceEntry.GameObject);
+                        if (maResult.HasMergeArmature)
+                        {
+                            Debug.Log($"[MRCoserRopa NDMF] Saltando '{pieceEntry.Name}': ModularAvatarMergeArmature detectado en runtime. MA lo procesará.");
+                            continue;
+                        }
                     }
 
-                    Debug.Log($"[MRCoserRopa NDMF] Procesando ropa: '{clothingEntry.Name}'");
+                    Debug.Log($"[MRCoserRopa NDMF] Procesando ropa: '{pieceEntry.Name}'");
 
                     try
                     {
@@ -162,21 +177,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                         List<BoneMapping> mappings;
 
                         // Usar mapeos personalizados si existen, sino detectar automáticamente
-                        if (clothingEntry.BoneMappings != null && clothingEntry.BoneMappings.Count > 0)
+                        if (pieceEntry.BoneMappings != null && pieceEntry.BoneMappings.Count > 0)
                         {
-                            mappings = clothingEntry.BoneMappings;
+                            mappings = pieceEntry.BoneMappings;
                             Debug.Log($"[MRCoserRopa NDMF] Usando {mappings.Count} mapeos configurados");
                         }
                         else
                         {
                             // Crear referencia de armature para la ropa
-                            var clothingRef = new ArmatureReference(clothingEntry.GameObject);
+                            var clothingRef = new ArmatureReference(pieceEntry.GameObject);
                             mappings = boneMapper.DetectBoneMappings(avatarRef, clothingRef);
                             Debug.Log($"[MRCoserRopa NDMF] Detectados {mappings.Count} mapeos automáticamente");
                         }
 
                         // Ejecutar el merge
-                        var result = stitchingController.ExecuteStitching(mappings, StitchingMode.Merge, clothingEntry.GameObject);
+                        var result = stitchingController.ExecuteStitching(mappings, StitchingMode.Merge, pieceEntry.GameObject);
 
                         if (result.Success)
                         {
@@ -185,13 +200,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                         }
                         else
                         {
-                            Debug.LogWarning($"[MRCoserRopa NDMF] Merge falló para '{clothingEntry.Name}': {result.GetSummary()}");
+                            Debug.LogWarning($"[MRCoserRopa NDMF] Merge falló para '{pieceEntry.Name}': {result.GetSummary()}");
                             totalFailed++;
                         }
                     }
                     catch (Exception e)
                     {
-                        Debug.LogError($"[MRCoserRopa NDMF] Error procesando '{clothingEntry.Name}': {e.Message}");
+                        Debug.LogError($"[MRCoserRopa NDMF] Error procesando '{pieceEntry.Name}': {e.Message}");
                         Debug.LogException(e);
                         totalFailed++;
                     }

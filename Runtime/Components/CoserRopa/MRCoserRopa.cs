@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Validation.Models;
 using Bender_Dios.MenuRadial.Components.CoserRopa.Models;
@@ -42,11 +43,13 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         private bool _showBoneMappings = false;
 
         [Header("Ropas Detectadas")]
+        [FormerlySerializedAs("_detectedClothings")]
         [SerializeField]
-        private List<ClothingEntry> _detectedClothings = new List<ClothingEntry>();
+        private List<PieceEntry> _detectedPieces = new List<PieceEntry>();
 
+        [FormerlySerializedAs("_selectedClothingIndex")]
         [SerializeField, HideInInspector]
-        private int _selectedClothingIndex = -1;
+        private int _selectedPieceIndex = -1;
 
         // Estado interno
         [SerializeField, HideInInspector]
@@ -94,37 +97,37 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         public ArmatureReference AvatarReference => _avatarReference;
 
         /// <summary>
-        /// Lista de ropas detectadas
+        /// Lista de piezas detectadas
         /// </summary>
-        public List<ClothingEntry> DetectedClothings => _detectedClothings;
+        public List<PieceEntry> DetectedPieces => _detectedPieces;
 
         /// <summary>
-        /// Ropas habilitadas para coser por MRCoserRopa.
+        /// Piezas habilitadas para coser por MRCoserRopa.
         /// Excluye las que tienen Modular Avatar configurado (MA tiene prioridad).
         /// </summary>
-        public IEnumerable<ClothingEntry> EnabledClothings =>
-            _detectedClothings?.Where(c => c.Enabled && c.IsValid && c.ShouldProcessByMR) ?? Enumerable.Empty<ClothingEntry>();
+        public IEnumerable<PieceEntry> EnabledPieces =>
+            _detectedPieces?.Where(c => c.Enabled && c.IsValid && c.ShouldProcessByMR) ?? Enumerable.Empty<PieceEntry>();
 
         /// <summary>
-        /// Ropas que serán procesadas por Modular Avatar
+        /// Piezas que serán procesadas por Modular Avatar
         /// </summary>
-        public IEnumerable<ClothingEntry> ModularAvatarClothings =>
-            _detectedClothings?.Where(c => c.HasModularAvatar) ?? Enumerable.Empty<ClothingEntry>();
+        public IEnumerable<PieceEntry> ModularAvatarPieces =>
+            _detectedPieces?.Where(c => c.HasModularAvatar) ?? Enumerable.Empty<PieceEntry>();
 
         /// <summary>
-        /// Cantidad de ropas que serán procesadas por Modular Avatar
+        /// Cantidad de piezas que serán procesadas por Modular Avatar
         /// </summary>
-        public int ModularAvatarClothingCount => ModularAvatarClothings.Count();
+        public int ModularAvatarPieceCount => ModularAvatarPieces.Count();
 
         /// <summary>
-        /// Cantidad de ropas detectadas
+        /// Cantidad de piezas detectadas
         /// </summary>
-        public int DetectedClothingCount => _detectedClothings?.Count ?? 0;
+        public int DetectedPieceCount => _detectedPieces?.Count ?? 0;
 
         /// <summary>
-        /// Cantidad de ropas habilitadas
+        /// Cantidad de piezas habilitadas
         /// </summary>
-        public int EnabledClothingCount => EnabledClothings.Count();
+        public int EnabledPieceCount => EnabledPieces.Count();
 
         /// <summary>
         /// Resultado del ultimo cosido
@@ -155,30 +158,30 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         public bool IsAvatarHumanoid => _avatarReference?.IsHumanoid ?? false;
 
         /// <summary>
-        /// Indica si hay ropas listas para coser
+        /// Indica si hay piezas listas para coser
         /// </summary>
-        public bool HasClothingsToStitch => EnabledClothings.Any(c => c.HasValidMappings);
+        public bool HasPiecesToStitch => EnabledPieces.Any(c => c.HasValidMappings);
 
         /// <summary>
-        /// Total de huesos mapeados en todas las ropas habilitadas
+        /// Total de huesos mapeados en todas las piezas habilitadas
         /// </summary>
-        public int TotalMappedBones => EnabledClothings.Sum(c => c.MappedBoneCount);
+        public int TotalMappedBones => EnabledPieces.Sum(c => c.MappedBoneCount);
 
         /// <summary>
-        /// Indice de la ropa seleccionada para mostrar detalles
+        /// Indice de la pieza seleccionada para mostrar detalles
         /// </summary>
-        public int SelectedClothingIndex
+        public int SelectedPieceIndex
         {
-            get => _selectedClothingIndex;
-            set => _selectedClothingIndex = Mathf.Clamp(value, -1, _detectedClothings.Count - 1);
+            get => _selectedPieceIndex;
+            set => _selectedPieceIndex = Mathf.Clamp(value, -1, _detectedPieces.Count - 1);
         }
 
         /// <summary>
-        /// Ropa actualmente seleccionada (puede ser null)
+        /// Pieza actualmente seleccionada (puede ser null)
         /// </summary>
-        public ClothingEntry SelectedClothing =>
-            _selectedClothingIndex >= 0 && _selectedClothingIndex < _detectedClothings.Count
-                ? _detectedClothings[_selectedClothingIndex]
+        public PieceEntry SelectedPiece =>
+            _selectedPieceIndex >= 0 && _selectedPieceIndex < _detectedPieces.Count
+                ? _detectedPieces[_selectedPieceIndex]
                 : null;
 
         /// <summary>
@@ -295,7 +298,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
-            _detectedClothings ??= new List<ClothingEntry>();
+            _detectedPieces ??= new List<PieceEntry>();
         }
 
         protected override void CleanupComponent()
@@ -314,7 +317,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         /// </summary>
         public void OnAvatarChanged()
         {
-            _detectedClothings.Clear();
+            _detectedPieces.Clear();
             _lastStitchingResult = null;
             InvalidateBoneCache();
 
@@ -327,20 +330,21 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
             // Crear referencia del avatar
             _avatarReference = new ArmatureReference(_avatarRoot);
 
-            // Detectar ropas automaticamente
-            DetectClothingsInAvatar();
+            // Detectar piezas automaticamente
+            DetectPiecesInAvatar();
         }
 
         /// <summary>
-        /// Detecta todas las ropas dentro del avatar
-        /// Una ropa valida es un GameObject que:
-        /// 1. Tiene SkinnedMeshRenderer con huesos
-        /// 2. Los huesos estan dentro del propio GameObject (no en el armature del avatar)
-        /// 3. Los huesos tienen nombres humanoid
+        /// Detecta todas las piezas dentro del avatar.
+        /// Una pieza valida es un hijo directo del avatar que cumple al menos uno de:
+        /// 1. Tiene SkinnedMeshRenderer con huesos propios (no del armature del avatar)
+        /// 2. Tiene componentes de Modular Avatar (MergeArmature, BoneProxy)
+        /// 3. Tiene armature propio (detectado por ArmatureFinder)
+        /// Las piezas se auto-clasifican como Ropa, Pelo o Pieza segun sus huesos y MA.
         /// </summary>
-        public void DetectClothingsInAvatar()
+        public void DetectPiecesInAvatar()
         {
-            _detectedClothings.Clear();
+            _detectedPieces.Clear();
 
             if (_avatarRoot == null || _avatarReference == null)
             {
@@ -356,8 +360,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
             // Buscar todos los SkinnedMeshRenderer en el avatar
             var allSMRs = _avatarRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
 
-            // Diccionario para agrupar por GameObject contenedor de ropa
-            var clothingCandidates = new Dictionary<GameObject, ClothingCandidate>();
+            // Diccionario para agrupar por GameObject contenedor de pieza
+            var pieceCandidates = new Dictionary<GameObject, PieceCandidate>();
 
             foreach (var smr in allSMRs)
             {
@@ -386,50 +390,42 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                     continue; // Este SMR ya usa el armature del avatar
                 }
 
-                // Encontrar el GameObject contenedor de la ropa
+                // Encontrar el GameObject contenedor de la pieza
                 // Es el hijo directo del avatar que contiene este SMR
-                GameObject clothingRoot = FindClothingRoot(smr.transform, _avatarRoot.transform);
-                if (clothingRoot == null || clothingRoot == _avatarRoot)
+                GameObject pieceRoot = FindPieceRoot(smr.transform, _avatarRoot.transform);
+                if (pieceRoot == null || pieceRoot == _avatarRoot)
                     continue;
 
-                // Verificar que los huesos esten dentro del clothingRoot
-                if (!IsDescendantOf(firstBone, clothingRoot.transform))
+                // Verificar que los huesos esten dentro del pieceRoot
+                if (!IsDescendantOf(firstBone, pieceRoot.transform))
                     continue;
 
                 // Agregar o actualizar candidato
-                if (!clothingCandidates.ContainsKey(clothingRoot))
+                if (!pieceCandidates.ContainsKey(pieceRoot))
                 {
-                    clothingCandidates[clothingRoot] = new ClothingCandidate
+                    pieceCandidates[pieceRoot] = new PieceCandidate
                     {
-                        Root = clothingRoot,
+                        Root = pieceRoot,
                         SkinnedMeshRenderers = new List<SkinnedMeshRenderer>()
                     };
                 }
-                clothingCandidates[clothingRoot].SkinnedMeshRenderers.Add(smr);
+                pieceCandidates[pieceRoot].SkinnedMeshRenderers.Add(smr);
             }
 
             // Procesar candidatos validos
-            foreach (var kvp in clothingCandidates)
+            foreach (var kvp in pieceCandidates)
             {
                 var candidate = kvp.Value;
 
-                // Detectar si tiene Modular Avatar configurado (antes del chequeo de huesos,
-                // porque pelucas con MA BoneProxy pueden no tener huesos humanoid)
+                // Detectar si tiene Modular Avatar configurado
                 var maResult = ModularAvatarDetector.Instance.DetectModularAvatar(candidate.Root);
 
-                // Verificar que tenga huesos humanoid O tenga MA configurado
-                if (!HasHumanoidBones(candidate) && !maResult.HasModularAvatar)
-                {
-                    Debug.Log($"[MRCoserRopa] '{candidate.Root.name}' descartado: no tiene huesos humanoid ni Modular Avatar");
-                    continue;
-                }
+                // Crear referencia de armature para esta pieza
+                var pieceRef = new ArmatureReference(candidate.Root);
 
-                // Crear referencia de armature para esta ropa
-                var clothingRef = new ArmatureReference(candidate.Root);
-
-                var entry = new ClothingEntry(candidate.Root)
+                var entry = new PieceEntry(candidate.Root)
                 {
-                    ArmatureReference = clothingRef,
+                    ArmatureReference = pieceRef,
                     Enabled = true
                 };
 
@@ -438,55 +434,56 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 {
                     entry.HasModularAvatar = true;
                     entry.ModularAvatarComponentType = maResult.PrimaryComponent;
-                    Debug.Log($"[MRCoserRopa] Ropa '{candidate.Root.name}' tiene Modular Avatar ({maResult.PrimaryComponent}). MA tendrá prioridad.");
+                    entry.MATargetInfo = ModularAvatarDetector.Instance.GetMATargetInfo(candidate.Root);
+                    Debug.Log($"[MRCoserRopa] Pieza '{candidate.Root.name}' tiene Modular Avatar ({maResult.PrimaryComponent}). MA tendrá prioridad.");
                 }
 
                 // Detectar si tiene MA Shape Changer (controla blendshapes)
                 if (maResult.HasShapeChanger || maResult.HasBlendshapeControl)
                 {
                     entry.HasMAShapeChanger = true;
-                    Debug.Log($"[MRCoserRopa] Ropa '{candidate.Root.name}' tiene MA Shape Changer. Los blendshapes serán controlados por MA.");
                 }
 
                 // Detectar mapeos de huesos
-                DetectBoneMappingsForClothing(entry);
+                DetectBoneMappingsForPiece(entry);
 
                 // Clasificar zona de cosido
-                entry.StitchZone = ClothingEntry.DetermineStitchZone(entry.BoneMappings);
+                entry.StitchZone = PieceEntry.DetermineStitchZone(entry.BoneMappings);
 
-                // Solo agregar si tiene mapeos validos O si tiene MA (para mostrar en la lista)
+                // Agregar solo si tiene mapeos validos O tiene Modular Avatar
+                // El primer pase ya filtro SMRs cuyos huesos apuntan al avatar (linea 388),
+                // asi que si llegamos aqui, la pieza tiene huesos propios.
+                // NO usar pieceRef.ArmatureRoot como criterio — ArmatureFinder es demasiado
+                // permisivo con su fallback y detecta "armatures" donde no los hay.
                 if (entry.MappedBoneCount > 0 || entry.HasModularAvatar)
                 {
-                    _detectedClothings.Add(entry);
+                    _detectedPieces.Add(entry);
 
-                    if (entry.HasModularAvatar)
-                    {
-                        Debug.Log($"[MRCoserRopa] Ropa detectada: '{candidate.Root.name}' " +
-                                  $"(Modular Avatar: {entry.ModularAvatarComponentType})");
-                    }
-                    else
-                    {
-                        Debug.Log($"[MRCoserRopa] Ropa detectada: '{candidate.Root.name}' " +
-                                  $"({candidate.SkinnedMeshRenderers.Count} SMRs, {entry.MappedBoneCount} huesos)");
-                    }
+                    Debug.Log($"[MRCoserRopa] Pieza detectada: '{candidate.Root.name}' " +
+                              $"({candidate.SkinnedMeshRenderers.Count} SMRs, {entry.MappedBoneCount} huesos" +
+                              $"{(entry.HasModularAvatar ? $", MA: {entry.ModularAvatarComponentType}" : "")})");
                 }
                 else
                 {
-                    Debug.Log($"[MRCoserRopa] '{candidate.Root.name}' descartado: sin mapeos validos con el avatar");
+                    Debug.Log($"[MRCoserRopa] '{candidate.Root.name}' descartado: sin mapeos validos ni MA");
                 }
             }
 
             // Segundo pase: detectar hijos directos con Modular Avatar que fueron filtrados
-            // (e.g., pelucas con MA BoneProxy cuyos huesos SMR apuntan al armature del avatar)
-            DetectMAFilteredChildren(clothingCandidates);
+            // por el primer pase (e.g., pelucas con MA BoneProxy cuyos huesos SMR
+            // apuntan al armature del avatar en vez de tener armature propio)
+            DetectMAFilteredChildren(pieceCandidates, avatarArmature);
 
-            Debug.Log($"[MRCoserRopa] Total: {_detectedClothings.Count} ropas detectadas");
+            Debug.Log($"[MRCoserRopa] Total: {_detectedPieces.Count} piezas detectadas");
 
             // Cross-referenciar con WigDetector para marcar pelucas
             CrossReferenceWigs();
 
+            // Auto-clasificar PieceType para todas las piezas detectadas
+            AutoClassifyPieceTypes();
+
             // Configurar visibilidad por defecto: roots activos, meshes desactivados
-            SetDefaultClothingVisibility();
+            SetDefaultPieceVisibility();
         }
 
         /// <summary>
@@ -494,18 +491,27 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         /// que fueron filtrados por el loop principal de SMR.
         /// Esto ocurre cuando pelucas/accesorios usan MA BoneProxy y sus huesos SMR
         /// apuntan al armature del avatar en vez de tener armature propio.
+        ///
+        /// SOLO detecta hijos con componentes MA de armature (MergeArmature/BoneProxy).
+        /// NO detecta hijos por tener "armature propio" — eso es demasiado permisivo
+        /// y captura meshes del avatar base, herramientas, etc.
         /// </summary>
-        private void DetectMAFilteredChildren(Dictionary<GameObject, ClothingCandidate> clothingCandidates)
+        private void DetectMAFilteredChildren(Dictionary<GameObject, PieceCandidate> pieceCandidates, Transform avatarArmature)
         {
             if (!ModularAvatarDetector.Instance.IsModularAvatarAvailable)
                 return;
 
             // Recopilar GameObjects ya detectados (solo los que SÍ se agregaron a la lista)
             var alreadyDetected = new HashSet<GameObject>();
-            foreach (var clothing in _detectedClothings)
+            foreach (var piece in _detectedPieces)
             {
-                if (clothing.GameObject != null)
-                    alreadyDetected.Add(clothing.GameObject);
+                if (piece.GameObject != null)
+                    alreadyDetected.Add(piece.GameObject);
+            }
+            // Tambien incluir candidatos del primer pase que no se agregaron (descartados)
+            foreach (var kvp in pieceCandidates)
+            {
+                alreadyDetected.Add(kvp.Key);
             }
 
             // Iterar hijos directos del avatar
@@ -518,101 +524,225 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 if (_avatarReference != null && child == _avatarReference.ArmatureRoot)
                     continue;
 
-                // Saltar si ya fue detectado
+                // Saltar si ya fue procesado (detectado o descartado en el primer pase)
                 if (alreadyDetected.Contains(child.gameObject))
                     continue;
 
-                // Verificar si tiene componentes de Modular Avatar
+                // Saltar si es un mesh del avatar base (sus SMRs usan huesos del armature del avatar)
+                if (IsAvatarBaseMesh(child.gameObject, avatarArmature))
+                    continue;
+
+                // SOLO detectar hijos con componentes MA de armature (MergeArmature o BoneProxy)
                 var maResult = ModularAvatarDetector.Instance.DetectModularAvatar(child.gameObject);
                 if (!maResult.HasModularAvatar)
                     continue;
 
-                // Crear entry para este item con MA
-                // El constructor de ClothingEntry ya crea ArmatureReference internamente
-                var entry = new ClothingEntry(child.gameObject)
+                // Crear entry para esta pieza
+                var entry = new PieceEntry(child.gameObject)
                 {
-                    Enabled = true,
-                    HasModularAvatar = true,
-                    ModularAvatarComponentType = maResult.PrimaryComponent
+                    Enabled = true
                 };
 
-                // Detectar si tiene MA Shape Changer
+                entry.HasModularAvatar = true;
+                entry.ModularAvatarComponentType = maResult.PrimaryComponent;
+                entry.MATargetInfo = ModularAvatarDetector.Instance.GetMATargetInfo(child.gameObject);
+
                 if (maResult.HasShapeChanger || maResult.HasBlendshapeControl)
                 {
                     entry.HasMAShapeChanger = true;
                 }
 
-                // Intentar detectar mapeos de huesos (puede no encontrar si usa BoneProxy)
-                DetectBoneMappingsForClothing(entry);
+                // Intentar detectar mapeos de huesos (puede dar 0 para pelucas)
+                DetectBoneMappingsForPiece(entry);
 
                 // Clasificar zona de cosido
-                entry.StitchZone = ClothingEntry.DetermineStitchZone(entry.BoneMappings);
+                entry.StitchZone = PieceEntry.DetermineStitchZone(entry.BoneMappings);
 
-                _detectedClothings.Add(entry);
-                Debug.Log($"[MRCoserRopa] Ropa detectada (2do pase MA): '{child.name}' ({maResult.PrimaryComponent})");
+                _detectedPieces.Add(entry);
+                Debug.Log($"[MRCoserRopa] Pieza detectada (2do pase): '{child.name}' (MA: {entry.ModularAvatarComponentType})");
             }
         }
 
         /// <summary>
-        /// Cross-referencia las ropas detectadas con WigDetector para marcar pelucas.
+        /// Verifica si un GameObject es un mesh del avatar base.
+        /// Un mesh del avatar base tiene SMRs cuyos huesos apuntan al armature del avatar.
+        /// Esto incluye Body, Hair, Face, etc.
+        /// </summary>
+        private bool IsAvatarBaseMesh(GameObject gameObject, Transform avatarArmature)
+        {
+            if (avatarArmature == null)
+                return false;
+
+            // Si el propio GameObject tiene un SMR con huesos en el armature del avatar, es del avatar base
+            var smr = gameObject.GetComponent<SkinnedMeshRenderer>();
+            if (smr != null && smr.bones != null && smr.bones.Length > 0)
+            {
+                foreach (var bone in smr.bones)
+                {
+                    if (bone != null)
+                        return IsDescendantOf(bone, avatarArmature);
+                }
+            }
+
+            // Si no tiene SMR propio, verificar si es un contenedor sin componentes de pieza
+            // (ej: un GameObject vacio que no es ropa ni accesorio)
+            if (smr == null)
+            {
+                // Sin SMR y sin hijos con SMR propio → no es una pieza
+                var childSMRs = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                if (childSMRs.Length == 0)
+                    return false; // No tiene meshes, dejamos que MA lo filtre
+
+                // Si todos sus SMRs usan huesos del avatar, es parte del avatar base
+                foreach (var childSMR in childSMRs)
+                {
+                    if (childSMR.bones == null || childSMR.bones.Length == 0)
+                        continue;
+
+                    foreach (var bone in childSMR.bones)
+                    {
+                        if (bone != null)
+                        {
+                            if (!IsDescendantOf(bone, avatarArmature))
+                                return false; // Tiene al menos un hueso fuera del avatar → no es del base
+                            break; // Este SMR usa huesos del avatar, verificar el siguiente
+                        }
+                    }
+                }
+                return true; // Todos los SMRs usan huesos del avatar
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Cross-referencia las piezas detectadas con WigDetector para marcar pelucas.
         /// </summary>
         private void CrossReferenceWigs()
         {
-            if (_avatarRoot == null || _detectedClothings.Count == 0)
+            if (_avatarRoot == null || _detectedPieces.Count == 0)
                 return;
 
-            var wigs = WigDetector.DetectWigs(_avatarRoot, _detectedClothings);
+            var wigs = WigDetector.DetectWigs(_avatarRoot, _detectedPieces);
 
             foreach (var wig in wigs)
             {
-                if (wig.ClothingEntryIndex >= 0 && wig.ClothingEntryIndex < _detectedClothings.Count)
+                if (wig.PieceEntryIndex >= 0 && wig.PieceEntryIndex < _detectedPieces.Count)
                 {
-                    _detectedClothings[wig.ClothingEntryIndex].IsWig = true;
-                    Debug.Log($"[MRCoserRopa] '{_detectedClothings[wig.ClothingEntryIndex].Name}' marcada como peluca (score={wig.Score})");
+                    _detectedPieces[wig.PieceEntryIndex].IsWig = true;
+                    Debug.Log($"[MRCoserRopa] '{_detectedPieces[wig.PieceEntryIndex].Name}' marcada como peluca (score={wig.Score})");
                 }
             }
         }
 
         /// <summary>
-        /// Configura la visibilidad por defecto de las ropas detectadas:
-        /// - Root de la ropa: ACTIVO (para que MRAgruparObjetos pueda acceder)
-        /// - Meshes de la ropa: DESACTIVADOS (para no ver todos los vestidos al tiempo)
+        /// Auto-clasifica el PieceType de todas las piezas detectadas.
+        /// Usa zona de cosido, estado de peluca, MA BoneProxy y análisis de bone weights
+        /// para determinar el tipo. Solo clasifica si el usuario no lo ha cambiado manualmente.
         /// </summary>
-        public void SetDefaultClothingVisibility()
+        private void AutoClassifyPieceTypes()
         {
-            if (_detectedClothings == null || _detectedClothings.Count == 0)
+            // Obtener head bone del avatar para análisis de bone weights
+            Transform avatarHeadBone = _avatarRoot != null
+                ? BoneWeightAnalyzer.GetAvatarHeadBone(_avatarRoot)
+                : null;
+
+            foreach (var piece in _detectedPieces)
+            {
+                if (piece == null || piece.PieceTypeManuallySet)
+                    continue;
+
+                bool maToHead = piece.HasModularAvatar &&
+                    ModularAvatarDetector.Instance.IsBoneProxyToHead(piece.GameObject);
+
+                // Calcular si todos los meshes de la pieza pesan en la cabeza
+                piece.AllMeshesHeadWeighted = ComputeAllMeshesHeadWeighted(piece, avatarHeadBone);
+
+                piece.PieceType = PieceEntry.DeterminePieceType(
+                    piece.StitchZone, piece.IsWig, maToHead, piece.Name, piece.AllMeshesHeadWeighted);
+            }
+        }
+
+        /// <summary>
+        /// Determina si TODOS los SkinnedMeshRenderers de una pieza tienen peso
+        /// concentrado en huesos de la cabeza. Usado para distinguir pelucas de ropa
+        /// cuando ambos tienen esqueleto completo (MergeArmature → FullBody).
+        /// </summary>
+        private bool ComputeAllMeshesHeadWeighted(PieceEntry piece, Transform avatarHeadBone)
+        {
+            if (piece?.GameObject == null)
+                return false;
+
+            var meshes = piece.GameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (meshes == null || meshes.Length == 0)
+                return false;
+
+            // Buscar head bone: primero en el armature de la ropa, luego del avatar
+            Transform headBone = null;
+            if (piece.ArmatureReference?.ArmatureRoot != null)
+                headBone = BoneWeightAnalyzer.FindHeadBoneInArmature(piece.ArmatureReference.ArmatureRoot);
+            if (headBone == null)
+                headBone = avatarHeadBone;
+            if (headBone == null)
+                return false;
+
+            // Verificar que TODOS los meshes sean head-weighted
+            foreach (var smr in meshes)
+            {
+                if (smr == null || smr.sharedMesh == null)
+                    continue;
+
+                // Meshes sin bones se ignoran (MeshRenderer estáticos, partículas)
+                if (smr.bones == null || smr.bones.Length == 0)
+                    continue;
+
+                if (!BoneWeightAnalyzer.IsHeadWeightedMesh(smr, headBone))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Configura la visibilidad por defecto de las piezas detectadas:
+        /// - Root de la pieza: ACTIVO (para que MRAgruparObjetos pueda acceder)
+        /// - Meshes de la pieza: DESACTIVADOS (para no ver todos los vestidos al tiempo)
+        /// </summary>
+        public void SetDefaultPieceVisibility()
+        {
+            if (_detectedPieces == null || _detectedPieces.Count == 0)
                 return;
 
 #if UNITY_EDITOR
             bool anyChange = false;
 #endif
 
-            foreach (var clothing in _detectedClothings)
+            foreach (var piece in _detectedPieces)
             {
-                if (clothing?.GameObject == null)
+                if (piece?.GameObject == null)
                     continue;
 
-                // Activar el root de la ropa si está desactivado
-                if (!clothing.GameObject.activeSelf)
+                // Activar el root de la pieza si está desactivado
+                if (!piece.GameObject.activeSelf)
                 {
 #if UNITY_EDITOR
-                    UnityEditor.Undo.RecordObject(clothing.GameObject, "Activar root de ropa");
+                    UnityEditor.Undo.RecordObject(piece.GameObject, "Activar root de ropa");
                     anyChange = true;
 #endif
-                    clothing.GameObject.SetActive(true);
+                    piece.GameObject.SetActive(true);
                 }
 
-                // Desactivar todos los meshes dentro de la ropa (excepto el root)
-                var renderers = clothing.GameObject.GetComponentsInChildren<Renderer>(true);
+                // Desactivar todos los meshes dentro de la pieza (excepto el root)
+                var renderers = piece.GameObject.GetComponentsInChildren<Renderer>(true);
 
                 foreach (var renderer in renderers)
                 {
                     if (renderer == null)
                         continue;
 
-                    // NO desactivar si el renderer está en el root de la ropa
-                    // (algunas ropas tienen el mesh directamente en la raíz)
-                    if (renderer.gameObject == clothing.GameObject)
+                    // NO desactivar si el renderer está en el root de la pieza
+                    // (algunas piezas tienen el mesh directamente en la raíz)
+                    if (renderer.gameObject == piece.GameObject)
                         continue;
 
                     // Desactivar el GameObject del mesh si está activo
@@ -636,9 +766,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         }
 
         /// <summary>
-        /// Estructura temporal para agrupar candidatos de ropa
+        /// Estructura temporal para agrupar candidatos de pieza
         /// </summary>
-        private class ClothingCandidate
+        private class PieceCandidate
         {
             public GameObject Root;
             public List<SkinnedMeshRenderer> SkinnedMeshRenderers;
@@ -663,9 +793,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         }
 
         /// <summary>
-        /// Encuentra el GameObject raiz de la ropa (hijo directo del avatar)
+        /// Encuentra el GameObject raiz de la pieza (hijo directo del avatar)
         /// </summary>
-        private GameObject FindClothingRoot(Transform smrTransform, Transform avatarRoot)
+        private GameObject FindPieceRoot(Transform smrTransform, Transform avatarRoot)
         {
             Transform current = smrTransform;
 
@@ -684,7 +814,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         /// <summary>
         /// Verifica si el candidato tiene huesos con nombres humanoid
         /// </summary>
-        private bool HasHumanoidBones(ClothingCandidate candidate)
+        private bool HasHumanoidBones(PieceCandidate candidate)
         {
             // Nombres de huesos humanoid comunes
             string[] humanoidPatterns = new[]
@@ -739,9 +869,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         }
 
         /// <summary>
-        /// Detecta mapeos de huesos para una ropa especifica
+        /// Detecta mapeos de huesos para una pieza especifica
         /// </summary>
-        public void DetectBoneMappingsForClothing(ClothingEntry clothing)
+        public void DetectBoneMappingsForPiece(PieceEntry piece)
         {
             if (_avatarReference == null || !_avatarReference.IsValid)
             {
@@ -749,119 +879,132 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 return;
             }
 
-            if (clothing?.ArmatureReference == null)
+            if (piece?.ArmatureReference == null)
             {
                 Debug.LogWarning("[MRCoserRopa] Ropa no valida para detectar huesos");
                 return;
             }
 
             // Usar prefijo/sufijo configurado por el usuario si existe
-            clothing.BoneMappings = BoneMapper.DetectBoneMappings(
-                _avatarReference,
-                clothing.ArmatureReference,
-                clothing.BonePrefix,
-                clothing.BoneSuffix);
+            // Si hay zona manual, filtrar solo huesos de esa zona
+            if (piece.HasManualStitchZone)
+            {
+                piece.BoneMappings = BoneMapper.DetectBoneMappings(
+                    _avatarReference,
+                    piece.ArmatureReference,
+                    piece.BonePrefix,
+                    piece.BoneSuffix,
+                    piece.ManualStitchZone);
+            }
+            else
+            {
+                piece.BoneMappings = BoneMapper.DetectBoneMappings(
+                    _avatarReference,
+                    piece.ArmatureReference,
+                    piece.BonePrefix,
+                    piece.BoneSuffix);
+            }
 
             // Recalcular zona de cosido
-            clothing.StitchZone = ClothingEntry.DetermineStitchZone(clothing.BoneMappings);
+            piece.StitchZone = PieceEntry.DetermineStitchZone(piece.BoneMappings);
         }
 
         /// <summary>
-        /// Refresca la deteccion de ropas
+        /// Refresca la deteccion de piezas
         /// </summary>
         public void RefreshDetection()
         {
             if (_avatarRoot != null)
             {
                 // Guardar estado de habilitacion actual
-                var enabledStates = _detectedClothings
+                var enabledStates = _detectedPieces
                     .ToDictionary(c => c.Name, c => c.Enabled);
 
-                DetectClothingsInAvatar();
+                DetectPiecesInAvatar();
 
                 // Restaurar estados de habilitacion
-                foreach (var clothing in _detectedClothings)
+                foreach (var piece in _detectedPieces)
                 {
-                    if (enabledStates.TryGetValue(clothing.Name, out bool wasEnabled))
+                    if (enabledStates.TryGetValue(piece.Name, out bool wasEnabled))
                     {
-                        clothing.Enabled = wasEnabled;
+                        piece.Enabled = wasEnabled;
                     }
                 }
             }
         }
 
         /// <summary>
-        /// Habilita o deshabilita una ropa por indice
+        /// Habilita o deshabilita una pieza por indice
         /// </summary>
-        public void SetClothingEnabled(int index, bool enabled)
+        public void SetPieceEnabled(int index, bool enabled)
         {
-            if (index >= 0 && index < _detectedClothings.Count)
+            if (index >= 0 && index < _detectedPieces.Count)
             {
-                _detectedClothings[index].Enabled = enabled;
+                _detectedPieces[index].Enabled = enabled;
             }
         }
 
         /// <summary>
-        /// Quita una ropa de la lista de deteccion
+        /// Quita una pieza de la lista de deteccion
         /// </summary>
-        public void RemoveClothing(int index)
+        public void RemovePiece(int index)
         {
-            if (index >= 0 && index < _detectedClothings.Count)
+            if (index >= 0 && index < _detectedPieces.Count)
             {
-                _detectedClothings.RemoveAt(index);
+                _detectedPieces.RemoveAt(index);
                 // Ajustar indice seleccionado si es necesario
-                if (_selectedClothingIndex >= _detectedClothings.Count)
+                if (_selectedPieceIndex >= _detectedPieces.Count)
                 {
-                    _selectedClothingIndex = _detectedClothings.Count - 1;
+                    _selectedPieceIndex = _detectedPieces.Count - 1;
                 }
             }
         }
 
         /// <summary>
-        /// Agrega una ropa manualmente a la lista
+        /// Agrega una pieza manualmente a la lista
         /// </summary>
-        public bool AddClothingManually(GameObject clothingObject)
+        public bool AddPieceManually(GameObject pieceObject)
         {
-            if (clothingObject == null || _avatarReference == null)
+            if (pieceObject == null || _avatarReference == null)
                 return false;
 
             // Verificar que no este ya en la lista
-            if (_detectedClothings.Any(c => c.GameObject == clothingObject))
+            if (_detectedPieces.Any(c => c.GameObject == pieceObject))
                 return false;
 
-            var clothingRef = new ArmatureReference(clothingObject);
-            var entry = new ClothingEntry(clothingObject)
+            var pieceRef = new ArmatureReference(pieceObject);
+            var entry = new PieceEntry(pieceObject)
             {
-                ArmatureReference = clothingRef,
+                ArmatureReference = pieceRef,
                 Enabled = true
             };
 
             // Detectar mapeos
-            DetectBoneMappingsForClothing(entry);
+            DetectBoneMappingsForPiece(entry);
 
-            _detectedClothings.Add(entry);
+            _detectedPieces.Add(entry);
             return true;
         }
 
         /// <summary>
-        /// Habilita todas las ropas
+        /// Habilita todas las piezas
         /// </summary>
-        public void EnableAllClothings()
+        public void EnableAllPieces()
         {
-            foreach (var clothing in _detectedClothings)
+            foreach (var piece in _detectedPieces)
             {
-                clothing.Enabled = true;
+                piece.Enabled = true;
             }
         }
 
         /// <summary>
-        /// Deshabilita todas las ropas
+        /// Deshabilita todas las piezas
         /// </summary>
-        public void DisableAllClothings()
+        public void DisableAllPieces()
         {
-            foreach (var clothing in _detectedClothings)
+            foreach (var piece in _detectedPieces)
             {
-                clothing.Enabled = false;
+                piece.Enabled = false;
             }
         }
 
@@ -870,9 +1013,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         /// </summary>
         public StitchingResult ExecuteStitchingAll()
         {
-            var enabledClothings = EnabledClothings.ToList();
+            var enabledPiecesList = EnabledPieces.ToList();
 
-            if (enabledClothings.Count == 0)
+            if (enabledPiecesList.Count == 0)
             {
                 return StitchingResult.CreateFailure("No hay ropas habilitadas para coser");
             }
@@ -881,25 +1024,25 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
             int successCount = 0;
             int failCount = 0;
 
-            Debug.Log($"[MRCoserRopa] Iniciando cosido de {enabledClothings.Count} ropas...");
+            Debug.Log($"[MRCoserRopa] Iniciando cosido de {enabledPiecesList.Count} ropas...");
 
-            foreach (var clothing in enabledClothings)
+            foreach (var piece in enabledPiecesList)
             {
-                if (!clothing.HasValidMappings)
+                if (!piece.HasValidMappings)
                 {
-                    clothing.LastResult = StitchingResult.CreateFailure($"'{clothing.Name}': Sin mapeos validos");
-                    combinedResult.AddWarning($"'{clothing.Name}': Sin mapeos validos, saltando");
+                    piece.LastResult = StitchingResult.CreateFailure($"'{piece.Name}': Sin mapeos validos");
+                    combinedResult.AddWarning($"'{piece.Name}': Sin mapeos validos, saltando");
                     failCount++;
                     continue;
                 }
 
-                // Ejecutar cosido para esta ropa
+                // Ejecutar cosido para esta pieza
                 var result = StitchingController.ExecuteStitching(
-                    clothing.BoneMappings,
+                    piece.BoneMappings,
                     _stitchingMode,
-                    clothing.GameObject);
+                    piece.GameObject);
 
-                clothing.LastResult = result;
+                piece.LastResult = result;
 
                 if (result.Success)
                 {
@@ -907,13 +1050,13 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                     combinedResult.BonesMerged += result.BonesMerged;
                     combinedResult.NonHumanoidBonesPreserved += result.NonHumanoidBonesPreserved;
                     successCount++;
-                    Debug.Log($"[MRCoserRopa] '{clothing.Name}': {result.GetSummary()}");
+                    Debug.Log($"[MRCoserRopa] '{piece.Name}': {result.GetSummary()}");
                 }
                 else
                 {
                     foreach (var error in result.Errors)
                     {
-                        combinedResult.AddError($"'{clothing.Name}': {error}");
+                        combinedResult.AddError($"'{piece.Name}': {error}");
                     }
                     failCount++;
                 }
@@ -940,10 +1083,10 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         {
             get
             {
-                foreach (var clothing in _detectedClothings)
+                foreach (var piece in _detectedPieces)
                 {
-                    if (clothing.GameObject != null &&
-                        StitchingController.HasStitchedBones(clothing.GameObject))
+                    if (piece.GameObject != null &&
+                        StitchingController.HasStitchedBones(piece.GameObject))
                     {
                         return true;
                     }
@@ -953,25 +1096,25 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         }
 
         /// <summary>
-        /// Ejecuta fusion post-cosido en todas las ropas
+        /// Ejecuta fusion post-cosido en todas las piezas
         /// </summary>
         public StitchingResult ExecuteMergeAfterStitchAll()
         {
             var combinedResult = new StitchingResult { Success = true };
 
-            foreach (var clothing in _detectedClothings)
+            foreach (var piece in _detectedPieces)
             {
-                if (clothing.GameObject != null &&
-                    StitchingController.HasStitchedBones(clothing.GameObject))
+                if (piece.GameObject != null &&
+                    StitchingController.HasStitchedBones(piece.GameObject))
                 {
-                    var result = StitchingController.ExecuteMergeAfterStitch(clothing.GameObject);
+                    var result = StitchingController.ExecuteMergeAfterStitch(piece.GameObject);
                     combinedResult.BonesMerged += result.BonesMerged;
 
                     if (!result.Success)
                     {
                         foreach (var error in result.Errors)
                         {
-                            combinedResult.AddError($"'{clothing.Name}': {error}");
+                            combinedResult.AddError($"'{piece.Name}': {error}");
                         }
                     }
                 }
@@ -1009,16 +1152,16 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                     "Configura Animation Type: Humanoid en Import Settings para mejores resultados."));
             }
 
-            // Validacion de ropas
-            if (_detectedClothings == null || _detectedClothings.Count == 0)
+            // Validacion de piezas
+            if (_detectedPieces == null || _detectedPieces.Count == 0)
             {
                 result.AddChild(ValidationResult.Warning(
                     "No se detectaron ropas. Asegurate de que las ropas esten dentro del avatar y tengan Armature."));
                 return result;
             }
 
-            int enabledCount = EnabledClothingCount;
-            int withMappings = EnabledClothings.Count(c => c.HasValidMappings);
+            int enabledCount = EnabledPieceCount;
+            int withMappings = EnabledPieces.Count(c => c.HasValidMappings);
 
             if (enabledCount == 0)
             {

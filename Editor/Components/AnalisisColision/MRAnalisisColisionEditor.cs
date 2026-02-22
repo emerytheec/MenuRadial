@@ -114,12 +114,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// <summary>
         /// Obtiene la lista de ropas detectadas desde MRCoserRopa.
         /// </summary>
-        private List<ClothingEntry> GetDetectedClothings()
+        private List<PieceEntry> GetDetectedPieces()
         {
             if (_coserRopa == null)
                 FindCoserRopa();
 
-            return _coserRopa?.DetectedClothings ?? new List<ClothingEntry>();
+            return _coserRopa?.DetectedPieces ?? new List<PieceEntry>();
         }
 
         /// <summary>
@@ -127,13 +127,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// Esto es necesario para que la lógica de clasificación funcione correctamente.
         /// Si hay cambios en la lista de ropas, re-escanea automáticamente.
         /// </summary>
-        private void SyncClothingRoots()
+        private void SyncPieceRoots()
         {
-            var detectedClothings = GetDetectedClothings();
-            var currentRoots = _target.ClothingRoots;
+            var detectedPieces = GetDetectedPieces();
+            var currentRoots = _target.PieceRoots;
 
             // Crear lista de GameObjects desde las ropas detectadas
-            var newRoots = detectedClothings
+            var newRoots = detectedPieces
                 .Where(c => c?.GameObject != null)
                 .Select(c => c.GameObject)
                 .ToList();
@@ -144,8 +144,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
             if (needsUpdate)
             {
-                Undo.RecordObject(_target, "Sync Clothing Roots");
-                _target.UpdateClothingRoots(newRoots);
+                Undo.RecordObject(_target, "Sync Piece Roots");
+                _target.UpdatePieceRoots(newRoots);
 
                 // Re-escanear componentes de MA cuando cambia la lista de ropas
                 if (_target.AvatarRoot != null && _target.IsMAAvailable)
@@ -164,7 +164,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             serializedObject.Update();
 
             // Sincronizar lista de ropas desde MRCoserRopa
-            SyncClothingRoots();
+            SyncPieceRoots();
 
             // Header
             DrawHeader();
@@ -451,7 +451,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                     GUILayout.FlexibleSpace();
 
                     // Nombre de la ropa
-                    EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.IN_CLOTHING, entry.ClothingRootName), EditorStyles.miniLabel, GUILayout.Width(150));
+                    EditorGUILayout.LabelField(MRLocalization.Get(L.AnalisisColision.IN_CLOTHING, entry.PieceRootName), EditorStyles.miniLabel, GUILayout.Width(150));
 
                     // Botón para seleccionar en jerarquía
                     if (GUILayout.Button(
@@ -470,7 +470,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         #endregion
 
-        #region Components By Clothing
+        #region Components By Piece
 
         /// <summary>
         /// Agrupa todas las entradas por prenda de ropa y las muestra.
@@ -483,24 +483,24 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 .Where(e => e.Category != ColisionCategory.Compatible || _target.ShowCompatibleComponents)
                 .ToList();
 
-            var detectedClothings = GetDetectedClothings();
+            var detectedPieces = GetDetectedPieces();
 
             // Agrupar entradas por prenda
-            var entriesByClothing = new Dictionary<ClothingEntry, List<ColisionEntry>>();
-            var entriesWithoutClothing = new List<ColisionEntry>();
+            var entriesByPiece = new Dictionary<PieceEntry, List<ColisionEntry>>();
+            var entriesWithoutPiece = new List<ColisionEntry>();
 
             foreach (var entry in allEntries)
             {
-                var clothing = FindClothingForGameObject(entry.Component.gameObject, detectedClothings);
-                if (clothing != null)
+                var piece = FindPieceForGameObject(entry.Component.gameObject, detectedPieces);
+                if (piece != null)
                 {
-                    if (!entriesByClothing.ContainsKey(clothing))
-                        entriesByClothing[clothing] = new List<ColisionEntry>();
-                    entriesByClothing[clothing].Add(entry);
+                    if (!entriesByPiece.ContainsKey(piece))
+                        entriesByPiece[piece] = new List<ColisionEntry>();
+                    entriesByPiece[piece].Add(entry);
                 }
                 else
                 {
-                    entriesWithoutClothing.Add(entry);
+                    entriesWithoutPiece.Add(entry);
                 }
             }
 
@@ -510,36 +510,36 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             EditorGUILayout.Space(5);
 
             // Dibujar cada prenda detectada
-            foreach (var clothing in detectedClothings)
+            foreach (var piece in detectedPieces)
             {
-                if (clothing == null || clothing.GameObject == null) continue;
-                if (!entriesByClothing.ContainsKey(clothing)) continue;
+                if (piece == null || piece.GameObject == null) continue;
+                if (!entriesByPiece.ContainsKey(piece)) continue;
 
-                var entries = entriesByClothing[clothing];
-                DrawClothingSection(clothing, entries);
+                var entries = entriesByPiece[piece];
+                DrawPieceSection(piece, entries);
             }
 
             // Dibujar componentes sin prenda asignada
-            if (entriesWithoutClothing.Count > 0)
+            if (entriesWithoutPiece.Count > 0)
             {
-                DrawOtherSection(entriesWithoutClothing);
+                DrawOtherSection(entriesWithoutPiece);
             }
         }
 
         /// <summary>
         /// Encuentra la prenda de ropa a la que pertenece un GameObject.
         /// </summary>
-        private ClothingEntry FindClothingForGameObject(GameObject obj, List<ClothingEntry> clothings)
+        private PieceEntry FindPieceForGameObject(GameObject obj, List<PieceEntry> pieces)
         {
-            if (obj == null || clothings == null) return null;
+            if (obj == null || pieces == null) return null;
 
-            foreach (var clothing in clothings)
+            foreach (var piece in pieces)
             {
-                if (clothing?.GameObject == null) continue;
+                if (piece?.GameObject == null) continue;
 
                 // Verificar si obj es el root o esta bajo el root
-                if (obj == clothing.GameObject || obj.transform.IsChildOf(clothing.GameObject.transform))
-                    return clothing;
+                if (obj == piece.GameObject || obj.transform.IsChildOf(piece.GameObject.transform))
+                    return piece;
             }
             return null;
         }
@@ -547,10 +547,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// <summary>
         /// Dibuja una seccion para una prenda de ropa.
         /// </summary>
-        private void DrawClothingSection(ClothingEntry clothing, List<ColisionEntry> entries)
+        private void DrawPieceSection(PieceEntry piece, List<ColisionEntry> entries)
         {
-            var clothingRoot = clothing.GameObject;
-            string foldoutKey = $"clothing_{clothingRoot.name}";
+            var pieceRoot = piece.GameObject;
+            string foldoutKey = $"piece_{pieceRoot.name}";
             if (!_gameObjectFoldouts.ContainsKey(foldoutKey))
                 _gameObjectFoldouts[foldoutKey] = false;
 
@@ -569,7 +569,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             GUI.contentColor = sectionColor;
             _gameObjectFoldouts[foldoutKey] = EditorGUILayout.Foldout(
                 _gameObjectFoldouts[foldoutKey],
-                $"{clothing.Name}",
+                $"{piece.Name}",
                 true,
                 EditorStyles.foldoutHeader);
             GUI.contentColor = Color.white;
@@ -581,7 +581,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             GUILayout.Label($"({entries.Count})", EditorStyles.miniLabel);
 
             // Indicador si tiene Modular Avatar
-            if (clothing.HasModularAvatar)
+            if (piece.HasModularAvatar)
             {
                 GUI.contentColor = MABlueColor;
                 GUILayout.Label("[MA]", EditorStyles.miniBoldLabel);
@@ -589,12 +589,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             }
 
             // Botón "Menú" para desactivar/activar componentes de menú de esta prenda
-            DrawMenuToggleButton(clothing.Name, entries);
+            DrawMenuToggleButton(piece.Name, entries);
 
             // Boton para mostrar la prenda en jerarquia
             if (GUILayout.Button(EditorGUIUtility.IconContent("d_SceneViewFx"), GUILayout.Width(25), GUILayout.Height(18)))
             {
-                EditorGUIUtility.PingObject(clothingRoot);
+                EditorGUIUtility.PingObject(pieceRoot);
             }
 
             EditorGUILayout.EndHorizontal();
@@ -605,13 +605,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 // Agrupar por GameObject dentro de la prenda
                 var groupedByGameObject = entries
                     .GroupBy(e => e.Component.gameObject)
-                    .OrderBy(g => g.Key == clothingRoot ? 0 : 1) // Raiz primero
-                    .ThenBy(g => GetRelativePath(g.Key, clothingRoot))
+                    .OrderBy(g => g.Key == pieceRoot ? 0 : 1) // Raiz primero
+                    .ThenBy(g => GetRelativePath(g.Key, pieceRoot))
                     .ToList();
 
                 foreach (var group in groupedByGameObject)
                 {
-                    DrawGameObjectInClothing(group.Key, group.ToList(), clothingRoot);
+                    DrawGameObjectInPiece(group.Key, group.ToList(), pieceRoot);
                 }
             }
 
@@ -622,14 +622,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// <summary>
         /// Dibuja un GameObject dentro de una seccion de prenda.
         /// </summary>
-        private void DrawGameObjectInClothing(GameObject gameObject, List<ColisionEntry> entries, GameObject clothingRoot)
+        private void DrawGameObjectInPiece(GameObject gameObject, List<ColisionEntry> entries, GameObject pieceRoot)
         {
-            bool isRoot = gameObject == clothingRoot;
+            bool isRoot = gameObject == pieceRoot;
 
             // Si NO es raíz, mostrar el nombre del GameObject
             if (!isRoot)
             {
-                string displayName = GetRelativePath(gameObject, clothingRoot);
+                string displayName = GetRelativePath(gameObject, pieceRoot);
 
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Space(15);
@@ -665,7 +665,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// </summary>
         private void DrawOtherSection(List<ColisionEntry> entries)
         {
-            string foldoutKey = "others_no_clothing";
+            string foldoutKey = "others_no_piece";
             if (!_gameObjectFoldouts.ContainsKey(foldoutKey))
                 _gameObjectFoldouts[foldoutKey] = false;
 
@@ -805,7 +805,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             }
 
             // Nombre del tipo de componente
-            bool isCriticalOnRoot = IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnClothingRoot;
+            bool isCriticalOnRoot = IsCriticalComponent(entry.ComponentTypeName) && entry.IsOnPieceRoot;
 
             if (isBlendshapeSync)
             {
@@ -1030,9 +1030,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         /// <summary>
         /// Dibuja el botón "Menú" para una prenda específica.
         /// </summary>
-        /// <param name="clothingName">Nombre de la prenda.</param>
+        /// <param name="pieceName">Nombre de la prenda.</param>
         /// <param name="entries">Entradas de componentes de la prenda.</param>
-        private void DrawMenuToggleButton(string clothingName, List<ColisionEntry> entries)
+        private void DrawMenuToggleButton(string pieceName, List<ColisionEntry> entries)
         {
             // Contar componentes de menú en esta prenda
             int menuComponentCount = CountMenuComponents(entries);
@@ -1041,7 +1041,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
             if (menuComponentCount == 0)
                 return;
 
-            bool isMenuDisabled = _target.IsMenuDisabledForClothing(clothingName);
+            bool isMenuDisabled = _target.IsMenuDisabledForPiece(pieceName);
 
             // Estilo del botón según estado
             var buttonColor = isMenuDisabled ? MenuDisabledColor : MenuActiveColor;
@@ -1057,18 +1057,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
                 if (isMenuDisabled)
                 {
-                    int restored = _target.EnableMenuComponentsForClothing(clothingName);
+                    int restored = _target.EnableMenuComponentsForPiece(pieceName);
                     if (restored > 0)
                     {
-                        Debug.Log($"[MRAnalisisColision] Menú activado para '{clothingName}': {restored} componente(s) restaurado(s)");
+                        Debug.Log($"[MRAnalisisColision] Menú activado para '{pieceName}': {restored} componente(s) restaurado(s)");
                     }
                 }
                 else
                 {
-                    int disabled = _target.DisableMenuComponentsForClothing(clothingName);
+                    int disabled = _target.DisableMenuComponentsForPiece(pieceName);
                     if (disabled > 0)
                     {
-                        Debug.Log($"[MRAnalisisColision] Menú desactivado para '{clothingName}': {disabled} componente(s) desactivado(s)");
+                        Debug.Log($"[MRAnalisisColision] Menú desactivado para '{pieceName}': {disabled} componente(s) desactivado(s)");
                     }
                 }
 

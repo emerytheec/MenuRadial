@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
 {
@@ -22,9 +23,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
     {
         [SerializeField] private HumanBodyBones _boneType;
         [SerializeField] private Transform _avatarBone;
-        [SerializeField] private Transform _clothingBone;
+        [FormerlySerializedAs("_clothingBone")]
+        [SerializeField] private Transform _pieceBone;
         [SerializeField] private string _avatarBonePath = "";
-        [SerializeField] private string _clothingBonePath = "";
+        [FormerlySerializedAs("_clothingBonePath")]
+        [SerializeField] private string _pieceBonePath = "";
         [SerializeField] private BoneMappingMethod _mappingMethod = BoneMappingMethod.None;
         [SerializeField] private bool _wasStitched;
 
@@ -51,15 +54,15 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         }
 
         /// <summary>
-        /// Transform del hueso en la ropa
+        /// Transform del hueso en la pieza
         /// </summary>
-        public Transform ClothingBone
+        public Transform PieceBone
         {
-            get => _clothingBone;
+            get => _pieceBone;
             set
             {
-                _clothingBone = value;
-                UpdateClothingPath();
+                _pieceBone = value;
+                UpdatePiecePath();
             }
         }
 
@@ -69,9 +72,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         public string AvatarBonePath => _avatarBonePath;
 
         /// <summary>
-        /// Ruta jerarquica del hueso de la ropa
+        /// Ruta jerarquica del hueso de la pieza
         /// </summary>
-        public string ClothingBonePath => _clothingBonePath;
+        public string PieceBonePath => _pieceBonePath;
 
         /// <summary>
         /// Metodo utilizado para detectar este mapeo
@@ -85,7 +88,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         /// <summary>
         /// Indica si el mapeo es valido (ambos huesos existen)
         /// </summary>
-        public bool IsValid => _avatarBone != null && _clothingBone != null;
+        public bool IsValid => _avatarBone != null && _pieceBone != null;
 
         /// <summary>
         /// Indica si este hueso ya fue cosido
@@ -114,11 +117,11 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         /// <summary>
         /// Constructor completo
         /// </summary>
-        public BoneMapping(HumanBodyBones boneType, Transform avatarBone, Transform clothingBone, BoneMappingMethod method)
+        public BoneMapping(HumanBodyBones boneType, Transform avatarBone, Transform pieceBone, BoneMappingMethod method)
         {
             _boneType = boneType;
             _avatarBone = avatarBone;
-            _clothingBone = clothingBone;
+            _pieceBone = pieceBone;
             _mappingMethod = method;
             UpdatePaths();
         }
@@ -129,7 +132,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         public void UpdatePaths()
         {
             UpdateAvatarPath();
-            UpdateClothingPath();
+            UpdatePiecePath();
         }
 
         private void UpdateAvatarPath()
@@ -137,9 +140,9 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
             _avatarBonePath = _avatarBone != null ? GetHierarchyPath(_avatarBone) : "";
         }
 
-        private void UpdateClothingPath()
+        private void UpdatePiecePath()
         {
-            _clothingBonePath = _clothingBone != null ? GetHierarchyPath(_clothingBone) : "";
+            _pieceBonePath = _pieceBone != null ? GetHierarchyPath(_pieceBone) : "";
         }
 
         private static string GetHierarchyPath(Transform transform)

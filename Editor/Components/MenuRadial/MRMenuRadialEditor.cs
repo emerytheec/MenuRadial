@@ -422,9 +422,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             // Ropas
             DrawStatusLine(
                 MRLocalization.Get(L.MenuRadialEditor.CLOTHING_DETECTED),
-                _target.DetectedClothingCount > 0,
-                $"{_target.EnabledClothingCount}/{_target.DetectedClothingCount}",
-                _target.DetectedClothingCount == 0 ? MRLocalization.Get(L.MenuRadialEditor.NO_CLOTHING) : null
+                _target.DetectedPieceCount > 0,
+                $"{_target.EnabledPieceCount}/{_target.DetectedPieceCount}",
+                _target.DetectedPieceCount == 0 ? MRLocalization.Get(L.MenuRadialEditor.NO_CLOTHING) : null
             );
 
             // PhysBones
@@ -518,7 +518,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             // Botón Generar Estructura (solo si no existe)
             bool hasExistingStructure = _target.MenuSlotCount > 0;
 
-            EditorGUI.BeginDisabledGroup(hasExistingStructure || _target.DetectedClothingCount == 0);
+            EditorGUI.BeginDisabledGroup(hasExistingStructure || _target.DetectedPieceCount == 0);
             if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.GENERATE_STRUCTURE), MRLocalization.Get(L.MenuRadialEditor.GENERATE_STRUCTURE_TOOLTIP)), GUILayout.Height(25)))
             {
                 Undo.RecordObject(_target, "Generate Menu Structure");
@@ -526,8 +526,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 if (result.Success)
                 {
                     string infoMessage = result.WigFramesCreated > 0
-                        ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.ClothingFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
-                        : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
+                        ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.PieceFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
+                        : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.PieceFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
                     EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED),
                         infoMessage,
                         MRLocalization.Get(L.Common.OK));
@@ -538,7 +538,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUI.EndDisabledGroup();
 
             // Botón Regenerar (solo si existe estructura)
-            EditorGUI.BeginDisabledGroup(!hasExistingStructure || _target.DetectedClothingCount == 0);
+            EditorGUI.BeginDisabledGroup(!hasExistingStructure || _target.DetectedPieceCount == 0);
             if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.REGENERATE), MRLocalization.Get(L.MenuRadialEditor.REGENERATE_TOOLTIP)), GUILayout.Height(25)))
             {
                 if (EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.REGENERATE_TITLE),
@@ -550,8 +550,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     if (result.Success)
                     {
                         string infoMessage = result.WigFramesCreated > 0
-                            ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.ClothingFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
-                            : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.ClothingFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
+                            ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.PieceFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
+                            : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.PieceFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
                         EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_REGENERATED),
                             infoMessage,
                             MRLocalization.Get(L.Common.OK));
@@ -608,7 +608,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     if (syncResult.FramesAdded > 0 && syncResult.WigFramesAdded > 0)
                     {
                         message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED_WITH_WIGS,
-                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames),
+                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedPieceNames),
                             syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
                     }
                     else if (syncResult.WigFramesAdded > 0)
@@ -619,7 +619,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     else if (syncResult.FramesAdded > 0)
                     {
                         message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED,
-                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedClothingNames));
+                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedPieceNames));
                     }
                     else
                     {
@@ -638,7 +638,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUI.EndDisabledGroup();
             EditorGUILayout.EndHorizontal();
 
-            if (_target.DetectedClothingCount == 0 && hasAvatar)
+            if (_target.DetectedPieceCount == 0 && hasAvatar)
             {
                 EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.DETECT_CLOTHING_FIRST), MessageType.Info);
             }

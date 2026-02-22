@@ -105,9 +105,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         public int ProblematicCount => _problematicEntries?.Count(e => e.IsValid) ?? 0;
 
         /// <summary>
-        /// Cantidad de componentes problematicos en raiz de ropa.
+        /// Cantidad de componentes problematicos en raiz de pieza.
         /// </summary>
-        public int ProblematicOnClothingRootCount => _problematicEntries?.Count(e => e.IsValid && e.IsOnClothingRoot) ?? 0;
+        public int ProblematicOnPieceRootCount => _problematicEntries?.Count(e => e.IsValid && e.IsOnPieceRoot) ?? 0;
 
         /// <summary>
         /// Cantidad de componentes que requieren decision del usuario.
@@ -135,9 +135,9 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         public bool HasMeshOnRoot => MeshOnRootCount > 0;
 
         /// <summary>
-        /// Si hay componentes problematicos en raiz de ropa (que se desactivaran automaticamente).
+        /// Si hay componentes problematicos en raiz de pieza (que se desactivaran automaticamente).
         /// </summary>
-        public bool HasProblematicOnClothingRoot => ProblematicOnClothingRootCount > 0;
+        public bool HasProblematicOnPieceRoot => ProblematicOnPieceRootCount > 0;
 
         /// <summary>
         /// Si hay componentes que requieren decision del usuario.
@@ -222,13 +222,13 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         }
 
         /// <summary>
-        /// Obtiene entradas problematicas que estan en raiz de ropa y que el usuario quiere desactivar.
+        /// Obtiene entradas problematicas que estan en raiz de pieza y que el usuario quiere desactivar.
         /// NOTA: No usa IsValid porque en NDMF las referencias pueden estar rotas.
         /// En su lugar, verifica que tenga datos suficientes para buscar el componente.
         /// </summary>
-        public IEnumerable<ColisionEntry> GetProblematicOnClothingRoot()
+        public IEnumerable<ColisionEntry> GetProblematicOnPieceRoot()
         {
-            return _problematicEntries.Where(e => e.IsOnClothingRoot && e.UserWantsDisabled && e.HasSearchableData);
+            return _problematicEntries.Where(e => e.IsOnPieceRoot && e.UserWantsDisabled && e.HasSearchableData);
         }
 
         /// <summary>
@@ -242,12 +242,12 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
 
         /// <summary>
         /// Obtiene entradas problematicas que el usuario quiere desactivar,
-        /// excluyendo las que estan en raiz de ropa (esas se manejan por GetProblematicOnClothingRoot).
+        /// excluyendo las que estan en raiz de pieza (esas se manejan por GetProblematicOnPieceRoot).
         /// NOTA: No usa IsValid porque en NDMF las referencias pueden estar rotas.
         /// </summary>
         public IEnumerable<ColisionEntry> GetProblematicToDisable()
         {
-            return _problematicEntries.Where(e => e.UserWantsDisabled && !e.IsOnClothingRoot && e.HasSearchableData);
+            return _problematicEntries.Where(e => e.UserWantsDisabled && !e.IsOnPieceRoot && e.HasSearchableData);
         }
 
         /// <summary>

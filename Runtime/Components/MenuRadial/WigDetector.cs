@@ -74,20 +74,20 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             /// <summary>Puntuación total del scoring.</summary>
             public int Score;
 
-            /// <summary>Índice en DetectedClothings si fue reclasificado desde ropa, -1 si no.</summary>
-            public int ClothingEntryIndex;
+            /// <summary>Índice en DetectedPieces si fue reclasificado desde ropa, -1 si no.</summary>
+            public int PieceEntryIndex;
         }
 
         /// <summary>
         /// Detecta pelucas entre los hijos del avatar.
-        /// Fuente 1: Reclasifica ClothingEntries que parecen pelucas.
+        /// Fuente 1: Reclasifica PieceEntries que parecen pelucas.
         /// Fuente 2: Escanea hijos directos no detectados como ropa.
         /// Fuente 3: Detecta pelo del avatar base (meshes hermanos del armature con peso en head).
         /// </summary>
         /// <param name="avatarRoot">GameObject raíz del avatar.</param>
-        /// <param name="detectedClothings">Lista de ropas detectadas por MRCoserRopa (puede ser null).</param>
+        /// <param name="detectedPieces">Lista de ropas detectadas por MRCoserRopa (puede ser null).</param>
         /// <returns>Lista de candidatos a peluca que superan el threshold.</returns>
-        public static List<WigCandidate> DetectWigs(GameObject avatarRoot, List<ClothingEntry> detectedClothings)
+        public static List<WigCandidate> DetectWigs(GameObject avatarRoot, List<PieceEntry> detectedPieces)
         {
             var wigs = new List<WigCandidate>();
 
@@ -110,30 +110,30 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             // Obtener head bone del avatar para análisis de bone weights
             Transform avatarHeadBone = BoneWeightAnalyzer.GetAvatarHeadBone(avatarRoot);
 
-            // Set de GameObjects ya cubiertos por detectedClothings
+            // Set de GameObjects ya cubiertos por detectedPieces
             var clothingRoots = new HashSet<GameObject>();
-            if (detectedClothings != null)
+            if (detectedPieces != null)
             {
-                foreach (var c in detectedClothings)
+                foreach (var c in detectedPieces)
                 {
                     if (c?.GameObject != null)
                         clothingRoots.Add(c.GameObject);
                 }
             }
 
-            // Fuente 1: Reclasificar ClothingEntries
-            if (detectedClothings != null)
+            // Fuente 1: Reclasificar PieceEntries
+            if (detectedPieces != null)
             {
-                for (int i = 0; i < detectedClothings.Count; i++)
+                for (int i = 0; i < detectedPieces.Count; i++)
                 {
-                    var clothing = detectedClothings[i];
-                    if (!clothing.IsValid)
+                    var piece = detectedPieces[i];
+                    if (!piece.IsValid)
                         continue;
 
-                    int score = ScoreClothingEntry(clothing, avatarAnimator);
+                    int score = ScorePieceEntry(piece, avatarAnimator);
                     if (score >= WIG_SCORE_THRESHOLD)
                     {
-                        Transform armature = clothing.ArmatureReference?.ArmatureRoot;
+                        Transform armature = piece.ArmatureReference?.ArmatureRoot;
                         var allMeshes = armature != null
                             ? BodyMeshDetector.GetAllSiblingMeshes(armature)
                             : new List<SkinnedMeshRenderer>();
@@ -154,15 +154,15 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
                         wigs.Add(new WigCandidate
                         {
-                            Root = clothing.GameObject,
+                            Root = piece.GameObject,
                             ArmatureRoot = armature,
                             Meshes = wigMeshes,
-                            Name = clothing.Name,
+                            Name = piece.Name,
                             Score = score,
-                            ClothingEntryIndex = i
+                            PieceEntryIndex = i
                         });
 
-                        Debug.Log($"[WigDetector] Reclasificado '{clothing.Name}' como peluca (score={score}, " +
+                        Debug.Log($"[WigDetector] Reclasificado '{piece.Name}' como peluca (score={score}, " +
                                  $"{wigMeshes.Count}/{allMeshes.Count} meshes de pelo)");
                     }
                 }
@@ -204,7 +204,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                         Meshes = siblingMeshes,
                         Name = child.name,
                         Score = score,
-                        ClothingEntryIndex = -1
+                        PieceEntryIndex = -1
                     });
 
                     Debug.Log($"[WigDetector] Detectado '{child.name}' como peluca no-ropa (score={score})");
@@ -248,7 +248,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                             ? confirmedHairMeshes[0].gameObject.name
                             : "Hair",
                         Score = bestScore,
-                        ClothingEntryIndex = -1
+                        PieceEntryIndex = -1
                     });
 
                     Debug.Log($"[WigDetector] Detectado pelo de avatar: {confirmedHairMeshes.Count} meshes (score={bestScore})");
@@ -263,12 +263,12 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         #region Scoring
 
         /// <summary>
-        /// Calcula score para un ClothingEntry (ya tiene armature detectado).
+        /// Calcula score para un PieceEntry (ya tiene armature detectado).
         /// </summary>
-        private static int ScoreClothingEntry(ClothingEntry clothing, Animator avatarAnimator)
+        private static int ScorePieceEntry(PieceEntry pieceEntry, Animator avatarAnimator)
         {
             int score = 0;
-            Transform armature = clothing.ArmatureReference?.ArmatureRoot;
+            Transform armature = pieceEntry.ArmatureReference?.ArmatureRoot;
 
             if (armature == null)
                 return 0;
@@ -286,11 +286,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 score += 3;
 
             // Señal 4: Nombre del contenedor con patrón de pelo (+2)
-            if (MatchesHairPattern(clothing.Name))
+            if (MatchesHairPattern(pieceEntry.Name))
                 score += 2;
 
             // Señal 5: MA BoneProxy apuntando a Head (+2)
-            if (HasMABoneProxyToHead(clothing.GameObject, avatarAnimator))
+            if (HasMABoneProxyToHead(pieceEntry.GameObject, avatarAnimator))
                 score += 2;
 
             // Señal 6: Head tiene ≥3 hijos (cadenas de pelo) (+2)

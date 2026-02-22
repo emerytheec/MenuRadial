@@ -34,6 +34,36 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         /// <summary>
         /// Solo Hips (cinturones, faldas, colas)
         /// </summary>
-        Hip
+        Hip,
+
+        /// <summary>
+        /// Solo mano derecha (anillos, accesorios de mano)
+        /// </summary>
+        RightHand,
+
+        /// <summary>
+        /// Solo mano izquierda (anillos, accesorios de mano)
+        /// </summary>
+        LeftHand,
+
+        /// <summary>
+        /// Solo pie derecho (zapato individual, tobillera)
+        /// </summary>
+        RightFoot,
+
+        /// <summary>
+        /// Solo pie izquierdo (zapato individual, tobillera)
+        /// </summary>
+        LeftFoot,
+
+        /// <summary>
+        /// Solo pecho/chest (pectorales, arneses)
+        /// </summary>
+        Chest,
+
+        /// <summary>
+        /// Sin zona determinada (pieza sin huesos humanoides)
+        /// </summary>
+        None
     }
 }

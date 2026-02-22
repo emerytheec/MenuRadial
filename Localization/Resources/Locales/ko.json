@@ -303,7 +303,36 @@
         "zoneLowerLimbShort": "발",
         "zoneHipShort": "엉덩이",
         "zoneLabel": "영역: {0}",
-        "zoneWigLabel": "가발 - 영역: {0}"
+        "zoneWigLabel": "가발 - 영역: {0}",
+
+        "pieceTypeLabel": "유형",
+        "pieceTypeRopa": "의상",
+        "pieceTypePelo": "머리카락",
+        "pieceTypePieza": "부품",
+
+        "disableMAToggle": "MA 비활성화 (MR이 이 부품을 처리)",
+        "disableMAWigWarning": "경고: 가발에서 MA를 비활성화하면 사라질 수 있습니다. BoneProxy는 가발을 아바타에 연결하는 메커니즘입니다.",
+        "disableMAMRWillProcess": "이 부품의 MA가 비활성화되었습니다. MR이 빌드 시 본을 봉합합니다.",
+
+        "manualZoneLabel": "봉합 영역",
+        "manualZoneAuto": "(자동)",
+        "manualZoneActive": "(수동)",
+
+        "ndmfDisableMAInfo": "MR: {0}개 부품 MA 비활성화 (MR이 처리)",
+        "ndmfNoPiecesEnabled": "자동 처리를 위해 최소 하나의 부품을 활성화하세요.",
+
+        "zoneRightHand": "오른손",
+        "zoneLeftHand": "왼손",
+        "zoneRightFoot": "오른발",
+        "zoneLeftFoot": "왼발",
+        "zoneChest": "가슴",
+        "zoneNone": "영역 없음",
+        "zoneRightHandShort": "오른손",
+        "zoneLeftHandShort": "왼손",
+        "zoneRightFootShort": "오른발",
+        "zoneLeftFootShort": "왼발",
+        "zoneChestShort": "가슴",
+        "zoneNoneShort": "---"
     },
     "unifyMaterial": {
         "header": "MR Unificar Materiales",

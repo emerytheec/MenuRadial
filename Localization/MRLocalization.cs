@@ -1091,6 +1091,24 @@ namespace Bender_Dios.MenuRadial.Localization
             public string ndmfDisabledInfo;
             public string ndmfScope;
             public string ndmfSceneSafe;
+            public string ndmfDisableMAInfo;
+            public string ndmfNoPiecesEnabled;
+
+            // PieceType
+            public string pieceTypeLabel;
+            public string pieceTypeRopa;
+            public string pieceTypePelo;
+            public string pieceTypePieza;
+
+            // DisableMA
+            public string disableMAToggle;
+            public string disableMAWigWarning;
+            public string disableMAMRWillProcess;
+
+            // Manual zone
+            public string manualZoneLabel;
+            public string manualZoneAuto;
+            public string manualZoneActive;
 
             // StitchZone
             public string zoneFullBody;
@@ -1099,12 +1117,24 @@ namespace Bender_Dios.MenuRadial.Localization
             public string zoneUpperLimb;
             public string zoneLowerLimb;
             public string zoneHip;
+            public string zoneRightHand;
+            public string zoneLeftHand;
+            public string zoneRightFoot;
+            public string zoneLeftFoot;
+            public string zoneChest;
+            public string zoneNone;
             public string zoneFullBodyShort;
             public string zoneTorsoShort;
             public string zoneHeadShort;
             public string zoneUpperLimbShort;
             public string zoneLowerLimbShort;
             public string zoneHipShort;
+            public string zoneRightHandShort;
+            public string zoneLeftHandShort;
+            public string zoneRightFootShort;
+            public string zoneLeftFootShort;
+            public string zoneChestShort;
+            public string zoneNoneShort;
             public string zoneLabel;
             public string zoneWigLabel;
         }
