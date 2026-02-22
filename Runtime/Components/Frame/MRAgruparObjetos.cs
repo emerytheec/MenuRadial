@@ -15,7 +15,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
     /// </summary>
     [System.Serializable]
     [AddComponentMenu("MR/MR Agrupar Objetos")]
-    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
+    [Icon("Packages/com.bender-dios.menu-radial/Components/Menu/Resources/logo_MR.png")]
     public class MRAgruparObjetos : MRComponentBase, IAnimationProvider, IPreviewable, System.IDisposable
     {
         [SerializeField] private FrameData _frameData = new FrameData("Agrupar Objetos");

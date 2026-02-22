@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.55] - 2026-02-22
+
+### Corregido
+- **Localizacion robusta para VPM**: Resources.Load() podia fallar en primer import (race condition) y marcaba el sistema como inicializado con diccionario vacio, dejando todos los textos como `[key]`. Ahora solo marca inicializado si cargo traducciones, y reintenta hasta 5 veces en llamadas posteriores
+- **Iconos visibles en instalacion VPM**: Los 12 componentes usaban ruta `Assets/Bender_Dios/MenuRadial/...` para el icono, que no existe cuando el paquete esta en `Packages/`. Cambiado a `Packages/com.bender-dios.menu-radial/...` para distribucion correcta
+
 ## [0.9.54] - 2026-02-22
 
 ### Cambiado

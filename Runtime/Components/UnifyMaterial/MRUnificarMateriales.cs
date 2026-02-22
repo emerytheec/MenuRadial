@@ -13,7 +13,7 @@ namespace Bender_Dios.MenuRadial.Components.UnifyMaterial
     /// Unifica varios MRAgruparMateriales para generar una sola animación Linear
     /// </summary>
     [AddComponentMenu("MR/MR Unificar Materiales")]
-    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
+    [Icon("Packages/com.bender-dios.menu-radial/Components/Menu/Resources/logo_MR.png")]
     public class MRUnificarMateriales : MRComponentBase, IAnimationProvider
     {
         [SerializeField] private string _animationName = "UnifyMaterial";

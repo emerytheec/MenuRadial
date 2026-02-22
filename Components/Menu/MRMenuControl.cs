@@ -16,7 +16,7 @@ namespace Bender_Dios.MenuRadial.Components.Menu
     /// Implementa IEditorOnly para que VRChat SDK no genere advertencias.
     /// </summary>
     [AddComponentMenu("MR/MR Menú Control")]
-    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
+    [Icon("Packages/com.bender-dios.menu-radial/Components/Menu/Resources/logo_MR.png")]
     public class MRMenuControl : MonoBehaviour, IAnimationProvider, IEditorOnly
     {
         

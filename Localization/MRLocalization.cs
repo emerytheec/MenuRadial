@@ -28,6 +28,8 @@ namespace Bender_Dios.MenuRadial.Localization
         private static string _currentLocale = null;
         private static bool _isInitialized = false;
         private static string[] _availableLocales = null;
+        private static int _retryCount = 0;
+        private const int MAX_RETRIES = 5;
 
         #endregion
 
@@ -70,13 +72,22 @@ namespace Bender_Dios.MenuRadial.Localization
 
             string detectedLocale = DetectEditorLocale();
             LoadTranslations(detectedLocale);
-            _isInitialized = true;
+
+            // Solo marcar inicializado si se cargaron traducciones
+            _isInitialized = _translations.Count > 0;
         }
 
         private static void EnsureInitialized()
         {
             if (!_isInitialized)
             {
+                Initialize();
+            }
+            // Reintento si se inicializó pero no cargó traducciones (race condition)
+            else if (_translations.Count == 0 && _retryCount < MAX_RETRIES)
+            {
+                _retryCount++;
+                _isInitialized = false;
                 Initialize();
             }
         }

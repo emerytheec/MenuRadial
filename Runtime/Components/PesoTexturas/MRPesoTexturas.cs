@@ -18,7 +18,7 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
     /// 4. Permite reducir resoluciones por grupo o globalmente
     /// </summary>
     [AddComponentMenu("Bender Dios/MR Peso Texturas")]
-    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
+    [Icon("Packages/com.bender-dios.menu-radial/Components/Menu/Resources/logo_MR.png")]
     public class MRPesoTexturas : MRComponentBase
     {
         #region Serialized Fields

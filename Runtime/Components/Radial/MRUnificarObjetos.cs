@@ -14,7 +14,7 @@ namespace Bender_Dios.MenuRadial.Components.Radial
     /// </summary>
     [System.Serializable]
     [AddComponentMenu("MR/MR Unificar Objetos")]
-    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
+    [Icon("Packages/com.bender-dios.menu-radial/Components/Menu/Resources/logo_MR.png")]
     public class MRUnificarObjetos : MRComponentBase, IAnimationProvider
     {
         [SerializeField] private List<MRAgruparObjetos> _frames = new List<MRAgruparObjetos>();

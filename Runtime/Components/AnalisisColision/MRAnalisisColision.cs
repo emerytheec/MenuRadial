@@ -23,7 +23,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
     /// - Compatible: Solo informativos, MR los respeta
     /// </summary>
     [AddComponentMenu("Bender Dios/MR Analisis Colision")]
-    [Icon("Assets/Bender_Dios/MenuRadial/Components/Menu/Resources/logo_MR.png")]
+    [Icon("Packages/com.bender-dios.menu-radial/Components/Menu/Resources/logo_MR.png")]
     public class MRAnalisisColision : MRComponentBase
     {
         #region Constants
