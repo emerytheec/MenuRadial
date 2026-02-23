@@ -314,6 +314,10 @@
         "disableMAWigWarning": "ВНИМАНИЕ: Отключение MA на парике может привести к его исчезновению. BoneProxy — это механизм прикрепления париков к аватару.",
         "disableMAMRWillProcess": "MA отключён для этой детали. MR сшивает кости при сборке.",
 
+        "boneProxyMisplaced": "BoneProxy находится на корне детали. Он должен быть на дочернем Armature для корректной работы MA. Без исправления MA переместит весь GameObject под целевую кость.",
+        "boneProxyRelocate": "Переместить BoneProxy",
+        "boneProxyRelocateTo": "Переместить в: {0}",
+
         "manualZoneLabel": "Зона сшивания",
         "manualZoneAuto": "(Авто)",
         "manualZoneActive": "(вручную)",

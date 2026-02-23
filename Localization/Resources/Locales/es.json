@@ -321,6 +321,10 @@
         "disableMAWigWarning": "ADVERTENCIA: Desactivar MA en una peluca puede causar que se pierda. BoneProxy es el mecanismo que une pelucas al avatar.",
         "disableMAMRWillProcess": "MA esta desactivado para esta pieza. MR cosera los huesos durante el build.",
 
+        "boneProxyMisplaced": "BoneProxy esta en la raiz de la pieza. Deberia estar en el Armature hijo para que MA reparente correctamente. Si no se corrige, MA movera todo el GameObject (armature + meshes) bajo el hueso destino.",
+        "boneProxyRelocate": "Reubicar BoneProxy",
+        "boneProxyRelocateTo": "Mover a: {0}",
+
         "manualZoneLabel": "Zona de cosido",
         "manualZoneAuto": "(Auto)",
         "manualZoneActive": "(manual)",

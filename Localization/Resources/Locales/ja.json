@@ -314,6 +314,10 @@
         "disableMAWigWarning": "警告：ウィッグのMAを無効にすると消える可能性があります。BoneProxyはウィッグをアバターに接続する仕組みです。",
         "disableMAMRWillProcess": "このパーツのMAは無効です。MRがビルド時にボーンを縫合します。",
 
+        "boneProxyMisplaced": "BoneProxyがパーツのルートにあります。MAが正しく再ペアレントできるよう子のArmatureに配置してください。修正しないとMAがGameObject全体をターゲットボーンの下に移動します。",
+        "boneProxyRelocate": "BoneProxyを再配置",
+        "boneProxyRelocateTo": "移動先：{0}",
+
         "manualZoneLabel": "縫合ゾーン",
         "manualZoneAuto": "（自動）",
         "manualZoneActive": "（手動）",

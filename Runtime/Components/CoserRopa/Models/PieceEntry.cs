@@ -37,6 +37,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         [SerializeField] private bool _hasManualStitchZone = false;
         [SerializeField] private bool _disableMA = false;
         [SerializeField] private bool _allMeshesHeadWeighted = false;
+        [SerializeField] private bool _isBoneProxyMisplaced = false;
 
         /// <summary>
         /// GameObject raiz de la pieza
@@ -262,6 +263,17 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         {
             get => _allMeshesHeadWeighted;
             set => _allMeshesHeadWeighted = value;
+        }
+
+        /// <summary>
+        /// Indica si el MA BoneProxy esta mal ubicado (en la raiz de la pieza en vez de un hijo).
+        /// Cuando BoneProxy esta en la raiz, MA reparenta todo el GameObject bajo el hueso destino,
+        /// lo cual puede causar problemas. Lo correcto es que este en el Armature hijo.
+        /// </summary>
+        public bool IsBoneProxyMisplaced
+        {
+            get => _isBoneProxyMisplaced;
+            set => _isBoneProxyMisplaced = value;
         }
 
         /// <summary>

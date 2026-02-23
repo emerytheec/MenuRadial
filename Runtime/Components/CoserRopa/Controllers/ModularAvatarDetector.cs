@@ -683,6 +683,137 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         }
 
         /// <summary>
+        /// Verifica si un MA BoneProxy esta directamente en el GameObject raiz de la pieza
+        /// (no en un hijo). Esto indica mala ubicacion: BoneProxy deberia estar en el Armature hijo.
+        /// Cuando BoneProxy esta en la raiz, MA reparenta todo el GameObject (armature + meshes)
+        /// bajo el hueso destino, lo cual no es el comportamiento deseado.
+        /// </summary>
+        /// <param name="pieceRoot">GameObject raiz de la pieza (hijo directo del avatar)</param>
+        /// <returns>True si BoneProxy esta directamente en el pieceRoot</returns>
+        public bool IsBoneProxyOnPieceRoot(GameObject pieceRoot)
+        {
+            if (pieceRoot == null)
+                return false;
+
+            EnsureTypesResolved();
+
+            if (!_maTypes.TryGetValue("ModularAvatarBoneProxy", out var bpType))
+                return false;
+
+            // Verificar si BoneProxy esta DIRECTAMENTE en el pieceRoot (no en hijos)
+            var comp = pieceRoot.GetComponent(bpType);
+            if (comp == null)
+                return false;
+
+            // Solo es "mal ubicado" si la pieza tiene hijos (armature, meshes, etc.)
+            // Si no tiene hijos, no hay a donde moverlo
+            return pieceRoot.transform.childCount > 0;
+        }
+
+        /// <summary>
+        /// Reubica un MA BoneProxy del GameObject raiz de la pieza a un hijo destino.
+        /// Copia boneReference, subPath y attachmentMode del original al nuevo.
+        /// </summary>
+        /// <param name="pieceRoot">GameObject raiz que tiene BoneProxy mal ubicado</param>
+        /// <param name="destination">GameObject hijo donde se movera BoneProxy</param>
+        /// <returns>True si la reubicacion fue exitosa</returns>
+        public bool RelocateBoneProxy(GameObject pieceRoot, GameObject destination)
+        {
+            if (pieceRoot == null || destination == null)
+                return false;
+
+            EnsureTypesResolved();
+
+            if (!_maTypes.TryGetValue("ModularAvatarBoneProxy", out var bpType))
+                return false;
+
+            var original = pieceRoot.GetComponent(bpType);
+            if (original == null)
+                return false;
+
+            // Verificar que el destino no tenga ya un BoneProxy (DisallowMultipleComponent)
+            if (destination.GetComponent(bpType) != null)
+            {
+                Debug.LogWarning($"[ModularAvatarDetector] El destino '{destination.name}' ya tiene un BoneProxy");
+                return false;
+            }
+
+            var flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+
+            // Leer propiedades del original
+            var boneRefField = bpType.GetField("boneReference", flags);
+            var subPathField = bpType.GetField("subPath", flags);
+            var attachModeField = bpType.GetField("attachmentMode", flags);
+
+            object boneRefValue = boneRefField?.GetValue(original);
+            object subPathValue = subPathField?.GetValue(original);
+            object attachModeValue = attachModeField?.GetValue(original);
+
+            // Crear nuevo BoneProxy en destino
+            #if UNITY_EDITOR
+            var newComp = UnityEditor.Undo.AddComponent(destination, bpType);
+            #else
+            var newComp = destination.AddComponent(bpType);
+            #endif
+
+            if (newComp == null)
+            {
+                Debug.LogError($"[ModularAvatarDetector] No se pudo crear BoneProxy en '{destination.name}'");
+                return false;
+            }
+
+            // Copiar propiedades al nuevo
+            if (boneRefField != null && boneRefValue != null)
+                boneRefField.SetValue(newComp, boneRefValue);
+            if (subPathField != null && subPathValue != null)
+                subPathField.SetValue(newComp, subPathValue);
+            if (attachModeField != null && attachModeValue != null)
+                attachModeField.SetValue(newComp, attachModeValue);
+
+            Debug.Log($"[ModularAvatarDetector] BoneProxy reubicado: '{pieceRoot.name}' -> '{destination.name}' " +
+                      $"(boneRef={boneRefValue}, subPath={subPathValue}, mode={attachModeValue})");
+
+            // Destruir el original
+            #if UNITY_EDITOR
+            UnityEditor.Undo.DestroyObjectImmediate(original);
+            #else
+            UnityEngine.Object.DestroyImmediate(original);
+            #endif
+
+            return true;
+        }
+
+        /// <summary>
+        /// Obtiene los hijos directos de un GameObject que son candidatos validos
+        /// para recibir un BoneProxy reubicado (no tienen BoneProxy ya).
+        /// </summary>
+        /// <param name="pieceRoot">GameObject raiz de la pieza</param>
+        /// <returns>Lista de GameObjects hijos candidatos con sus nombres</returns>
+        public List<GameObject> GetBoneProxyRelocationCandidates(GameObject pieceRoot)
+        {
+            var candidates = new List<GameObject>();
+
+            if (pieceRoot == null)
+                return candidates;
+
+            EnsureTypesResolved();
+            _maTypes.TryGetValue("ModularAvatarBoneProxy", out var bpType);
+
+            for (int i = 0; i < pieceRoot.transform.childCount; i++)
+            {
+                var child = pieceRoot.transform.GetChild(i).gameObject;
+
+                // Saltar si ya tiene BoneProxy
+                if (bpType != null && child.GetComponent(bpType) != null)
+                    continue;
+
+                candidates.Add(child);
+            }
+
+            return candidates;
+        }
+
+        /// <summary>
         /// Verifica rápidamente si un GameObject tiene ModularAvatarMergeArmature.
         /// Este es el componente más importante ya que hace la misma función que MRCoserRopa.
         /// </summary>

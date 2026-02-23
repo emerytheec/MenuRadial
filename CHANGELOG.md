@@ -5,6 +5,14 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.56] - 2026-02-23
+
+### Agregado
+- **Deteccion de BoneProxy mal ubicado**: MRCoserRopa detecta automaticamente cuando MA BoneProxy esta en la raiz de una pieza en vez de en el Armature hijo. Muestra "BP!" en amarillo en la lista de piezas y un warning explicativo en los detalles
+- **Boton Fix para reubicar BoneProxy**: Nueva columna "Fix" en la lista de piezas que permite mover BoneProxy al Armature hijo con un clic. La operacion copia boneReference, subPath y attachmentMode, y es reversible con Ctrl+Z
+- **3 metodos en ModularAvatarDetector**: IsBoneProxyOnPieceRoot() detecta mala ubicacion, RelocateBoneProxy() mueve el componente conservando propiedades, GetBoneProxyRelocationCandidates() lista hijos validos
+- **Localizacion en 6 idiomas**: Textos de warning y boton de reubicacion traducidos a es, en, zh, ja, ko, ru
+
 ## [0.9.55] - 2026-02-22
 
 ### Corregido

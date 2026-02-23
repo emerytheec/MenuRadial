@@ -277,10 +277,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             rect.y += 2f;
             rect.height = ITEM_HEIGHT;
 
-            // Layout: [Check 18px][Tipo 65px][GameObject flex][MA 40px][→Target 75px][Zona 75px][X 20px]
+            // Layout: [Check 18px][Tipo 65px][GameObject flex][MA 40px][→Target 75px][Fix 30px][Zona 75px][X 20px]
             const float TYPE_WIDTH = 65f;
             const float MA_WIDTH = 40f;
             const float TARGET_WIDTH = 75f;
+            const float FIX_WIDTH = 30f;
             const float ZONE_WIDTH = 75f;
             const float OBJECT_FIELD_MIN = 80f;
 
@@ -312,7 +313,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             x += TYPE_WIDTH + 2f;
 
             // --- ObjectField (flex width) ---
-            float objectFieldWidth = rect.width - TOGGLE_WIDTH - TYPE_WIDTH - MA_WIDTH - TARGET_WIDTH - ZONE_WIDTH - DELETE_BUTTON_WIDTH - 22f;
+            float objectFieldWidth = rect.width - TOGGLE_WIDTH - TYPE_WIDTH - MA_WIDTH - TARGET_WIDTH - FIX_WIDTH - ZONE_WIDTH - DELETE_BUTTON_WIDTH - 24f;
             objectFieldWidth = Mathf.Max(objectFieldWidth, OBJECT_FIELD_MIN);
             var objectFieldRect = new Rect(x, rect.y, objectFieldWidth, rect.height);
 
@@ -339,8 +340,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             if (piece.HasModularAvatar)
             {
                 string maLabel = piece.ModularAvatarComponentType.Contains("BoneProxy") ? "BP" : "MA";
-                GUI.contentColor = piece.DisableMA ? DisabledColor : ModularAvatarColor;
-                EditorGUI.LabelField(maRect, maLabel, EditorStyles.miniLabel);
+                // BoneProxy mal ubicado: mostrar en color de advertencia
+                if (piece.IsBoneProxyMisplaced)
+                    GUI.contentColor = WarningColor;
+                else
+                    GUI.contentColor = piece.DisableMA ? DisabledColor : ModularAvatarColor;
+                EditorGUI.LabelField(maRect, piece.IsBoneProxyMisplaced ? "BP!" : maLabel, EditorStyles.miniLabel);
             }
             else
             {
@@ -364,6 +369,30 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
             GUI.contentColor = originalColor;
             x += TARGET_WIDTH + 2f;
+
+            // --- Fix BoneProxy button ---
+            var fixRect = new Rect(x, rect.y, FIX_WIDTH, rect.height);
+            if (piece.IsBoneProxyMisplaced)
+            {
+                GUI.backgroundColor = WarningColor;
+                if (GUI.Button(fixRect, "Fix", EditorStyles.miniButton))
+                {
+                    // Buscar armature de la pieza como destino
+                    var armatureTarget = FindArmatureForRelocation(piece);
+                    if (armatureTarget != null)
+                    {
+                        Undo.RecordObject(_target, "Reubicar BoneProxy");
+                        if (ModularAvatarDetector.Instance.RelocateBoneProxy(piece.GameObject, armatureTarget))
+                        {
+                            piece.IsBoneProxyMisplaced = false;
+                            _target.RefreshDetection();
+                            EditorUtility.SetDirty(_target);
+                        }
+                    }
+                }
+                GUI.backgroundColor = originalBgColor;
+            }
+            x += FIX_WIDTH + 2f;
 
             // --- Zone dropdown ---
             var zoneRect = new Rect(x, rect.y, ZONE_WIDTH, rect.height);
@@ -526,6 +555,14 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                 EditorGUILayout.LabelField($"MA: {maTypeLabel}{maTargetStr}", EditorStyles.boldLabel);
                 GUI.contentColor = Color.white;
                 EditorGUILayout.EndHorizontal();
+
+                // BoneProxy mal ubicado: solo warning informativo (el boton Fix esta en la lista)
+                if (selected.IsBoneProxyMisplaced)
+                {
+                    EditorGUILayout.HelpBox(
+                        MRLocalization.Get(L.CoserRopaExtra.BONE_PROXY_MISPLACED),
+                        MessageType.Warning);
+                }
 
                 // Toggle DisableMA
                 EditorGUI.BeginChangeCheck();
@@ -984,6 +1021,44 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             }
 
             menu.ShowAsContext();
+        }
+
+        /// <summary>
+        /// Busca el Armature hijo de una pieza para reubicar BoneProxy.
+        /// Prioriza ArmatureReference.ArmatureRoot, fallback por nombre "Armature".
+        /// </summary>
+        private GameObject FindArmatureForRelocation(PieceEntry piece)
+        {
+            if (piece?.GameObject == null)
+                return null;
+
+            // Prioridad 1: ArmatureReference ya detectado
+            if (piece.ArmatureReference?.ArmatureRoot != null)
+            {
+                var armRoot = piece.ArmatureReference.ArmatureRoot;
+                // Verificar que es hijo directo de la pieza
+                if (armRoot.parent == piece.GameObject.transform)
+                    return armRoot.gameObject;
+            }
+
+            // Prioridad 2: buscar hijo con nombre "Armature" (case-insensitive)
+            for (int i = 0; i < piece.GameObject.transform.childCount; i++)
+            {
+                var child = piece.GameObject.transform.GetChild(i);
+                if (child.name.ToLowerInvariant().Contains("armature"))
+                    return child.gameObject;
+            }
+
+            // Prioridad 3: primer hijo que no sea un SkinnedMeshRenderer directo
+            for (int i = 0; i < piece.GameObject.transform.childCount; i++)
+            {
+                var child = piece.GameObject.transform.GetChild(i);
+                if (child.GetComponent<SkinnedMeshRenderer>() == null &&
+                    child.GetComponent<MeshRenderer>() == null)
+                    return child.gameObject;
+            }
+
+            return null;
         }
 
         #endregion

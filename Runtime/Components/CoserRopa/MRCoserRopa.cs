@@ -436,6 +436,15 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                     entry.ModularAvatarComponentType = maResult.PrimaryComponent;
                     entry.MATargetInfo = ModularAvatarDetector.Instance.GetMATargetInfo(candidate.Root);
                     Debug.Log($"[MRCoserRopa] Pieza '{candidate.Root.name}' tiene Modular Avatar ({maResult.PrimaryComponent}). MA tendrá prioridad.");
+
+                    // Detectar si BoneProxy esta mal ubicado (en la raiz en vez de un hijo)
+                    if (maResult.PrimaryComponent == "ModularAvatarBoneProxy" ||
+                        maResult.DetectedComponents.Contains("ModularAvatarBoneProxy"))
+                    {
+                        entry.IsBoneProxyMisplaced = ModularAvatarDetector.Instance.IsBoneProxyOnPieceRoot(candidate.Root);
+                        if (entry.IsBoneProxyMisplaced)
+                            Debug.LogWarning($"[MRCoserRopa] BoneProxy mal ubicado en '{candidate.Root.name}': esta en la raiz, deberia estar en un hijo (Armature)");
+                    }
                 }
 
                 // Detectar si tiene MA Shape Changer (controla blendshapes)
@@ -546,6 +555,15 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 entry.HasModularAvatar = true;
                 entry.ModularAvatarComponentType = maResult.PrimaryComponent;
                 entry.MATargetInfo = ModularAvatarDetector.Instance.GetMATargetInfo(child.gameObject);
+
+                // Detectar si BoneProxy esta mal ubicado (en la raiz en vez de un hijo)
+                if (maResult.PrimaryComponent == "ModularAvatarBoneProxy" ||
+                    maResult.DetectedComponents.Contains("ModularAvatarBoneProxy"))
+                {
+                    entry.IsBoneProxyMisplaced = ModularAvatarDetector.Instance.IsBoneProxyOnPieceRoot(child.gameObject);
+                    if (entry.IsBoneProxyMisplaced)
+                        Debug.LogWarning($"[MRCoserRopa] BoneProxy mal ubicado en '{child.name}': esta en la raiz, deberia estar en un hijo (Armature)");
+                }
 
                 if (maResult.HasShapeChanger || maResult.HasBlendshapeControl)
                 {

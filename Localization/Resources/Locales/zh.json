@@ -314,6 +314,10 @@
         "disableMAWigWarning": "警告：在假发上禁用 MA 可能导致其消失。BoneProxy 是将假发连接到虚拟形象的机制。",
         "disableMAMRWillProcess": "此部件的 MA 已禁用。MR 将在构建时缝合骨骼。",
 
+        "boneProxyMisplaced": "BoneProxy 位于部件根节点。应放在子 Armature 上以便 MA 正确重新设置父级。如不修复，MA 将把整个 GameObject（骨架 + 网格）移到目标骨骼下。",
+        "boneProxyRelocate": "重新定位 BoneProxy",
+        "boneProxyRelocateTo": "移动到：{0}",
+
         "manualZoneLabel": "缝合区域",
         "manualZoneAuto": "（自动）",
         "manualZoneActive": "（手动）",

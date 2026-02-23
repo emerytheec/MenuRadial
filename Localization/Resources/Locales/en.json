@@ -314,6 +314,10 @@
         "disableMAWigWarning": "WARNING: Disabling MA on a wig may cause it to disappear. BoneProxy is the mechanism that attaches wigs to the avatar.",
         "disableMAMRWillProcess": "MA is disabled for this piece. MR will stitch bones during build.",
 
+        "boneProxyMisplaced": "BoneProxy is on the piece root. It should be on the child Armature so MA reparents correctly. If not fixed, MA will move the entire GameObject (armature + meshes) under the target bone.",
+        "boneProxyRelocate": "Relocate BoneProxy",
+        "boneProxyRelocateTo": "Move to: {0}",
+
         "manualZoneLabel": "Stitch zone",
         "manualZoneAuto": "(Auto)",
         "manualZoneActive": "(manual)",

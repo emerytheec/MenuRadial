@@ -1116,6 +1116,11 @@ namespace Bender_Dios.MenuRadial.Localization
             public string disableMAWigWarning;
             public string disableMAMRWillProcess;
 
+            // BoneProxy misplacement
+            public string boneProxyMisplaced;
+            public string boneProxyRelocate;
+            public string boneProxyRelocateTo;
+
             // Manual zone
             public string manualZoneLabel;
             public string manualZoneAuto;

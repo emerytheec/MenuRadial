@@ -805,6 +805,11 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string DISABLE_MA_WIG_WARNING = "coserRopa.disableMAWigWarning";
             public const string DISABLE_MA_MR_WILL_PROCESS = "coserRopa.disableMAMRWillProcess";
 
+            // BoneProxy misplacement
+            public const string BONE_PROXY_MISPLACED = "coserRopa.boneProxyMisplaced";
+            public const string BONE_PROXY_RELOCATE = "coserRopa.boneProxyRelocate";
+            public const string BONE_PROXY_RELOCATE_TO = "coserRopa.boneProxyRelocateTo";
+
             // Manual zone
             public const string MANUAL_ZONE_LABEL = "coserRopa.manualZoneLabel";
             public const string MANUAL_ZONE_AUTO = "coserRopa.manualZoneAuto";
