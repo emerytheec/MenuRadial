@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.57] - 2026-02-24
+
+### Agregado
+- **Auto-deteccion de avatar**: MRMenuRadial y todos los componentes hijos (MRAjustarBounds, MRPesoTexturas, MRAnalisisColision, MROrganizaPB) detectan automaticamente el avatar desde la jerarquia padre, sin necesidad de asignacion manual
+- **Validacion de BoneProxy en MRAnalisisColision**: Detecta BoneProxy apuntando a Head con destino invalido y lo marca como problematico con detalle del error
+
+### Corregido
+- **Duplicacion de Menu Control eliminada**: Menu Control ahora se crea desde una unica ruta (GetOrCreateMenuControl en AutoMenuGenerator). RecreateChildComponents ya no crea Menu Control directamente, evitando duplicados
+- **Generacion automatica de estructura**: Al crear MRMenuRadial (via Creator menu o Add Component), el editor ejecuta PropagateAvatarToChildren automaticamente para generar la estructura dentro de Menu Control. Antes solo funcionaba al cambiar avatar manualmente
+- **OnValidate no crea GameObjects**: ValidateInEditor solo auto-detecta avatar con asignacion directa al campo, sin disparar cadenas de creacion que causaban duplicados en domain reloads
+- **UI MRCoserRopa mejorada**: Seccion NDMF colapsada por defecto, boton Detectar mas grande y prominente
+
 ## [0.9.56] - 2026-02-23
 
 ### Agregado

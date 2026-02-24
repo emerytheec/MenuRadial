@@ -299,6 +299,8 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         {
             base.InitializeComponent();
             _detectedPieces ??= new List<PieceEntry>();
+            if (_avatarRoot == null)
+                _avatarRoot = FindAvatarInParents();
         }
 
         protected override void CleanupComponent()
@@ -459,6 +461,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
                 // Clasificar zona de cosido
                 entry.StitchZone = PieceEntry.DetermineStitchZone(entry.BoneMappings);
 
+                // Fallback: si los bone mappings no dieron zona concluyente,
+                // usar la info de MA como hint (ej: BoneProxy→Head → zona Head)
+                if ((entry.StitchZone == StitchZone.None || entry.StitchZone == StitchZone.FullBody)
+                    && entry.HasModularAvatar && !string.IsNullOrEmpty(entry.MATargetInfo))
+                {
+                    var maZone = PieceEntry.InferZoneFromMATarget(entry.MATargetInfo);
+                    if (maZone.HasValue)
+                    {
+                        Debug.Log($"[MRCoserRopa] '{entry.Name}': zona {entry.StitchZone} → {maZone.Value} (inferida de MA: {entry.MATargetInfo})");
+                        entry.StitchZone = maZone.Value;
+                    }
+                }
+
                 // Agregar solo si tiene mapeos validos O tiene Modular Avatar
                 // El primer pase ya filtro SMRs cuyos huesos apuntan al avatar (linea 388),
                 // asi que si llegamos aqui, la pieza tiene huesos propios.
@@ -575,6 +590,19 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
 
                 // Clasificar zona de cosido
                 entry.StitchZone = PieceEntry.DetermineStitchZone(entry.BoneMappings);
+
+                // Fallback: si los bone mappings no dieron zona concluyente,
+                // usar la info de MA como hint (ej: BoneProxy→Head → zona Head)
+                if ((entry.StitchZone == StitchZone.None || entry.StitchZone == StitchZone.FullBody)
+                    && !string.IsNullOrEmpty(entry.MATargetInfo))
+                {
+                    var maZone = PieceEntry.InferZoneFromMATarget(entry.MATargetInfo);
+                    if (maZone.HasValue)
+                    {
+                        Debug.Log($"[MRCoserRopa] '{entry.Name}' (2do pase): zona {entry.StitchZone} → {maZone.Value} (inferida de MA: {entry.MATargetInfo})");
+                        entry.StitchZone = maZone.Value;
+                    }
+                }
 
                 _detectedPieces.Add(entry);
                 Debug.Log($"[MRCoserRopa] Pieza detectada (2do pase): '{child.name}' (MA: {entry.ModularAvatarComponentType})");
@@ -1207,6 +1235,7 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa
         protected override void ValidateInEditor()
         {
             base.ValidateInEditor();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
 
             // Auto-refrescar si el avatar cambio
             if (_avatarRoot != null && (_avatarReference == null ||

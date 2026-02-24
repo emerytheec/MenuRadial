@@ -454,6 +454,70 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Controllers
         }
 
         /// <summary>
+        /// Verifica si un BoneProxy de un componente tiene un target válido
+        /// que existe en el avatar. Un BoneProxy sin target válido causa error
+        /// al entrar en Play Mode o subir el avatar.
+        /// </summary>
+        /// <param name="boneProxyComponent">El componente BoneProxy a verificar</param>
+        /// <param name="avatarRoot">Raíz del avatar donde buscar el hueso destino</param>
+        /// <returns>true si el target existe en el avatar, false si no</returns>
+        public bool HasBoneProxyValidTarget(Component boneProxyComponent, GameObject avatarRoot)
+        {
+            if (boneProxyComponent == null || avatarRoot == null)
+                return false;
+
+            // Leer target Transform directamente
+            var targetProp = boneProxyComponent.GetType().GetProperty("target",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (targetProp != null)
+            {
+                var targetObj = targetProp.GetValue(boneProxyComponent);
+                var target = targetObj != null ? targetObj as Transform : null;
+                if (target != null)
+                {
+                    // Verificar que el transform pertenece al avatar
+                    return target.IsChildOf(avatarRoot.transform);
+                }
+            }
+
+            // Fallback: campo target
+            var targetField = boneProxyComponent.GetType().GetField("target",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (targetField != null)
+            {
+                var targetObj = targetField.GetValue(boneProxyComponent);
+                var target = targetObj != null ? targetObj as Transform : null;
+                if (target != null)
+                {
+                    return target.IsChildOf(avatarRoot.transform);
+                }
+            }
+
+            // Intentar boneReference (HumanBodyBones enum)
+            var boneRefField = boneProxyComponent.GetType().GetField("boneReference",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (boneRefField != null)
+            {
+                var value = boneRefField.GetValue(boneProxyComponent);
+                if (value is HumanBodyBones bone && bone != HumanBodyBones.LastBone)
+                {
+                    // Verificar que el avatar tiene un Animator con ese hueso mapeado
+                    var animator = avatarRoot.GetComponent<Animator>();
+                    if (animator != null && animator.isHuman)
+                    {
+                        var boneTransform = animator.GetBoneTransform(bone);
+                        return boneTransform != null;
+                    }
+                    // Sin Animator humanoid, no se puede validar por HumanBodyBones
+                    return false;
+                }
+            }
+
+            // No se pudo leer ningún target → inválido
+            return false;
+        }
+
+        /// <summary>
         /// Destruye componentes de armature de MA (MergeArmature y BoneProxy) en un GameObject.
         /// Usado cuando el usuario elige que MR cosa en vez de MA.
         /// </summary>

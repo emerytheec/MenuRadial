@@ -210,6 +210,7 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string NO_CLOTHINGS_DETECTED = "coserRopa.noClothingsDetected";
             public const string SELECT_ALL = "coserRopa.selectAll";
             public const string DESELECT_ALL = "coserRopa.deselectAll";
+            public const string SCAN_BUTTON = "coserRopa.scanButton";
             public const string SHOW_MAPPINGS = "coserRopa.showMappings";
             public const string SHOW_MAPPINGS_TOOLTIP = "coserRopa.showMappingsTooltip";
             public const string MERGE_ALL_BUTTON = "coserRopa.mergeAllButton";

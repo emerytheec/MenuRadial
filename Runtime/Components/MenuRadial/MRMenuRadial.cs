@@ -95,6 +95,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         private MRAjustarBounds _ajustarBounds;
         private MRPesoTexturas _pesoTexturas;
         private Component _menuControl; // Referencia genérica para evitar dependencia de assembly
+        private bool _isPropagating; // Guardia de re-entrancia para PropagateAvatarToChildren
 
         #endregion
 
@@ -389,33 +390,45 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// </summary>
         public void PropagateAvatarToChildren()
         {
-            InvalidateCache();
+            // Guardia de re-entrancia: evita que llamadas recursivas/anidadas
+            // creen duplicados (ej: OnValidate durante PropagateAvatarToChildren)
+            if (_isPropagating) return;
+            _isPropagating = true;
 
-            // Auto-asignar OutputPrefix si está vacío y hay avatar
-            if (string.IsNullOrEmpty(_outputPrefix) && _avatarRoot != null)
+            try
             {
-                _outputPrefix = _avatarRoot.name;
+                InvalidateCache();
+
+                // Auto-asignar OutputPrefix si está vacío y hay avatar
+                if (string.IsNullOrEmpty(_outputPrefix) && _avatarRoot != null)
+                {
+                    _outputPrefix = _avatarRoot.name;
+                }
+
+                // NOTA: AnalisisColision se configura en AutoDetectAll() DESPUÉS de detectar ropas
+                // para que tenga la lista de raíces de ropa correcta
+
+                if (CoserRopa != null)
+                    CoserRopa.AvatarRoot = _avatarRoot;
+
+                if (OrganizaPB != null)
+                    OrganizaPB.AvatarRoot = _avatarRoot;
+
+                if (AjustarBounds != null)
+                    AjustarBounds.AvatarRoot = _avatarRoot;
+
+                if (PesoTexturas != null)
+                    PesoTexturas.AvatarRoot = _avatarRoot;
+
+                // Auto-detectar si está habilitado y hay avatar
+                if (_autoDetectOnAvatarAssign && _avatarRoot != null)
+                {
+                    AutoDetectAll();
+                }
             }
-
-            // NOTA: AnalisisColision se configura en AutoDetectAll() DESPUÉS de detectar ropas
-            // para que tenga la lista de raíces de ropa correcta
-
-            if (CoserRopa != null)
-                CoserRopa.AvatarRoot = _avatarRoot;
-
-            if (OrganizaPB != null)
-                OrganizaPB.AvatarRoot = _avatarRoot;
-
-            if (AjustarBounds != null)
-                AjustarBounds.AvatarRoot = _avatarRoot;
-
-            if (PesoTexturas != null)
-                PesoTexturas.AvatarRoot = _avatarRoot;
-
-            // Auto-detectar si está habilitado y hay avatar
-            if (_autoDetectOnAvatarAssign && _avatarRoot != null)
+            finally
             {
-                AutoDetectAll();
+                _isPropagating = false;
             }
         }
 
@@ -739,18 +752,58 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
+            TryAutoDetectAvatar();
             InvalidateCache();
         }
 
 #if UNITY_EDITOR
+        /// <summary>
+        /// Reset se llama al agregar el componente por primera vez.
+        /// </summary>
+        private void Reset()
+        {
+            // Solo detectar avatar, NO disparar generación.
+            // En Reset los hijos (CoserRopa, etc.) no existen aún.
+            // La generación se dispara desde RecreateChildComponents o al asignar avatar en inspector.
+            var found = FindAvatarInParents();
+            if (found != null)
+            {
+                _avatarRoot = found;
+                if (string.IsNullOrEmpty(_outputPrefix))
+                    _outputPrefix = found.name;
+            }
+        }
+
         protected override void ValidateInEditor()
         {
             base.ValidateInEditor();
 
-            // Propagar avatar cuando cambie en el inspector
-            PropagateAvatarToChildren();
+            TryAutoDetectAvatar();
+
+            // NO llamar PropagateAvatarToChildren() desde OnValidate.
+            // OnValidate NO debe crear GameObjects — causa duplicación de Menu Control.
+            // La creación y generación se manejan desde el Editor (MRMenuRadialEditor).
+            // Los hijos auto-detectan el avatar independientemente via FindAvatarInParents().
         }
 #endif
+
+        /// <summary>
+        /// Busca el avatar (VRCAvatarDescriptor) en la jerarquía padre.
+        /// Solo asigna si _avatarRoot es null (no sobreescribe asignación manual).
+        /// </summary>
+        private void TryAutoDetectAvatar()
+        {
+            if (_avatarRoot != null) return;
+
+            var found = FindAvatarInParents();
+            if (found != null)
+            {
+                _avatarRoot = found;
+                // Auto-asignar OutputPrefix si está vacío
+                if (string.IsNullOrEmpty(_outputPrefix))
+                    _outputPrefix = found.name;
+            }
+        }
 
         #endregion
     }

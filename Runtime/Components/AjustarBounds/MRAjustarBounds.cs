@@ -292,6 +292,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
             _detectedMeshes ??= new List<MeshBoundsInfo>();
             _detectedParticles ??= new List<ParticleBoundsInfo>();
         }
@@ -817,6 +818,7 @@ namespace Bender_Dios.MenuRadial.Components.AjustarBounds
         protected override void ValidateInEditor()
         {
             base.ValidateInEditor();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
 
             // Auto-refrescar si el avatar cambio
             if (_avatarRoot != null && _detectedMeshes.Count == 0)

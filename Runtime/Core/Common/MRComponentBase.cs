@@ -69,5 +69,27 @@ namespace Bender_Dios.MenuRadial.Core.Common
             // Implementación base vacía, sobreescribir en clases derivadas
         }
 #endif
+
+        /// <summary>
+        /// Busca un GameObject con VRCAvatarDescriptor en la jerarquía padre.
+        /// Útil para auto-detectar el avatar cuando el componente es hijo de él.
+        /// </summary>
+        /// <returns>El GameObject del avatar, o null si no se encontró</returns>
+        protected GameObject FindAvatarInParents()
+        {
+            var current = transform;
+            while (current != null)
+            {
+                foreach (var comp in current.GetComponents<Component>())
+                {
+                    if (comp == null) continue;
+                    var typeName = comp.GetType().Name;
+                    if (typeName == "VRCAvatarDescriptor" || typeName == "VRC_AvatarDescriptor")
+                        return current.gameObject;
+                }
+                current = current.parent;
+            }
+            return null;
+        }
     }
 }

@@ -256,6 +256,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
             _scanResult ??= new ColisionScanResult();
             _pieceRoots ??= new List<GameObject>();
             _piecesWithMenuDisabled ??= new List<string>();
@@ -1001,6 +1002,39 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
                     entry.UserWantsDisabled = false;
                 }
 
+                // BoneProxy: siempre mostrar destino + validar que existe en el avatar
+                if (maEntry.TypeName == "ModularAvatarBoneProxy")
+                {
+                    string bpTarget = ModularAvatarDetector.Instance.GetBoneProxyTarget(
+                        maEntry.Component.gameObject);
+
+                    if (_avatarRoot != null)
+                    {
+                        bool hasValidTarget = ModularAvatarDetector.Instance.HasBoneProxyValidTarget(
+                            maEntry.Component, _avatarRoot);
+
+                        if (hasValidTarget)
+                        {
+                            // Target válido: mostrar destino como info
+                            entry.ProblemDetail = $"\u2192 {bpTarget}";
+                        }
+                        else
+                        {
+                            // Target inválido: re-clasificar como Problematic
+                            entry.Category = ColisionCategory.Problematic;
+                            entry.UserWantsDisabled = true;
+                            string targetInfo = string.IsNullOrEmpty(bpTarget) ? "None" : bpTarget;
+                            entry.ProblemDetail = $"\u2192 {targetInfo} (no existe)";
+                            Debug.LogWarning($"[MRAnalisisColision] BoneProxy en '{entry.GameObjectName}' " +
+                                $"apunta a '{targetInfo}' que no existe en el avatar. Marcado como problematico.");
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(bpTarget))
+                    {
+                        entry.ProblemDetail = $"\u2192 {bpTarget}";
+                    }
+                }
+
                 _scanResult.AddEntry(entry);
             }
         }
@@ -1121,6 +1155,7 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision
         protected override void ValidateInEditor()
         {
             base.ValidateInEditor();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
             // El escaneo se controla desde MRMenuRadial.AutoDetectAll()
             // No escanear automáticamente aquí para evitar escaneos sin las ropas detectadas
         }

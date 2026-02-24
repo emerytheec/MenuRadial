@@ -261,6 +261,7 @@
         "noClothingsDetected": "No se detectaron piezas con armature propio. Asegurate de que las piezas esten como hijos directos del avatar.",
         "selectAll": "Todas",
         "deselectAll": "Ninguna",
+        "scanButton": "Escanear",
         "showMappings": "Mostrar mapeos",
         "showMappingsTooltip": "Muestra los detalles de mapeos de huesos para cada ropa",
         "mergeAllButton": "FUSIONAR {0} ROPAS",

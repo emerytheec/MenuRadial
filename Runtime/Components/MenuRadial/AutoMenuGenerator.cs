@@ -656,16 +656,18 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
-        /// Obtiene el MRMenuControl existente o crea uno nuevo
+        /// Obtiene el MRMenuControl existente o crea uno nuevo.
+        /// Esta es la UNICA ruta de creación de Menu Control desde Runtime.
+        /// RecreateChildComponents (Editor) NO crea Menu Control — delega aquí.
         /// </summary>
         private Component GetOrCreateMenuControl()
         {
-            // Buscar existente
+            // Buscar existente por componente
             var existing = FindMenuControlInChildren();
             if (existing != null)
                 return existing;
 
-            // Buscar por nombre "Menu Control"
+            // Buscar por nombre "Menu Control" — si el GameObject existe, reutilizarlo
             var menuControlTransform = _menuRadial.transform.Find("Menu Control");
             if (menuControlTransform != null)
             {
@@ -673,12 +675,19 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 if (existing != null)
                     return existing;
 
-                // Añadir componente si no existe
+                // Verificar que el tipo esté disponible antes de intentar añadir
+                if (FindMenuControlType() == null)
+                    return null;
+
 #if UNITY_EDITOR
                 UnityEditor.Undo.RecordObject(menuControlTransform.gameObject, "Add MRMenuControl");
 #endif
                 return AddMenuControlComponent(menuControlTransform.gameObject);
             }
+
+            // Verificar que el tipo esté disponible ANTES de crear el GameObject
+            if (FindMenuControlType() == null)
+                return null;
 
             // Crear nuevo GameObject con MRMenuControl
 #if UNITY_EDITOR
@@ -693,6 +702,20 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             newGO.transform.localScale = Vector3.one;
 
             return AddMenuControlComponent(newGO);
+        }
+
+        /// <summary>
+        /// Busca el tipo MRMenuControl en los assemblies cargados.
+        /// </summary>
+        private System.Type FindMenuControlType()
+        {
+            foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var type = assembly.GetType("Bender_Dios.MenuRadial.Components.Menu.MRMenuControl");
+                if (type != null)
+                    return type;
+            }
+            return null;
         }
 
         /// <summary>
@@ -1159,14 +1182,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         {
             if (go == null) return null;
 
-            // Buscar el tipo MRMenuControl en todos los assemblies
-            System.Type menuControlType = null;
-            foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
-            {
-                menuControlType = assembly.GetType("Bender_Dios.MenuRadial.Components.Menu.MRMenuControl");
-                if (menuControlType != null)
-                    break;
-            }
+            var menuControlType = FindMenuControlType();
 
             if (menuControlType == null)
             {

@@ -24,6 +24,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
         private SerializedProperty _selectedIndexProp;
         private ReorderableList _pieceList;
         private bool _showNamingFoldout = false;
+        private bool _showNDMFFoldout = false;
 
         // Constantes de diseño
         private const float ITEM_HEIGHT = 22f;
@@ -132,8 +133,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
                 EditorGUILayout.Space(8);
 
-                // Info NDMF
-                DrawNDMFInfo();
+                // Info NDMF (colapsada por defecto)
+                _showNDMFFoldout = EditorGUILayout.Foldout(_showNDMFFoldout, "NDMF", true);
+                if (_showNDMFFoldout)
+                {
+                    DrawNDMFInfo();
+                }
             }
             else
             {
@@ -185,24 +190,24 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
 
         #region ReorderableList
 
+        private static readonly Color ScanButtonColor = new Color(0.4f, 0.7f, 1f);
+
         private void DrawPieceList()
         {
-            // Header con boton refrescar
-            using (new EditorGUILayout.HorizontalScope())
+            // Header
+            EditorGUILayout.LabelField(
+                MRLocalization.Get(L.CoserRopa.DETECTED_CLOTHINGS, _target.DetectedPieceCount),
+                EditorStyles.boldLabel);
+
+            // Boton escanear (estilo PesoTexturas: azul, ancho completo, 30px)
+            GUI.backgroundColor = ScanButtonColor;
+            if (GUILayout.Button(MRLocalization.Get(L.CoserRopa.SCAN_BUTTON), GUILayout.Height(30)))
             {
-                EditorGUILayout.LabelField(
-                    MRLocalization.Get(L.CoserRopa.DETECTED_CLOTHINGS, _target.DetectedPieceCount),
-                    EditorStyles.boldLabel);
-
-                GUILayout.FlexibleSpace();
-
-                if (GUILayout.Button(MRLocalization.Get(L.Common.REFRESH), EditorStyles.miniButton, GUILayout.Width(65)))
-                {
-                    Undo.RecordObject(_target, "Refrescar");
-                    _target.RefreshDetection();
-                    EditorUtility.SetDirty(_target);
-                }
+                Undo.RecordObject(_target, "Escanear");
+                _target.RefreshDetection();
+                EditorUtility.SetDirty(_target);
             }
+            GUI.backgroundColor = Color.white;
 
             // Sincronizar indice
             _pieceList.index = _target.SelectedPieceIndex;
@@ -210,25 +215,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
             // Dibujar lista
             _pieceList.DoLayoutList();
 
-            // Botones de seleccion rapida
-            if (_target.DetectedPieceCount > 0)
-            {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button(MRLocalization.Get(L.CoserRopa.SELECT_ALL), EditorStyles.miniButtonLeft))
-                    {
-                        Undo.RecordObject(_target, "Seleccionar todas");
-                        _target.EnableAllPieces();
-                        EditorUtility.SetDirty(_target);
-                    }
-                    if (GUILayout.Button(MRLocalization.Get(L.CoserRopa.DESELECT_ALL), EditorStyles.miniButtonRight))
-                    {
-                        Undo.RecordObject(_target, "Deseleccionar todas");
-                        _target.DisableAllPieces();
-                        EditorUtility.SetDirty(_target);
-                    }
-                }
-            }
         }
 
         private void DrawListHeader(Rect rect)

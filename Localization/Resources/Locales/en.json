@@ -255,6 +255,7 @@
         "noClothingsDetected": "No pieces with their own armature were detected. Make sure pieces are direct children of the avatar.",
         "selectAll": "All",
         "deselectAll": "None",
+        "scanButton": "Scan",
         "showMappings": "Show mappings",
         "showMappingsTooltip": "Shows bone mapping details for each clothing item",
         "mergeAllButton": "MERGE {0} CLOTHING",

@@ -255,6 +255,7 @@
         "noClothingsDetected": "자체 아마추어가 있는 의상이 감지되지 않았습니다. 의상이 아바타의 직접 자식인지 확인하세요.",
         "selectAll": "모두",
         "deselectAll": "없음",
+        "scanButton": "스캔",
         "showMappings": "매핑 표시",
         "showMappingsTooltip": "각 의상의 본 매핑 상세 정보를 표시합니다",
         "mergeAllButton": "{0}개 의상 병합",

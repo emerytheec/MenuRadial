@@ -826,6 +826,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 GUILayout.Label(entry.ShortTypeName);
             }
 
+            // Info adicional de BoneProxy (destino)
+            if (entry.HasProblemDetail)
+            {
+                bool isInvalid = entry.Category == ColisionCategory.Problematic;
+                GUI.contentColor = isInvalid ? CriticalRedColor : MABlueColor;
+                GUILayout.Label(entry.ProblemDetail, EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+            }
+
             // Empujar categoría a la derecha
             GUILayout.FlexibleSpace();
 

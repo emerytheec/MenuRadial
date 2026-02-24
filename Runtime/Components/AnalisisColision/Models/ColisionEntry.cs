@@ -53,6 +53,10 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
         [Tooltip("Nombre del GameObject donde está el componente (guardado para persistencia)")]
         private string _gameObjectName;
 
+        [SerializeField]
+        [Tooltip("Información adicional del problema (ej: target inválido de BoneProxy)")]
+        private string _problemDetail;
+
         #endregion
 
         #region Properties
@@ -175,6 +179,21 @@ namespace Bender_Dios.MenuRadial.Components.AnalisisColision.Models
             }
             set => _gameObjectName = value;
         }
+
+        /// <summary>
+        /// Información adicional del problema detectado (ej: "→ Head (no existe)").
+        /// Vacío si no hay detalle extra.
+        /// </summary>
+        public string ProblemDetail
+        {
+            get => _problemDetail ?? "";
+            set => _problemDetail = value;
+        }
+
+        /// <summary>
+        /// Si tiene información adicional sobre un problema.
+        /// </summary>
+        public bool HasProblemDetail => !string.IsNullOrEmpty(_problemDetail);
 
         /// <summary>
         /// Nombre corto del tipo de componente (sin prefijo "ModularAvatar").

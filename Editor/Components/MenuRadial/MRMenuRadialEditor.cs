@@ -49,6 +49,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         // Cache tipado para MRMenuControl
         private MRMenuControl _menuControlTyped;
 
+        // Flag one-shot por instancia del editor
+        private bool _hasAutoCreatedChildren;
+
         private void OnEnable()
         {
             _target = (MRMenuRadial)target;
@@ -104,6 +107,38 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         {
             InitializeStyles();
             serializedObject.Update();
+
+            // One-shot: al abrir el editor con avatar asignado, asegurar que la cadena
+            // PropagateAvatarToChildren se ejecute al menos una vez.
+            // Dos escenarios:
+            //   1) Sin hijos (Add Component) → RecreateChildComponents crea hijos + propaga
+            //   2) Con hijos (MRMenuRadialCreator) → solo propaga para generar estructura
+            if (!_hasAutoCreatedChildren && _target.AvatarRoot != null)
+            {
+                _hasAutoCreatedChildren = true;
+
+                bool allChildrenMissing = _target.AnalisisColision == null
+                                       && _target.CoserRopa == null
+                                       && _target.OrganizaPB == null
+                                       && _menuControlTyped == null
+                                       && _target.AjustarBounds == null
+                                       && _target.PesoTexturas == null;
+
+                if (allChildrenMissing)
+                {
+                    // Caso 1: crear hijos primero, luego propagar
+                    RecreateChildComponents();
+                }
+                else
+                {
+                    // Caso 2: hijos ya existen (ej: MRMenuRadialCreator),
+                    // pero Menu Control puede estar vacío — propagar y generar
+                    _target.PropagateAvatarToChildren();
+                }
+
+                RefreshMenuControlCache();
+                serializedObject.Update();
+            }
 
             DrawHeader();
             EditorGUILayout.Space(10);
@@ -729,6 +764,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         {
             Undo.RecordObject(_target.gameObject, "Recreate MR Child Components");
 
+            // Crear componentes hijos que faltan (EXCEPTO Menu Control)
+            // Menu Control se crea SOLO via la cadena:
+            //   PropagateAvatarToChildren → AutoDetectAll → GenerateMenuStructure → GetOrCreateMenuControl
+            // Esto garantiza UNA sola ruta de creación y evita duplicados.
+
             // Analisis Colision debe ser el primer hijo
             if (_target.AnalisisColision == null)
             {
@@ -755,14 +795,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 Undo.RegisterCreatedObjectUndo(go, "Create Organiza PB");
             }
 
-            if (_menuControlTyped == null)
-            {
-                var go = new GameObject("Menu Control");
-                go.transform.SetParent(_target.transform);
-                go.AddComponent<MRMenuControl>();
-                Undo.RegisterCreatedObjectUndo(go, "Create Menu Control");
-            }
-
             if (_target.AjustarBounds == null)
             {
                 var go = new GameObject("Ajustar Bounds");
@@ -780,10 +812,27 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
 
             _target.InvalidateCache();
-            RefreshMenuControlCache();
 
-            // Propagar avatar a nuevos hijos
-            _target.PropagateAvatarToChildren();
+            // Con avatar: PropagateAvatarToChildren ejecuta la cadena completa
+            // que crea Menu Control (si no existe) y genera su estructura.
+            // Sin avatar: crear Menu Control vacío directamente (para uso posterior).
+            if (_target.AvatarRoot != null)
+            {
+                _target.PropagateAvatarToChildren();
+            }
+            else
+            {
+                RefreshMenuControlCache();
+                if (_menuControlTyped == null)
+                {
+                    var go = new GameObject("Menu Control");
+                    go.transform.SetParent(_target.transform);
+                    go.AddComponent<MRMenuControl>();
+                    Undo.RegisterCreatedObjectUndo(go, "Create Menu Control");
+                }
+            }
+
+            RefreshMenuControlCache();
         }
     }
 }

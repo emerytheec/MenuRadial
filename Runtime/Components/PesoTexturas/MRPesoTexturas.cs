@@ -372,6 +372,7 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         protected override void InitializeComponent()
         {
             base.InitializeComponent();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
             _textureGroups ??= new List<TextureGroupEntry>();
         }
 
@@ -677,6 +678,7 @@ namespace Bender_Dios.MenuRadial.Components.PesoTexturas
         protected override void ValidateInEditor()
         {
             base.ValidateInEditor();
+            if (_avatarRoot == null) _avatarRoot = FindAvatarInParents();
         }
 #endif
 

@@ -255,6 +255,7 @@
         "noClothingsDetected": "独自のアーマチュアを持つ衣装が検出されませんでした。衣装がアバターの直接の子になっているか確認してください。",
         "selectAll": "すべて",
         "deselectAll": "なし",
+        "scanButton": "スキャン",
         "showMappings": "マッピングを表示",
         "showMappingsTooltip": "各衣装のボーンマッピング詳細を表示します",
         "mergeAllButton": "{0} 個の衣装を統合",

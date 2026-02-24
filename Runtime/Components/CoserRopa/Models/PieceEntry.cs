@@ -393,6 +393,74 @@ namespace Bender_Dios.MenuRadial.Components.CoserRopa.Models
         }
 
         /// <summary>
+        /// Infiere StitchZone a partir del target de Modular Avatar (BoneProxy o MergeArmature).
+        /// Usado como fallback cuando los bone mappings no dan zona concluyente (None o FullBody
+        /// por defecto) pero MA tiene información valiosa del destino.
+        /// </summary>
+        /// <param name="maTargetInfo">Nombre del destino MA (ej: "Head", "Hips", "Armature")</param>
+        /// <returns>StitchZone inferida, o null si no se puede determinar</returns>
+        public static StitchZone? InferZoneFromMATarget(string maTargetInfo)
+        {
+            if (string.IsNullOrEmpty(maTargetInfo))
+                return null;
+
+            string normalized = maTargetInfo.ToLowerInvariant()
+                .Replace("_", "").Replace(".", "").Replace("-", "").Replace(" ", "");
+
+            // Head / Neck
+            if (normalized == "head" || normalized.EndsWith("head"))
+                return StitchZone.Head;
+            if (normalized == "neck" || normalized.EndsWith("neck"))
+                return StitchZone.Head;
+
+            // Hips
+            if (normalized == "hips" || normalized.EndsWith("hips"))
+                return StitchZone.Hip;
+
+            // Chest
+            if (normalized == "chest" || normalized.EndsWith("chest") ||
+                normalized == "upperchest" || normalized.EndsWith("upperchest"))
+                return StitchZone.Chest;
+
+            // Spine / Torso
+            if (normalized == "spine" || normalized.EndsWith("spine"))
+                return StitchZone.Torso;
+
+            // Hands
+            if (normalized == "lefthand" || normalized.EndsWith("lefthand"))
+                return StitchZone.LeftHand;
+            if (normalized == "righthand" || normalized.EndsWith("righthand"))
+                return StitchZone.RightHand;
+
+            // Feet
+            if (normalized == "leftfoot" || normalized.EndsWith("leftfoot") ||
+                normalized == "lefttoes" || normalized.EndsWith("lefttoes"))
+                return StitchZone.LeftFoot;
+            if (normalized == "rightfoot" || normalized.EndsWith("rightfoot") ||
+                normalized == "righttoes" || normalized.EndsWith("righttoes"))
+                return StitchZone.RightFoot;
+
+            // Arms
+            if (normalized.Contains("leftarm") || normalized.Contains("leftshoulder") ||
+                normalized.Contains("leftlowerarm") || normalized.Contains("leftupperarm"))
+                return StitchZone.UpperLimb;
+            if (normalized.Contains("rightarm") || normalized.Contains("rightshoulder") ||
+                normalized.Contains("rightlowerarm") || normalized.Contains("rightupperarm"))
+                return StitchZone.UpperLimb;
+
+            // Legs
+            if (normalized.Contains("leftleg") || normalized.Contains("leftupperleg") ||
+                normalized.Contains("leftlowerleg"))
+                return StitchZone.LowerLimb;
+            if (normalized.Contains("rightleg") || normalized.Contains("rightupperleg") ||
+                normalized.Contains("rightlowerleg"))
+                return StitchZone.LowerLimb;
+
+            // "Armature" genérico no da info específica
+            return null;
+        }
+
+        /// <summary>
         /// Determina la zona de cosido basada en los huesos mapeados.
         /// </summary>
         public static StitchZone DetermineStitchZone(List<BoneMapping> boneMappings)

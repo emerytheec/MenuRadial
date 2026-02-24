@@ -511,6 +511,28 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
 
         #region Unity Lifecycle
 
+        private void Awake()
+        {
+            if (_avatarRoot == null)
+            {
+                var current = transform;
+                while (current != null)
+                {
+                    foreach (var comp in current.GetComponents<Component>())
+                    {
+                        if (comp == null) continue;
+                        var typeName = comp.GetType().Name;
+                        if (typeName == "VRCAvatarDescriptor" || typeName == "VRC_AvatarDescriptor")
+                        {
+                            _avatarRoot = current.gameObject;
+                            return;
+                        }
+                    }
+                    current = current.parent;
+                }
+            }
+        }
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

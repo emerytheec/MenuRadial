@@ -255,6 +255,7 @@
         "noClothingsDetected": "未检测到带有独立骨架的服装。请确保服装是模型的直接子对象。",
         "selectAll": "全选",
         "deselectAll": "全不选",
+        "scanButton": "扫描",
         "showMappings": "显示映射",
         "showMappingsTooltip": "显示每件服装的骨骼映射详情",
         "mergeAllButton": "合并 {0} 件服装",
