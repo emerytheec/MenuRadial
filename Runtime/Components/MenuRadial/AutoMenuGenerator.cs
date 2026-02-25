@@ -322,7 +322,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
 
             // Ordenar hijos del MenuControl: Outfits, Color Outfits, Pelucas, Color Pelucas, Iluminacion
-            ReorderMenuControlChildren(menuControl.transform);
+            ReorderMenuControlChildren(menuControl);
 
             // Resultado exitoso
             result.Success = true;
@@ -703,7 +703,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             }
 
             // Reordenar hijos del MenuControl
-            ReorderMenuControlChildren(menuControl.transform);
+            ReorderMenuControlChildren(menuControl);
 
             result.Success = true;
             int totalAdded = result.FramesAdded + result.WigFramesAdded + result.MaterialFramesAdded + result.WigMaterialFramesAdded;
@@ -912,12 +912,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         }
 
         /// <summary>
-        /// Reordena los hijos directos del MenuControl para mantener un orden lógico:
+        /// Reordena los hijos del MenuControl y sus AnimationSlots para mantener un orden lógico:
         /// Outfits, Color Outfits, Pelucas, Color Pelucas, Iluminacion, y el resto al final.
         /// </summary>
-        private void ReorderMenuControlChildren(Transform menuControlTransform)
+        private void ReorderMenuControlChildren(Component menuControl)
         {
-            // Orden deseado por nombre de GameObject
             var orderMap = new Dictionary<string, int>
             {
                 { "Outfits", 0 },
@@ -927,28 +926,74 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 { "Iluminacion", 4 }
             };
 
+            // --- Reordenar hijos del Transform ---
+            var menuControlTransform = menuControl.transform;
             int childCount = menuControlTransform.childCount;
-            if (childCount <= 1)
+            if (childCount > 1)
+            {
+                var children = new List<Transform>(childCount);
+                for (int i = 0; i < childCount; i++)
+                    children.Add(menuControlTransform.GetChild(i));
+
+                children.Sort((a, b) =>
+                {
+                    bool aKnown = orderMap.TryGetValue(a.name, out int aOrder);
+                    bool bKnown = orderMap.TryGetValue(b.name, out int bOrder);
+
+                    if (aKnown && bKnown) return aOrder.CompareTo(bOrder);
+                    if (aKnown) return -1;
+                    if (bKnown) return 1;
+                    return 0;
+                });
+
+                for (int i = 0; i < children.Count; i++)
+                    children[i].SetSiblingIndex(i);
+            }
+
+            // --- Reordenar AnimationSlots via reflexión ---
+            var type = menuControl.GetType();
+            var slotsProperty = type.GetProperty("AnimationSlots");
+            if (slotsProperty == null)
                 return;
 
-            // Recopilar hijos y ordenar: los conocidos primero (por orderMap), el resto al final
-            var children = new List<Transform>(childCount);
-            for (int i = 0; i < childCount; i++)
-                children.Add(menuControlTransform.GetChild(i));
+            var slots = slotsProperty.GetValue(menuControl) as System.Collections.IList;
+            if (slots == null || slots.Count <= 1)
+                return;
 
-            children.Sort((a, b) =>
+            var slotType = type.Assembly.GetType("Bender_Dios.MenuRadial.Components.Menu.MRAnimationSlot");
+            if (slotType == null)
+                return;
+
+            var slotNameField = slotType.GetField("slotName");
+            if (slotNameField == null)
+                return;
+
+            // Crear lista temporal para ordenar
+            var slotList = new List<object>(slots.Count);
+            for (int i = 0; i < slots.Count; i++)
+                slotList.Add(slots[i]);
+
+            slotList.Sort((a, b) =>
             {
-                bool aKnown = orderMap.TryGetValue(a.name, out int aOrder);
-                bool bKnown = orderMap.TryGetValue(b.name, out int bOrder);
+                string aName = slotNameField.GetValue(a) as string ?? "";
+                string bName = slotNameField.GetValue(b) as string ?? "";
+
+                bool aKnown = orderMap.TryGetValue(aName, out int aOrder);
+                bool bKnown = orderMap.TryGetValue(bName, out int bOrder);
 
                 if (aKnown && bKnown) return aOrder.CompareTo(bOrder);
                 if (aKnown) return -1;
                 if (bKnown) return 1;
-                return 0; // mantener orden relativo entre desconocidos
+                return 0;
             });
 
-            for (int i = 0; i < children.Count; i++)
-                children[i].SetSiblingIndex(i);
+            // Reemplazar contenido de la lista original
+            for (int i = 0; i < slotList.Count; i++)
+                slots[i] = slotList[i];
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(menuControl);
+#endif
         }
 
         /// <summary>

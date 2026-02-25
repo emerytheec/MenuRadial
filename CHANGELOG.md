@@ -5,7 +5,7 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
-## [0.9.60] - 2026-02-25
+## [0.9.61] - 2026-02-25
 
 ### Corregido
 - **Fix colision nombres animacion UnificarMateriales**: Los dos MRUnificarMateriales (Color Outfits y Color Pelucas) generaban ambos `UnifyMaterial_lin.anim`, sobreescribiendose. Ahora cada uno recibe su AnimationName al crearse (misma solucion que v0.8.48 para UnificarObjetos)
@@ -13,7 +13,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Agregado
 - **Red de seguridad anti-colision de AnimationNames**: Nuevo metodo `EnsureUniqueAnimationNames` en MRSlotInfoCollector que detecta AnimationNames duplicados antes de generar animaciones y los resuelve automaticamente usando el nombre del GameObject. Protege tanto el flujo del boton "Generar" como el build NDMF
-- **Reordenamiento automatico de hijos del MenuControl**: Los componentes se ordenan logicamente: Outfits, Color Outfits, Pelucas, Color Pelucas, Iluminacion. Aplica tanto en Generate() como en SyncStructure()
+- **Reordenamiento automatico de hijos del MenuControl**: Los componentes se ordenan logicamente: Outfits, Color Outfits, Pelucas, Color Pelucas, Iluminacion. Se reordenan tanto los GameObjects hijos como los AnimationSlots del inspector. Aplica en Generate() y SyncStructure()
 
 ### Cambiado
 - **Renombrar Materiales a Color**: "Materiales Outfits" → "Color Outfits", "Materiales Pelucas" → "Color Pelucas"
