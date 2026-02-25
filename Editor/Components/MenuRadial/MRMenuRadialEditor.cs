@@ -146,6 +146,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             DrawAvatarField();
             EditorGUILayout.Space(10);
 
+            DrawActionButtons();
+            EditorGUILayout.Space(10);
+
+            DrawStatusPanel();
+            EditorGUILayout.Space(10);
+
+            DrawChildComponentsPanel();
+            EditorGUILayout.Space(10);
+
             DrawOutputPathField();
             EditorGUILayout.Space(10);
 
@@ -153,15 +162,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.Space(10);
 
             DrawNDMFControlPanel();
-            EditorGUILayout.Space(10);
-
-            DrawStatusPanel();
-            EditorGUILayout.Space(10);
-
-            DrawActionButtons();
-            EditorGUILayout.Space(10);
-
-            DrawChildComponentsPanel();
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -226,23 +226,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawOutputPathField()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH), EditorStyles.boldLabel);
-
-            EditorGUILayout.PropertyField(_outputPathProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH), MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH_TOOLTIP)));
-
-            EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH_HINT), MessageType.Info);
-
-            EditorGUILayout.EndVertical();
-
-            EditorGUILayout.Space(10);
-
-            // Sección de Namespace del Avatar (Configuración VRChat)
-            EditorGUILayout.BeginVertical(_boxStyle);
             EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.NAMESPACE), EditorStyles.boldLabel);
 
             EditorGUILayout.PropertyField(_outputPrefixProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PREFIX), MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PREFIX_TOOLTIP)));
+            EditorGUILayout.PropertyField(_outputPathProperty, new GUIContent(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH), MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PATH_TOOLTIP)));
 
-            // Preview de la ruta de salida completa
             string outputDir = _target.GetVRChatOutputDirectory();
             EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.OUTPUT_PREVIEW, outputDir), MessageType.None);
 
@@ -603,6 +591,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginDisabledGroup(!hasExistingStructure || !hasAvatar);
+            var prevBgSync = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.4f, 0.6f, 1f);
             if (GUILayout.Button(new GUIContent(
                 MRLocalization.Get(L.MenuRadialEditor.SYNC_STRUCTURE),
                 MRLocalization.Get(L.MenuRadialEditor.SYNC_STRUCTURE_TOOLTIP)),
@@ -670,6 +660,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 RefreshMenuControlCache();
                 EditorUtility.SetDirty(_target);
             }
+            GUI.backgroundColor = prevBgSync;
             EditorGUI.EndDisabledGroup();
             EditorGUILayout.EndHorizontal();
 
@@ -684,10 +675,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.BeginHorizontal();
             bool canGenerate = hasAvatar && _target.MenuSlotCount > 0;
             EditorGUI.BeginDisabledGroup(!canGenerate);
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
             if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT), MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT_TOOLTIP)), GUILayout.Height(30)))
             {
                 _target.GenerateVRChatFiles();
             }
+            GUI.backgroundColor = prevBg;
             EditorGUI.EndDisabledGroup();
             EditorGUILayout.EndHorizontal();
 

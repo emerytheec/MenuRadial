@@ -238,10 +238,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Illumination
             EditorGUILayout.Space(5);
 
             // Botón generar animación
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
             if (GUILayout.Button(MRLocalization.Get(L.Illumination.GENERATE_ANIMATION), GUILayout.Height(25)))
             {
                 _target.GenerateIlluminationAnimation();
             }
+            GUI.backgroundColor = prevBg;
 
             EditorGUILayout.Space(5);
         }

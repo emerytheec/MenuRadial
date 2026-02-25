@@ -160,6 +160,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
+                    var prevBgScan = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(0.4f, 0.6f, 1f);
                     if (GUILayout.Button(MRLocalization.Get(L.OrganizaPB.SCAN_BUTTON), GUILayout.Height(25)))
                     {
                         Undo.RecordObject(_target, "Escanear PhysBones");
@@ -167,6 +169,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                         EditorUtility.SetDirty(_target);
                         LinkContainersToFrames(_target);
                     }
+                    GUI.backgroundColor = prevBgScan;
 
                     if (_target.HasDetectedComponents && !_target.IsOrganized)
                     {
@@ -224,6 +227,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 using (new EditorGUI.DisabledGroupScope(!_target.CanOrganize))
                 {
                     var organizeStyle = new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
+                    var prevBgOrg = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
 
                     if (GUILayout.Button(MRLocalization.Get(L.OrganizaPB.ORGANIZE_BUTTON), organizeStyle, GUILayout.Height(30)))
                     {
@@ -249,6 +254,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                             }
                         }
                     }
+                    GUI.backgroundColor = prevBgOrg;
                 }
 
                 using (new EditorGUI.DisabledGroupScope(!_target.CanRevert))

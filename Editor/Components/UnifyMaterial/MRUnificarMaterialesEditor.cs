@@ -497,7 +497,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.UnifyMaterial
 
             // Botón para crear nuevo Alternative Material
             Color originalColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(0.4f, 0.9f, 0.4f, 1f); // Verde
+            GUI.backgroundColor = new Color(1f, 0.7f, 0.3f, 1f); // Naranja
 
             if (GUILayout.Button(MRLocalization.Get(L.UnifyMaterial.CREATE_AGRUPAR_MATERIALES), _buttonStyle, GUILayout.Height(BUTTON_HEIGHT)))
             {
@@ -586,10 +586,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.UnifyMaterial
 
             EditorGUI.BeginDisabledGroup(!canGenerate);
 
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
             if (GUILayout.Button(MRLocalization.Get(L.Radial.GENERATE_ANIMATIONS), GUILayout.Height(35f)))
             {
                 GenerateAnimation();
             }
+            GUI.backgroundColor = prevBg;
 
             EditorGUI.EndDisabledGroup();
 

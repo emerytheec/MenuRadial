@@ -399,6 +399,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
         private void DrawActionButtons()
         {
             // Boton Escanear (escanea + calcula en un solo paso)
+            var prevBgScan = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.4f, 0.6f, 1f);
             if (GUILayout.Button(new GUIContent("Escanear", "Re-escanear meshes del avatar y calcular bounds"), GUILayout.Height(25)))
             {
                 Undo.RecordObject(_target, "Escanear y Calcular Bounds");
@@ -409,6 +411,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
                 }
                 EditorUtility.SetDirty(_target);
             }
+            GUI.backgroundColor = prevBgScan;
 
             EditorGUILayout.Space(3);
 
@@ -416,7 +419,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AjustarBounds
 
             // Boton Aplicar
             GUI.enabled = _target.HasValidCalculation && !_target.BoundsApplied;
-            GUI.backgroundColor = _target.HasValidCalculation && !_target.BoundsApplied ? new Color(0.3f, 0.8f, 0.3f) : Color.white;
+            GUI.backgroundColor = _target.HasValidCalculation && !_target.BoundsApplied ? new Color(1f, 0.4f, 0.4f) : Color.white;
             if (GUILayout.Button(new GUIContent("Aplicar Bounds", "Aplicar bounds unificados a todos los meshes"), GUILayout.Height(30)))
             {
                 Undo.RecordObject(_target, "Aplicar Bounds");

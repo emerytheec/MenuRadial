@@ -317,7 +317,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
 
             // Botón para crear nuevo Agrupar Objetos
             Color originalColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(0.4f, 0.9f, 0.4f, 1f); // Verde
+            GUI.backgroundColor = new Color(1f, 0.7f, 0.3f, 1f); // Naranja
 
             if (GUILayout.Button(MRLocalization.Get(L.Radial.CREATE_AGRUPAR_OBJETOS), GUILayout.Height(25f)))
             {
@@ -449,6 +449,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             EditorGUI.BeginDisabledGroup(!canGenerate);
             
             // Botón generar animaciones
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
             if (GUILayout.Button(MRLocalization.Get(L.Radial.GENERATE_ANIMATIONS), GUILayout.Height(35f)))
             {
                 // Generar animaciones usando RadialAnimationBuilder
@@ -467,7 +469,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                     }
                 }
             }
-            
+            GUI.backgroundColor = prevBg;
+
             EditorGUI.EndDisabledGroup();
             
             // Información sobre el sistema

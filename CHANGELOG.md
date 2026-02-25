@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.59] - 2026-02-25
+
+### Cambiado
+- **Reordenar inspector MRMenuRadial**: Botones de accion y panel de estado ahora estan justo debajo del avatar. Configuracion avanzada (ruta de salida, integracion de menu, NDMF) al final
+- **Unificar seccion de salida**: Ruta de salida y Namespace del Avatar fusionados en una sola region del inspector
+- **Colores de botones en inspectors**: Botones de accion principales coloreados para mejor identificacion visual:
+  - MRMenuRadial: Generate VRChat Files (verde), Sync Structure (azul)
+  - MROrganizaPB: Escanear (azul), Organizar (rojo)
+  - MRAjustarBounds: Escanear (azul), Aplicar Bounds (rojo)
+  - MRIluminacionRadial: Generar animacion (verde)
+  - MRUnificarObjetos: Crear Agrupar Objetos (naranja), Generar Animaciones (verde)
+  - MRUnificarMateriales: Crear Agrupar Materiales (naranja), Generar Animaciones (verde)
+
 ## [0.9.58] - 2026-02-25
 
 ### Agregado
