@@ -268,7 +268,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
                 if (hasNonWigPiece)
                 {
-                    var unificarMateriales = CreateUnificarMateriales(menuControl, "Materiales Outfits");
+                    var unificarMateriales = CreateUnificarMateriales(menuControl, "Color Outfits");
                     if (unificarMateriales != null)
                     {
                         result.UnificarMateriales = unificarMateriales;
@@ -297,7 +297,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             // Crear MRUnificarMateriales para pelucas
             if (wigCandidates.Count > 0)
             {
-                var unificarMaterialesPelucas = CreateUnificarMateriales(menuControl, "Materiales Pelucas");
+                var unificarMaterialesPelucas = CreateUnificarMateriales(menuControl, "Color Pelucas");
                 if (unificarMaterialesPelucas != null)
                 {
                     result.UnificarMaterialesPelucas = unificarMaterialesPelucas;
@@ -320,6 +320,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     }
                 }
             }
+
+            // Ordenar hijos del MenuControl: Outfits, Color Outfits, Pelucas, Color Pelucas, Iluminacion
+            ReorderMenuControlChildren(menuControl.transform);
 
             // Resultado exitoso
             result.Success = true;
@@ -443,7 +446,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             {
                 foreach (var um in unificarMaterialesComponents)
                 {
-                    if (um.gameObject.name == "Materiales Pelucas")
+                    if (um.gameObject.name == "Color Pelucas")
                         unificarMaterialesPelucas = um;
                     else if (unificarMateriales == null)
                         unificarMateriales = um;
@@ -650,7 +653,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             else if (newOutfitPieces.Count > 0)
             {
                 // Crear MRUnificarMateriales si no existe y hay ropas nuevas
-                unificarMateriales = CreateUnificarMateriales(menuControl, "Materiales Outfits");
+                unificarMateriales = CreateUnificarMateriales(menuControl, "Color Outfits");
                 if (unificarMateriales != null)
                 {
                     foreach (var piece in newOutfitPieces)
@@ -668,7 +671,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (wigCandidates.Count > 0)
             {
                 if (unificarMaterialesPelucas == null)
-                    unificarMaterialesPelucas = CreateUnificarMateriales(menuControl, "Materiales Pelucas");
+                    unificarMaterialesPelucas = CreateUnificarMateriales(menuControl, "Color Pelucas");
 
                 if (unificarMaterialesPelucas != null)
                 {
@@ -698,6 +701,9 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     }
                 }
             }
+
+            // Reordenar hijos del MenuControl
+            ReorderMenuControlChildren(menuControl.transform);
 
             result.Success = true;
             int totalAdded = result.FramesAdded + result.WigFramesAdded + result.MaterialFramesAdded + result.WigMaterialFramesAdded;
@@ -853,6 +859,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             componentObject.transform.localScale = Vector3.one;
 
             var iluminacionRadial = componentObject.AddComponent<MRIluminacionRadial>();
+            iluminacionRadial.AnimationName = componentName;
 
             // Asignar el avatar como RootObject del componente
             if (_avatarRoot != null)
@@ -874,7 +881,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Crea un MRUnificarMateriales como hijo del MenuControl
         /// </summary>
-        private MRUnificarMateriales CreateUnificarMateriales(Component menuControl, string componentName = "Materiales Outfits")
+        private MRUnificarMateriales CreateUnificarMateriales(Component menuControl, string componentName = "Color Outfits")
         {
 
 #if UNITY_EDITOR
@@ -891,6 +898,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             componentObject.transform.localScale = Vector3.one;
 
             var unificarMateriales = componentObject.AddComponent<MRUnificarMateriales>();
+            unificarMateriales.AnimationName = componentName;
 
             // Añadir al slot del MenuControl
             AddToMenuControlSlot(menuControl, componentObject, componentName);
@@ -901,6 +909,46 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 #endif
 
             return unificarMateriales;
+        }
+
+        /// <summary>
+        /// Reordena los hijos directos del MenuControl para mantener un orden lógico:
+        /// Outfits, Color Outfits, Pelucas, Color Pelucas, Iluminacion, y el resto al final.
+        /// </summary>
+        private void ReorderMenuControlChildren(Transform menuControlTransform)
+        {
+            // Orden deseado por nombre de GameObject
+            var orderMap = new Dictionary<string, int>
+            {
+                { "Outfits", 0 },
+                { "Color Outfits", 1 },
+                { "Pelucas", 2 },
+                { "Color Pelucas", 3 },
+                { "Iluminacion", 4 }
+            };
+
+            int childCount = menuControlTransform.childCount;
+            if (childCount <= 1)
+                return;
+
+            // Recopilar hijos y ordenar: los conocidos primero (por orderMap), el resto al final
+            var children = new List<Transform>(childCount);
+            for (int i = 0; i < childCount; i++)
+                children.Add(menuControlTransform.GetChild(i));
+
+            children.Sort((a, b) =>
+            {
+                bool aKnown = orderMap.TryGetValue(a.name, out int aOrder);
+                bool bKnown = orderMap.TryGetValue(b.name, out int bOrder);
+
+                if (aKnown && bKnown) return aOrder.CompareTo(bOrder);
+                if (aKnown) return -1;
+                if (bKnown) return 1;
+                return 0; // mantener orden relativo entre desconocidos
+            });
+
+            for (int i = 0; i < children.Count; i++)
+                children[i].SetSiblingIndex(i);
         }
 
         /// <summary>

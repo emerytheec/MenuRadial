@@ -151,6 +151,9 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
                 return;
             }
 
+            // Red de seguridad: detectar y resolver AnimationNames duplicados antes de generar
+            EnsureUniqueAnimationNames(slots);
+
             Debug.Log($"[MRSlotInfoCollector] Generando animaciones para '{menu.name}' con {slots.Count} slots");
             int generatedCount = 0;
 
@@ -253,6 +256,91 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
             if (generatedCount > 0)
             {
                 Debug.Log($"[MRSlotInfoCollector] Total de animaciones generadas para '{menu.name}': {generatedCount}");
+            }
+        }
+
+        /// <summary>
+        /// Red de seguridad: detecta AnimationNames duplicados entre los providers de un menú
+        /// y los resuelve usando el nombre del GameObject como fuente de verdad.
+        /// Protege contra olvidos en los métodos CreateXxx de AutoMenuGenerator.
+        /// </summary>
+        private void EnsureUniqueAnimationNames(IReadOnlyList<MRAnimationSlot> slots)
+        {
+            // Agrupar providers por AnimationName (excluyendo SubMenu y None)
+            var nameToSlots = new Dictionary<string, List<(MRAnimationSlot slot, IAnimationProvider provider)>>();
+
+            foreach (var slot in slots)
+            {
+                if (slot == null || !slot.isValid || slot.targetObject == null)
+                    continue;
+
+                var provider = slot.GetAnimationProvider();
+                if (provider == null)
+                    continue;
+
+                if (provider.AnimationType == AnimationType.SubMenu || provider.AnimationType == AnimationType.None)
+                    continue;
+
+                string animName = provider.AnimationName;
+                if (string.IsNullOrEmpty(animName))
+                    continue;
+
+                if (!nameToSlots.ContainsKey(animName))
+                    nameToSlots[animName] = new List<(MRAnimationSlot, IAnimationProvider)>();
+
+                nameToSlots[animName].Add((slot, provider));
+            }
+
+            // Para cada grupo con duplicados, resolver usando el nombre del GameObject
+            var allNames = new HashSet<string>();
+            foreach (var kvp in nameToSlots)
+            {
+                if (kvp.Value.Count == 1)
+                {
+                    allNames.Add(kvp.Key);
+                    continue;
+                }
+
+                Debug.LogWarning($"[MRSlotInfoCollector] AnimationName duplicado detectado: '{kvp.Key}' " +
+                    $"en {kvp.Value.Count} componentes. Resolviendo automáticamente...");
+
+                bool firstKept = false;
+
+                foreach (var (slot, provider) in kvp.Value)
+                {
+                    string gameObjectName = slot.targetObject.name;
+
+                    // Si el nombre del GameObject es único, usarlo directamente
+                    if (gameObjectName != kvp.Key && !allNames.Contains(gameObjectName))
+                    {
+                        provider.AnimationName = gameObjectName;
+                        allNames.Add(gameObjectName);
+                        Debug.Log($"[MRSlotInfoCollector] AnimationName de '{slot.slotName}' " +
+                            $"corregido: '{kvp.Key}' → '{gameObjectName}'");
+                    }
+                    else if (!firstKept && !allNames.Contains(kvp.Key))
+                    {
+                        // Dejar el primero con el nombre original
+                        allNames.Add(kvp.Key);
+                        firstKept = true;
+                    }
+                    else
+                    {
+                        // Nombre colisiona, generar uno único basado en el GameObject
+                        string baseName = gameObjectName != kvp.Key ? gameObjectName : kvp.Key;
+                        string newName = baseName;
+                        int counter = 1;
+                        while (allNames.Contains(newName))
+                        {
+                            newName = $"{baseName}_{counter}";
+                            counter++;
+                        }
+                        provider.AnimationName = newName;
+                        allNames.Add(newName);
+                        Debug.Log($"[MRSlotInfoCollector] AnimationName de '{slot.slotName}' " +
+                            $"corregido: '{kvp.Key}' → '{newName}'");
+                    }
+                }
             }
         }
 
