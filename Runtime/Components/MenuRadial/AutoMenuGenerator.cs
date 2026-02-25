@@ -64,6 +64,11 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             public List<MRAgruparMateriales> CreatedMaterialFrames;
             public int MaterialSlotsDetected;
 
+            // Wig material system fields
+            public MRUnificarMateriales UnificarMaterialesPelucas;
+            public List<MRAgruparMateriales> CreatedWigMaterialFrames;
+            public int WigMaterialSlotsDetected;
+
             // Wig system fields
             public MRUnificarObjetos UnificarPelucas;
             public List<MRAgruparObjetos> CreatedWigFrames;
@@ -85,6 +90,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             // Wig sync fields
             public int WigFramesAdded;
+            public int WigMaterialFramesAdded;
             public List<string> AddedWigNames = new List<string>();
         }
 
@@ -99,6 +105,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 Success = false,
                 CreatedFrames = new List<MRAgruparObjetos>(),
                 CreatedMaterialFrames = new List<MRAgruparMateriales>(),
+                CreatedWigMaterialFrames = new List<MRAgruparMateriales>(),
                 CreatedWigFrames = new List<MRAgruparObjetos>()
             };
 
@@ -246,7 +253,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
-            // Crear MRUnificarMateriales (solo para outfits, excluyendo pelucas)
+            // Crear MRUnificarMateriales para outfits (excluyendo pelucas)
             if (_coserRopa != null && _coserRopa.DetectedPieces != null)
             {
                 bool hasNonWigPiece = false;
@@ -261,7 +268,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
                 if (hasNonWigPiece)
                 {
-                    var unificarMateriales = CreateUnificarMateriales(menuControl);
+                    var unificarMateriales = CreateUnificarMateriales(menuControl, "Materiales Outfits");
                     if (unificarMateriales != null)
                     {
                         result.UnificarMateriales = unificarMateriales;
@@ -272,7 +279,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                             if (!piece.IsValid)
                                 continue;
 
-                            // Excluir pelucas del sistema de materiales
+                            // Excluir pelucas del sistema de materiales outfits
                             if (wigPieceIndices.Contains(i))
                                 continue;
 
@@ -287,6 +294,33 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
+            // Crear MRUnificarMateriales para pelucas
+            if (wigCandidates.Count > 0)
+            {
+                var unificarMaterialesPelucas = CreateUnificarMateriales(menuControl, "Materiales Pelucas");
+                if (unificarMaterialesPelucas != null)
+                {
+                    result.UnificarMaterialesPelucas = unificarMaterialesPelucas;
+
+                    foreach (var wig in wigCandidates)
+                    {
+                        if (wig.PieceEntryIndex >= 0)
+                        {
+                            var piece = detectedPieces[wig.PieceEntryIndex];
+                            if (piece.IsValid)
+                            {
+                                var materialFrame = CreateMaterialFrameForPiece(unificarMaterialesPelucas, piece);
+                                if (materialFrame != null)
+                                {
+                                    result.CreatedWigMaterialFrames.Add(materialFrame);
+                                    result.WigMaterialSlotsDetected += materialFrame.SlotCount;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Resultado exitoso
             result.Success = true;
             result.Message = $"Generación exitosa: {result.PieceFramesCreated} ropas, " +
@@ -294,8 +328,10 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                            $"{result.AvatarMeshesIncluded} meshes de avatar incluidos, " +
                            $"{result.AvatarMeshesExcluded} excluidos, " +
                            $"{result.CreatedFrames.Count} frames totales, " +
-                           $"{result.CreatedMaterialFrames?.Count ?? 0} frames de materiales, " +
-                           $"{result.MaterialSlotsDetected} slots de material detectados";
+                           $"{result.CreatedMaterialFrames?.Count ?? 0} frames de materiales outfits, " +
+                           $"{result.MaterialSlotsDetected} slots de material outfits, " +
+                           $"{result.CreatedWigMaterialFrames?.Count ?? 0} frames de materiales pelucas, " +
+                           $"{result.WigMaterialSlotsDetected} slots de material pelucas";
 
             return result;
         }
@@ -399,11 +435,20 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 return result;
             }
 
-            // Buscar MRUnificarMateriales existente (puede no existir)
+            // Buscar MRUnificarMateriales existentes (puede no existir)
             var unificarMaterialesComponents = _menuRadial.GetComponentsInChildren<MRUnificarMateriales>(true);
-            MRUnificarMateriales unificarMateriales = unificarMaterialesComponents != null && unificarMaterialesComponents.Length > 0
-                ? unificarMaterialesComponents[0]
-                : null;
+            MRUnificarMateriales unificarMateriales = null;
+            MRUnificarMateriales unificarMaterialesPelucas = null;
+            if (unificarMaterialesComponents != null)
+            {
+                foreach (var um in unificarMaterialesComponents)
+                {
+                    if (um.gameObject.name == "Materiales Pelucas")
+                        unificarMaterialesPelucas = um;
+                    else if (unificarMateriales == null)
+                        unificarMateriales = um;
+                }
+            }
 
             // Re-detectar ropas para asegurar lista actualizada
             if (_coserRopa != null)
@@ -576,7 +621,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
-            // --- SYNC MATERIALES (solo outfits, excluyendo pelucas) ---
+            // --- SYNC MATERIALES OUTFITS (excluyendo pelucas) ---
             // Obtener SourceGameObjects de material groups existentes
             var existingMaterialSources = new HashSet<GameObject>();
             if (unificarMateriales?.AlternativeMaterials != null)
@@ -605,7 +650,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             else if (newOutfitPieces.Count > 0)
             {
                 // Crear MRUnificarMateriales si no existe y hay ropas nuevas
-                unificarMateriales = CreateUnificarMateriales(menuControl);
+                unificarMateriales = CreateUnificarMateriales(menuControl, "Materiales Outfits");
                 if (unificarMateriales != null)
                 {
                     foreach (var piece in newOutfitPieces)
@@ -619,10 +664,46 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
+            // --- SYNC MATERIALES PELUCAS ---
+            if (wigCandidates.Count > 0)
+            {
+                if (unificarMaterialesPelucas == null)
+                    unificarMaterialesPelucas = CreateUnificarMateriales(menuControl, "Materiales Pelucas");
+
+                if (unificarMaterialesPelucas != null)
+                {
+                    var existingWigMaterialSources = new HashSet<GameObject>();
+                    if (unificarMaterialesPelucas.AlternativeMaterials != null)
+                    {
+                        foreach (var matGroup in unificarMaterialesPelucas.AlternativeMaterials)
+                        {
+                            if (matGroup != null && matGroup.SourceGameObject != null)
+                                existingWigMaterialSources.Add(matGroup.SourceGameObject);
+                        }
+                    }
+
+                    foreach (var wig in wigCandidates)
+                    {
+                        if (wig.PieceEntryIndex >= 0)
+                        {
+                            var piece = detectedPieces[wig.PieceEntryIndex];
+                            if (piece.IsValid && piece.GameObject != null
+                                && !existingWigMaterialSources.Contains(piece.GameObject))
+                            {
+                                var materialFrame = CreateMaterialFrameForPiece(unificarMaterialesPelucas, piece);
+                                if (materialFrame != null)
+                                    result.WigMaterialFramesAdded++;
+                            }
+                        }
+                    }
+                }
+            }
+
             result.Success = true;
-            int totalAdded = result.FramesAdded + result.WigFramesAdded;
+            int totalAdded = result.FramesAdded + result.WigFramesAdded + result.MaterialFramesAdded + result.WigMaterialFramesAdded;
             result.Message = totalAdded > 0
-                ? $"Sincronización exitosa: {result.FramesAdded} ropas, {result.WigFramesAdded} pelucas agregadas"
+                ? $"Sincronización exitosa: {result.FramesAdded} ropas, {result.WigFramesAdded} pelucas, " +
+                  $"{result.MaterialFramesAdded} materiales outfits, {result.WigMaterialFramesAdded} materiales pelucas agregados"
                 : "La estructura ya está sincronizada";
 
             return result;
@@ -793,9 +874,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Crea un MRUnificarMateriales como hijo del MenuControl
         /// </summary>
-        private MRUnificarMateriales CreateUnificarMateriales(Component menuControl)
+        private MRUnificarMateriales CreateUnificarMateriales(Component menuControl, string componentName = "Materiales Outfits")
         {
-            string componentName = "Materiales";
 
 #if UNITY_EDITOR
             UnityEditor.Undo.RecordObject(menuControl, "Create UnificarMateriales");

@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.58] - 2026-02-25
+
+### Agregado
+- **Materiales Pelucas**: Nuevo MRUnificarMateriales "Materiales Pelucas" que agrupa materiales alternativos de pelucas, espejando la simetria del sistema de radiales (Outfits/Pelucas). Se crea automaticamente cuando hay pelucas detectadas
+
+### Cambiado
+- **Materiales renombrado a Materiales Outfits**: El MRUnificarMateriales existente pasa de llamarse "Materiales" a "Materiales Outfits" para distinguirlo del nuevo "Materiales Pelucas"
+- **SyncStructure identifica materiales por nombre**: Ya no toma el primer MRUnificarMateriales ciegamente — distingue "Materiales Pelucas" vs "Materiales Outfits" por nombre del GameObject
+- **Mensajes de resultado actualizados**: Generate() y SyncStructure() incluyen conteos separados para materiales de outfits y pelucas
+
 ## [0.9.57] - 2026-02-24
 
 ### Agregado
