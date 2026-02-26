@@ -427,7 +427,10 @@
         "versionVariant": "Version variant",
         "styleVariant": "Style variant",
         "sameShader": "Same shader",
-        "sameVariantType": "Same variant type"
+        "sameVariantType": "Same variant type",
+        "folderInfo": "Folder Structure",
+        "folderInfoParent": "Parent folder",
+        "folderInfoNoSlots": "Capture meshes to see the folder structure"
     },
     "validation": {
         "invalidReferences": "Invalid references detected",

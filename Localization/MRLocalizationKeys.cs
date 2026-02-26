@@ -318,6 +318,11 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string STYLE_VARIANT = "alternativeMaterial.styleVariant";
             public const string SAME_SHADER = "alternativeMaterial.sameShader";
             public const string SAME_VARIANT_TYPE = "alternativeMaterial.sameVariantType";
+
+            // Sección informativa de carpetas
+            public const string FOLDER_INFO = "alternativeMaterial.folderInfo";
+            public const string FOLDER_INFO_PARENT = "alternativeMaterial.folderInfoParent";
+            public const string FOLDER_INFO_NO_SLOTS = "alternativeMaterial.folderInfoNoSlots";
         }
 
         /// <summary>

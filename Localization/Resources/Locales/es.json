@@ -434,7 +434,10 @@
         "versionVariant": "Variante de version",
         "styleVariant": "Variante de estilo",
         "sameShader": "Mismo shader",
-        "sameVariantType": "Mismo tipo de variante"
+        "sameVariantType": "Mismo tipo de variante",
+        "folderInfo": "Estructura de Carpetas",
+        "folderInfoParent": "Carpeta padre",
+        "folderInfoNoSlots": "Captura meshes para ver la estructura de carpetas"
     },
     "validation": {
         "invalidReferences": "Referencias invalidas detectadas",

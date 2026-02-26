@@ -717,6 +717,11 @@ namespace Bender_Dios.MenuRadial.Localization
             public string sameShader;
             public string sameVariantType;
 
+            // AlternativeMaterial - Sección informativa de carpetas
+            public string folderInfo;
+            public string folderInfoParent;
+            public string folderInfoNoSlots;
+
             // Validation
             public string invalidReferences;
             public string avatarNotFound;

@@ -427,7 +427,10 @@
         "versionVariant": "版本变体",
         "styleVariant": "样式变体",
         "sameShader": "相同着色器",
-        "sameVariantType": "相同变体类型"
+        "sameVariantType": "相同变体类型",
+        "folderInfo": "文件夹结构",
+        "folderInfoParent": "父文件夹",
+        "folderInfoNoSlots": "捕获网格以查看文件夹结构"
     },
     "validation": {
         "invalidReferences": "检测到无效引用",

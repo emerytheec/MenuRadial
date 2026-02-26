@@ -42,8 +42,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
         // Selector de carpetas
         private List<FolderMaterialInfo> _availableSiblingFolders = new List<FolderMaterialInfo>();
-        private bool _showFolderSelector = true;
         private FolderStructureAnalyzer _folderAnalyzer = new FolderStructureAnalyzer();
+
+        // Sección informativa de carpetas
+        private List<FolderMaterialInfo> _cachedFolderInfos;
+        private List<FolderMaterialInfo> _cachedSiblingFolders;
+        private int _lastKnownSlotCount = -1;
+        private bool _showFolderInfo = true;
 
         // Estilos
         private GUIStyle _dropAreaStyle;
@@ -143,6 +148,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             EditorGUILayout.Space(5);
 
             DrawSuggestionsSection();
+            EditorGUILayout.Space(5);
+
+            DrawFolderInfoSection();
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -633,9 +641,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             if (_target.FolderStructureMode != FolderStructureMode.Auto)
             {
                 EditorGUILayout.HelpBox($"Modo forzado: {GetModeDescription(_target.FolderStructureMode)}", MessageType.Warning);
-
-                // Mostrar selector de carpetas hermanas
-                DrawSiblingFolderSelector();
             }
 
             if (_showSuggestions)
@@ -1414,6 +1419,168 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
         #endregion
 
+        #region Folder Info Section
+
+        /// <summary>
+        /// Asegura que la información de carpetas esté cacheada.
+        /// Solo re-ejecuta el análisis cuando cambia la cantidad de slots.
+        /// </summary>
+        private void EnsureFolderInfoCached()
+        {
+            int currentSlotCount = _target.SlotCount;
+            if (currentSlotCount == _lastKnownSlotCount && _cachedFolderInfos != null)
+                return;
+
+            _lastKnownSlotCount = currentSlotCount;
+
+            if (currentSlotCount == 0)
+            {
+                _cachedFolderInfos = null;
+                _cachedSiblingFolders = null;
+                return;
+            }
+
+            var slotList = _target.Slots.Where(s => s != null && s.IsValid).ToList();
+            if (slotList.Count == 0)
+            {
+                _cachedFolderInfos = null;
+                _cachedSiblingFolders = null;
+                return;
+            }
+
+            _cachedSiblingFolders = _folderAnalyzer.GetAvailableSiblingFolders(_target);
+
+            // Recopilar solo las carpetas que tienen slots (materiales capturados)
+            _cachedFolderInfos = _cachedSiblingFolders?.Where(f => f.HasSlots).ToList()
+                ?? new List<FolderMaterialInfo>();
+
+            // También actualizar la lista del folder selector existente
+            _availableSiblingFolders = _cachedSiblingFolders ?? new List<FolderMaterialInfo>();
+
+            // Si no hay selección previa, seleccionar todas por defecto
+            if (_target.SelectedSiblingFolders.Count == 0 && _cachedSiblingFolders.Count > 0)
+            {
+                Undo.RecordObject(_target, "Auto-select All Folders");
+                foreach (var folder in _cachedSiblingFolders)
+                    _target.SelectedSiblingFolders.Add(folder.FolderPath);
+                EditorUtility.SetDirty(_target);
+            }
+        }
+
+        /// <summary>
+        /// Dibuja la sección informativa de carpetas entre Slots y Acciones.
+        /// Muestra de solo lectura la estructura de carpetas donde viven los materiales.
+        /// </summary>
+        private void DrawFolderInfoSection()
+        {
+            if (_target.SlotCount == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    MRLocalization.Get(L.AlternativeMaterial.FOLDER_INFO_NO_SLOTS),
+                    MessageType.Info);
+                return;
+            }
+
+            EnsureFolderInfoCached();
+
+            if (_cachedSiblingFolders == null || _cachedSiblingFolders.Count == 0)
+                return;
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            _showFolderInfo = EditorGUILayout.Foldout(_showFolderInfo,
+                MRLocalization.Get(L.AlternativeMaterial.FOLDER_INFO), true, EditorStyles.foldoutHeader);
+
+            if (_showFolderInfo)
+            {
+                EditorGUILayout.Space(2);
+
+                // Agrupar carpetas por ParentFolderPath
+                var groupedByParent = _cachedSiblingFolders
+                    .GroupBy(f => f.ParentFolderPath ?? "")
+                    .ToList();
+
+                bool singleFolderNoSiblings = _cachedSiblingFolders.Count == 1;
+
+                if (singleFolderNoSiblings)
+                {
+                    var folder = _cachedSiblingFolders[0];
+                    DrawFolderLine(folder);
+                }
+                else
+                {
+                    foreach (var parentGroup in groupedByParent)
+                    {
+                        string parentPath = parentGroup.Key;
+                        string parentName = string.IsNullOrEmpty(parentPath) ? "?" :
+                            System.IO.Path.GetFileName(parentPath);
+
+                        // Carpeta padre (negrita)
+                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.Space(24); // Alinear con los checkboxes
+                        EditorGUILayout.LabelField(parentName + "/", EditorStyles.boldLabel);
+                        EditorGUILayout.EndHorizontal();
+
+                        // Subcarpetas
+                        foreach (var folder in parentGroup.OrderByDescending(f => f.HasSlots))
+                        {
+                            DrawFolderLine(folder);
+                        }
+
+                        EditorGUILayout.Space(2);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Dibuja una línea de carpeta replicando el layout de DrawSiblingFolderSelector:
+        /// Checkbox(20) | LinkedIcon(20) | FolderName(150) | (X mats)
+        /// </summary>
+        private void DrawFolderLine(FolderMaterialInfo folder)
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            // Checkbox de selección para sugerencias
+            bool isSelected = _target.SelectedSiblingFolders.Contains(folder.FolderPath);
+            EditorGUI.BeginChangeCheck();
+            bool newSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_target, "Toggle Folder Selection");
+                if (newSelected && !isSelected)
+                    _target.SelectedSiblingFolders.Add(folder.FolderPath);
+                else if (!newSelected && isSelected)
+                    _target.SelectedSiblingFolders.Remove(folder.FolderPath);
+                EditorUtility.SetDirty(_target);
+                _suggestionResult = null;
+                _lastStructureAnalysis = null;
+            }
+
+            // Indicador si tiene slots apuntando
+            if (folder.HasSlots)
+            {
+                GUIContent icon = EditorGUIUtility.IconContent("d_Linked");
+                EditorGUILayout.LabelField(icon, GUILayout.Width(20));
+            }
+            else
+            {
+                EditorGUILayout.LabelField("", GUILayout.Width(20));
+            }
+
+            // Nombre de carpeta
+            EditorGUILayout.LabelField(folder.FolderName, GUILayout.Width(150));
+
+            // Cantidad de materiales
+            EditorGUILayout.LabelField($"({folder.MaterialCount} mats)", EditorStyles.miniLabel);
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        #endregion
+
         #region Actions Section
 
         private void DrawActionsSection()
@@ -1471,136 +1638,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             }
 
             EditorGUILayout.EndVertical();
-        }
-
-        #endregion
-
-        #region Folder Selector
-
-        /// <summary>
-        /// Dibuja el selector de carpetas hermanas.
-        /// </summary>
-        private void DrawSiblingFolderSelector()
-        {
-            EditorGUILayout.Space(5);
-
-            EditorGUILayout.BeginHorizontal();
-            _showFolderSelector = EditorGUILayout.Foldout(_showFolderSelector, "Carpetas a incluir", true);
-
-            // Botón para refrescar la lista de carpetas
-            if (GUILayout.Button("Buscar carpetas", GUILayout.Width(100)))
-            {
-                RefreshAvailableFolders();
-            }
-            EditorGUILayout.EndHorizontal();
-
-            if (_showFolderSelector)
-            {
-                if (_availableSiblingFolders.Count == 0)
-                {
-                    EditorGUILayout.HelpBox("Pulsa 'Buscar carpetas' para detectar carpetas hermanas disponibles.", MessageType.Info);
-                }
-                else
-                {
-                    EditorGUI.indentLevel++;
-
-                    // Botones seleccionar/deseleccionar todo
-                    EditorGUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Seleccionar todas", GUILayout.Width(120)))
-                    {
-                        Undo.RecordObject(_target, "Select All Folders");
-                        _target.SelectedSiblingFolders.Clear();
-                        foreach (var folder in _availableSiblingFolders)
-                        {
-                            _target.SelectedSiblingFolders.Add(folder.FolderPath);
-                        }
-                        EditorUtility.SetDirty(_target);
-                    }
-                    if (GUILayout.Button("Deseleccionar todas", GUILayout.Width(130)))
-                    {
-                        Undo.RecordObject(_target, "Deselect All Folders");
-                        _target.SelectedSiblingFolders.Clear();
-                        EditorUtility.SetDirty(_target);
-                    }
-                    EditorGUILayout.EndHorizontal();
-
-                    EditorGUILayout.Space(3);
-
-                    // Lista de carpetas con checkboxes
-                    foreach (var folder in _availableSiblingFolders)
-                    {
-                        EditorGUILayout.BeginHorizontal();
-
-                        bool isSelected = _target.SelectedSiblingFolders.Contains(folder.FolderPath);
-                        bool hasSlots = folder.HasSlots;
-
-                        // Checkbox
-                        EditorGUI.BeginChangeCheck();
-                        bool newSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
-                        if (EditorGUI.EndChangeCheck())
-                        {
-                            Undo.RecordObject(_target, "Toggle Folder Selection");
-                            if (newSelected && !isSelected)
-                            {
-                                _target.SelectedSiblingFolders.Add(folder.FolderPath);
-                            }
-                            else if (!newSelected && isSelected)
-                            {
-                                _target.SelectedSiblingFolders.Remove(folder.FolderPath);
-                            }
-                            EditorUtility.SetDirty(_target);
-                            // Limpiar resultados para forzar nueva detección
-                            _suggestionResult = null;
-                            _lastStructureAnalysis = null;
-                        }
-
-                        // Indicador si tiene slots
-                        if (hasSlots)
-                        {
-                            GUIContent icon = EditorGUIUtility.IconContent("d_Linked");
-                            EditorGUILayout.LabelField(icon, GUILayout.Width(20));
-                        }
-                        else
-                        {
-                            EditorGUILayout.LabelField("", GUILayout.Width(20));
-                        }
-
-                        // Nombre de carpeta
-                        EditorGUILayout.LabelField(folder.FolderName, GUILayout.Width(150));
-
-                        // Cantidad de materiales
-                        EditorGUILayout.LabelField($"({folder.MaterialCount} mats)", EditorStyles.miniLabel);
-
-                        EditorGUILayout.EndHorizontal();
-                    }
-
-                    EditorGUI.indentLevel--;
-
-                    // Resumen
-                    int selectedCount = _target.SelectedSiblingFolders.Count;
-                    int totalCount = _availableSiblingFolders.Count;
-                    EditorGUILayout.LabelField($"Seleccionadas: {selectedCount} de {totalCount}", EditorStyles.miniLabel);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Refresca la lista de carpetas hermanas disponibles.
-        /// </summary>
-        private void RefreshAvailableFolders()
-        {
-            _availableSiblingFolders = _folderAnalyzer.GetAvailableSiblingFolders(_target);
-
-            // Si no hay selección previa, seleccionar todas por defecto
-            if (_target.SelectedSiblingFolders.Count == 0 && _availableSiblingFolders.Count > 0)
-            {
-                Undo.RecordObject(_target, "Auto-select All Folders");
-                foreach (var folder in _availableSiblingFolders)
-                {
-                    _target.SelectedSiblingFolders.Add(folder.FolderPath);
-                }
-                EditorUtility.SetDirty(_target);
-            }
         }
 
         #endregion

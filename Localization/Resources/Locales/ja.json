@@ -427,7 +427,10 @@
         "versionVariant": "バージョンバリエーション",
         "styleVariant": "スタイルバリエーション",
         "sameShader": "同じシェーダー",
-        "sameVariantType": "同じバリエーションタイプ"
+        "sameVariantType": "同じバリエーションタイプ",
+        "folderInfo": "フォルダ構造",
+        "folderInfoParent": "親フォルダ",
+        "folderInfoNoSlots": "フォルダ構造を表示するにはメッシュをキャプチャしてください"
     },
     "validation": {
         "invalidReferences": "無効な参照が検出されました",

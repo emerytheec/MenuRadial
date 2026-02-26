@@ -427,7 +427,10 @@
         "versionVariant": "Вариант версии",
         "styleVariant": "Вариант стиля",
         "sameShader": "Тот же шейдер",
-        "sameVariantType": "Тот же тип варианта"
+        "sameVariantType": "Тот же тип варианта",
+        "folderInfo": "Структура папок",
+        "folderInfoParent": "Родительская папка",
+        "folderInfoNoSlots": "Захватите меши, чтобы увидеть структуру папок"
     },
     "validation": {
         "invalidReferences": "Обнаружены недействительные ссылки",

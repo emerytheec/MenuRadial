@@ -427,7 +427,10 @@
         "versionVariant": "버전 변형",
         "styleVariant": "스타일 변형",
         "sameShader": "같은 셰이더",
-        "sameVariantType": "같은 변형 타입"
+        "sameVariantType": "같은 변형 타입",
+        "folderInfo": "폴더 구조",
+        "folderInfoParent": "상위 폴더",
+        "folderInfoNoSlots": "폴더 구조를 보려면 메시를 캡처하세요"
     },
     "validation": {
         "invalidReferences": "유효하지 않은 참조가 감지되었습니다",

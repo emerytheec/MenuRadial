@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.63] - 2026-02-26
+
+### Agregado
+- **Seccion Estructura de Carpetas en MRAgruparMateriales**: Nueva seccion informativa al final del inspector que muestra automaticamente las carpetas donde viven los materiales de cada pieza. Incluye checkboxes para incluir/excluir carpetas de la busqueda de sugerencias, icono linked para carpetas con slots capturados, y cantidad de materiales por carpeta. Cache automatico que solo se recalcula al cambiar los slots
+- **Localizacion**: 3 nuevas claves (folderInfo, folderInfoParent, folderInfoNoSlots) en 6 idiomas
+
+### Eliminado
+- **Seccion Carpetas a incluir**: Reemplazada por la nueva seccion Estructura de Carpetas que cumple la misma funcion de forma automatica
+
 ## [0.9.62] - 2026-02-26
 
 ### Corregido
