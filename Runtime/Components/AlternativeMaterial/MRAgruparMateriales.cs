@@ -441,17 +441,6 @@ namespace Bender_Dios.MenuRadial.Components.AlternativeMaterial
         }
 
         /// <summary>
-        /// Desvincula todos los slots
-        /// </summary>
-        public void UnlinkAllSlots()
-        {
-            foreach (var slot in _slots.Where(s => s != null))
-            {
-                slot.UnlinkGroup();
-            }
-        }
-
-        /// <summary>
         /// Obtiene el grupo vinculado a un slot
         /// </summary>
         /// <param name="slot">Slot a consultar</param>

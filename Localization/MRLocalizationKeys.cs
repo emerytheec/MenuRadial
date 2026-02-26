@@ -279,10 +279,6 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string NO_GROUPS = "alternativeMaterial.noGroups";
             public const string GROUP_MATERIALS = "alternativeMaterial.groupMaterials";
             public const string DROP_MATERIALS_TO_GROUP = "alternativeMaterial.dropMaterialsToGroup";
-            public const string AUTO_LINKING = "alternativeMaterial.autoLinking";
-            public const string DETECT_LINKS = "alternativeMaterial.detectLinks";
-            public const string UNLINK_ALL = "alternativeMaterial.unlinkAll";
-            public const string DETECT_LINKS_HINT = "alternativeMaterial.detectLinksHint";
             public const string STATUS = "alternativeMaterial.status";
             public const string TOTAL_SLOTS = "alternativeMaterial.totalSlots";
             public const string LINKED_SLOTS = "alternativeMaterial.linkedSlots";

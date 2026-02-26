@@ -138,9 +138,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             DrawSlotsSection();
             EditorGUILayout.Space(5);
 
-            DrawActionsSection();
-            EditorGUILayout.Space(5);
-
             DrawMaterialDropArea();
             EditorGUILayout.Space(5);
 
@@ -601,11 +598,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             _showSuggestions = EditorGUILayout.Foldout(_showSuggestions,
                 MRLocalization.Get(L.AlternativeMaterial.SUGGESTIONS_SECTION), true);
 
-            // Botón detectar (verde)
+            // Botón detectar (azul)
             Color originalColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
+            GUI.backgroundColor = new Color(0.4f, 0.5f, 0.9f);
             if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.DETECT_ALTERNATIVES),
-                GUILayout.Width(150), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+                GUILayout.Width(300), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
             {
                 DetectAlternatives();
             }
@@ -645,9 +642,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
             if (_showSuggestions)
             {
-                // Mostrar información de estructura detectada
-                DrawStructureAnalysisInfo();
-
                 if (_suggestionResult == null || !_suggestionResult.HasAnySuggestions)
                 {
                     if (_suggestionResult != null)
@@ -725,106 +719,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             }
 
             Debug.Log($"[MR Alternative Material] Detección completada: {_suggestionResult.TotalSuggestionsFound} sugerencias para {_suggestionResult.SlotsWithSuggestions} slots");
-        }
-
-        private void DrawStructureAnalysisInfo()
-        {
-            if (_lastStructureAnalysis == null || !_lastStructureAnalysis.IsValid)
-                return;
-
-            EditorGUILayout.Space(3);
-
-            // Determinar color e icono según tipo de estructura
-            string structureIcon;
-            Color boxColor;
-            string structureDescription;
-
-            switch (_lastStructureAnalysis.StructureType)
-            {
-                case FolderStructureType.MaterialsGroupedByFolder:
-                    structureIcon = "d_Folder Icon";
-                    boxColor = new Color(0.3f, 0.6f, 0.3f, 0.3f);
-                    structureDescription = "Grupos en carpeta - Cada carpeta define un grupo completo";
-                    break;
-
-                case FolderStructureType.MaterialsDistributedInSiblingFolders:
-                    structureIcon = "d_FolderOpened Icon";
-                    boxColor = new Color(0.3f, 0.4f, 0.7f, 0.3f);
-                    structureDescription = "Estilo en carpeta - Emparejar materiales entre carpetas hermanas";
-                    break;
-
-                case FolderStructureType.MaterialsMixedInSingleFolder:
-                default:
-                    structureIcon = "d_TextAsset Icon";
-                    boxColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-                    structureDescription = "Todo en carpeta - Agrupar por similitud de nombres";
-                    break;
-            }
-
-            // Dibujar caja de información
-            Color prevBgColor = GUI.backgroundColor;
-            GUI.backgroundColor = boxColor;
-
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-            EditorGUILayout.BeginHorizontal();
-
-            // Icono
-            GUIContent icon = EditorGUIUtility.IconContent(structureIcon);
-            EditorGUILayout.LabelField(icon, GUILayout.Width(20), GUILayout.Height(20));
-
-            // Tipo de estructura
-            EditorGUILayout.LabelField($"Estructura: {_lastStructureAnalysis.StructureType}", EditorStyles.boldLabel);
-
-            // Confianza
-            EditorGUILayout.LabelField($"({Mathf.RoundToInt(_lastStructureAnalysis.Confidence * 100)}%)", GUILayout.Width(50));
-
-            EditorGUILayout.EndHorizontal();
-
-            // Descripción
-            EditorGUILayout.LabelField(structureDescription, EditorStyles.wordWrappedMiniLabel);
-
-            // Detalles adicionales
-            if (_lastStructureAnalysis.UniqueFolderCount > 0)
-            {
-                EditorGUILayout.LabelField($"Carpetas analizadas: {_lastStructureAnalysis.UniqueFolderCount}", EditorStyles.miniLabel);
-            }
-
-            // Mostrar carpeta principal si existe (Caso 2 con carpeta dominante)
-            if (_lastStructureAnalysis.PrimaryFolder != null)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUIContent primaryIcon = EditorGUIUtility.IconContent("d_Linked");
-                EditorGUILayout.LabelField(primaryIcon, GUILayout.Width(16), GUILayout.Height(16));
-                EditorGUILayout.LabelField(
-                    $"Carpeta principal: {_lastStructureAnalysis.PrimaryFolder.FolderName} ({_lastStructureAnalysis.PrimaryFolder.SlotCount} slots)",
-                    EditorStyles.miniLabel);
-                EditorGUILayout.EndHorizontal();
-            }
-
-            // Mostrar carpetas con referencias puntuales si existen
-            if (_lastStructureAnalysis.SecondaryFoldersWithSlots != null && _lastStructureAnalysis.SecondaryFoldersWithSlots.Count > 0)
-            {
-                string secondaryNames = string.Join(", ",
-                    _lastStructureAnalysis.SecondaryFoldersWithSlots.Select(f => $"{f.FolderName}({f.SlotCount})"));
-                EditorGUILayout.LabelField($"Referencias puntuales: {secondaryNames}", EditorStyles.miniLabel);
-            }
-
-            if (_lastStructureAnalysis.SiblingFolders != null && _lastStructureAnalysis.SiblingFolders.Count > 0)
-            {
-                string siblingNames = string.Join(", ",
-                    _lastStructureAnalysis.SiblingFolders.Take(5).Select(f => f.FolderName));
-                if (_lastStructureAnalysis.SiblingFolders.Count > 5)
-                    siblingNames += $" (+{_lastStructureAnalysis.SiblingFolders.Count - 5} más)";
-
-                EditorGUILayout.LabelField($"Carpetas hermanas: {siblingNames}", EditorStyles.miniLabel);
-            }
-
-            EditorGUILayout.EndVertical();
-
-            GUI.backgroundColor = prevBgColor;
-
-            EditorGUILayout.Space(5);
         }
 
         private void DrawSuggestionGlobalActions()
@@ -1200,9 +1094,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
             Undo.RecordObject(_target, "Create Material Group");
 
             var newGroup = _target.CreateGroup(materials);
+            int linked = _target.DetectAndLinkSlots();
             EditorUtility.SetDirty(_target);
 
-            Debug.Log($"[MR Alternative Material] Creado {newGroup.DisplayName} con {materials.Count} materiales");
+            Debug.Log($"[MR Alternative Material] Creado {newGroup.DisplayName} con {materials.Count} materiales, {linked} slots vinculados");
         }
 
         #endregion
@@ -1408,8 +1303,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
 
                         if (added > 0)
                         {
+                            int linked = _target.DetectAndLinkSlots();
                             EditorUtility.SetDirty(_target);
-                            Debug.Log($"[MR Alternative Material] Añadidos {added} materiales al {group.DisplayName}");
+                            Debug.Log($"[MR Alternative Material] Añadidos {added} materiales al {group.DisplayName}, {linked} slots vinculados");
                         }
                     }
                     evt.Use();
@@ -1515,10 +1411,20 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
                         string parentName = string.IsNullOrEmpty(parentPath) ? "?" :
                             System.IO.Path.GetFileName(parentPath);
 
-                        // Carpeta padre (negrita)
+                        // Carpeta padre (click para ping en Project)
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space(24); // Alinear con los checkboxes
-                        EditorGUILayout.LabelField(parentName + "/", EditorStyles.boldLabel);
+                        GUIContent parentFolderIcon = EditorGUIUtility.IconContent("d_Folder Icon");
+                        EditorGUILayout.LabelField(parentFolderIcon, GUILayout.Width(16), GUILayout.Height(16));
+                        if (GUILayout.Button(parentName + "/", EditorStyles.boldLabel))
+                        {
+                            if (!string.IsNullOrEmpty(parentPath))
+                            {
+                                var parentObj = AssetDatabase.LoadAssetAtPath<Object>(parentPath);
+                                if (parentObj != null)
+                                    EditorGUIUtility.PingObject(parentObj);
+                            }
+                        }
                         EditorGUILayout.EndHorizontal();
 
                         // Subcarpetas
@@ -1536,8 +1442,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
         }
 
         /// <summary>
-        /// Dibuja una línea de carpeta replicando el layout de DrawSiblingFolderSelector:
-        /// Checkbox(20) | LinkedIcon(20) | FolderName(150) | (X mats)
+        /// Dibuja una línea de carpeta:
+        /// Checkbox(20) | LinkedIcon(20) | FolderIcon(16) | FolderName(150) | (X mats)
         /// </summary>
         private void DrawFolderLine(FolderMaterialInfo folder)
         {
@@ -1570,46 +1476,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AlternativeMaterial
                 EditorGUILayout.LabelField("", GUILayout.Width(20));
             }
 
-            // Nombre de carpeta
-            EditorGUILayout.LabelField(folder.FolderName, GUILayout.Width(150));
+            // Icono de carpeta decorativo
+            GUIContent folderIcon = EditorGUIUtility.IconContent("d_Folder Icon");
+            EditorGUILayout.LabelField(folderIcon, GUILayout.Width(16), GUILayout.Height(16));
+
+            // Nombre de carpeta (click para ping en Project)
+            if (GUILayout.Button(folder.FolderName, EditorStyles.linkLabel, GUILayout.Width(150)))
+            {
+                var folderObj = AssetDatabase.LoadAssetAtPath<Object>(folder.FolderPath);
+                if (folderObj != null)
+                    EditorGUIUtility.PingObject(folderObj);
+            }
 
             // Cantidad de materiales
             EditorGUILayout.LabelField($"({folder.MaterialCount} mats)", EditorStyles.miniLabel);
 
             EditorGUILayout.EndHorizontal();
-        }
-
-        #endregion
-
-        #region Actions Section
-
-        private void DrawActionsSection()
-        {
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField(MRLocalization.Get(L.AlternativeMaterial.AUTO_LINKING), EditorStyles.boldLabel);
-
-            EditorGUILayout.BeginHorizontal();
-
-            if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.DETECT_LINKS), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
-            {
-                Undo.RecordObject(_target, "Detect Links");
-                int linked = _target.DetectAndLinkSlots();
-                EditorUtility.SetDirty(_target);
-                Debug.Log($"[MR Alternative Material] {linked} slots vinculados automaticamente");
-            }
-
-            if (GUILayout.Button(MRLocalization.Get(L.AlternativeMaterial.UNLINK_ALL), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
-            {
-                Undo.RecordObject(_target, "Unlink All");
-                _target.UnlinkAllSlots();
-                EditorUtility.SetDirty(_target);
-            }
-
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.HelpBox(MRLocalization.Get(L.AlternativeMaterial.DETECT_LINKS_HINT), MessageType.Info);
-
-            EditorGUILayout.EndVertical();
         }
 
         #endregion

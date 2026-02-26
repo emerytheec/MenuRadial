@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.64] - 2026-02-26
+
+### Cambiado
+- **Auto-vinculacion de slots en MRAgruparMateriales**: Los slots ahora se vinculan automaticamente al crear grupos por drag-drop o al añadir materiales a grupos existentes. Ya no es necesario presionar un boton manual
+- **Carpetas clickeables en Estructura de Carpetas**: Click en el nombre de una carpeta o carpeta padre hace ping en el Project (resalta sin navegar)
+
+### Eliminado
+- **Region Vinculacion Automatica**: Eliminados los botones "Detectar Vinculos" y "Desvincular Todos" — la vinculacion ahora es implicita en todos los flujos
+- **Localizacion**: Eliminadas 4 claves (autoLinking, detectLinks, unlinkAll, detectLinksHint) en 6 idiomas
+- **Metodo UnlinkAllSlots**: Eliminado por no tener uso
+
 ## [0.9.63] - 2026-02-26
 
 ### Agregado

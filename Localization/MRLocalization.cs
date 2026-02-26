@@ -678,10 +678,6 @@ namespace Bender_Dios.MenuRadial.Localization
             public string noGroups;
             public string groupMaterials;
             public string dropMaterialsToGroup;
-            public string autoLinking;
-            public string detectLinks;
-            public string unlinkAll;
-            public string detectLinksHint;
             public string status;
             public string totalSlots;
             public string unlinkedSlots;
