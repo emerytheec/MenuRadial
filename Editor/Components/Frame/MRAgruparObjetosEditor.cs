@@ -229,11 +229,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             string buttonText = _target.IsPreviewActive
                 ? MRLocalization.Get(L.Common.CANCEL_PREVIEW)
                 : MRLocalization.Get(L.Frame.PREVIEW_BUTTON);
-            Color buttonColor = _target.IsPreviewActive ? Color.green : Color.white;
+            Color buttonColor = _target.IsPreviewActive ? Color.green : new Color(0.3f, 0.5f, 1f);
 
-            // Dibujar con color temporal
+            // Dibujar con color temporal — triple de alto para visibilidad
             EditorStyleManager.WithColor(buttonColor, () => {
-                if (GUILayout.Button(buttonText, EditorStyleManager.ButtonStyle))
+                if (GUILayout.Button(buttonText, EditorStyleManager.ButtonStyle, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2.4f)))
                 {
                     _target.PreviewFrame();
 
@@ -254,7 +254,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             EditorGUILayout.Space(2f);
 
             Color originalColor = GUI.color;
-            GUI.color = new Color(0.5f, 0.8f, 1f);
+            GUI.color = new Color(1f, 0.6f, 0.2f);
             if (GUILayout.Button(MRLocalization.Get(L.RadialExtra.DUPLICATE_FRAME), EditorStyleManager.ButtonStyle))
             {
                 DuplicateThisFrame();

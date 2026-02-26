@@ -139,12 +139,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 if (_target.IsPreviewActive) _target.RefreshPreview();
             }
             
-            if (GUILayout.Button(MRLocalization.Get(L.FrameModules.RECALCULATE_PATHS), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
-            {
-                _target.UpdateAllPaths();
-                EditorUtility.SetDirty(_target);
-            }
-            
             // Botón de eliminar todos (con color rojo)
             EditorStyleManager.WithColor(Color.red, () => {
                 if (GUILayout.Button(MRLocalization.Get(L.FrameModules.REMOVE_ALL_BTN), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
@@ -221,16 +215,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             {
                 objRef.GameObject = newObj;
                 EditorUtility.SetDirty(_target);
-            }
-            
-            // Botón de seleccionar en hierarchy
-            if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", MRLocalization.Get(L.FrameModules.SELECT_IN_HIERARCHY)))
-            {
-                if (objRef.GameObject != null)
-                {
-                    Selection.activeGameObject = objRef.GameObject;
-                    EditorGUIUtility.PingObject(objRef.GameObject);
-                }
             }
             
             // Botón de eliminar

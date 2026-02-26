@@ -137,20 +137,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 (MRLocalization.Get(L.FrameModules.UPDATE_ORIGINALS), () => {
                     _target.UpdateAllOriginalMaterials();
                     EditorUtility.SetDirty(_target);
-                }),
-                (MRLocalization.Get(L.FrameModules.RECALCULATE_PATHS), () => {
-                    _target.UpdateAllMaterialRendererPaths();
-                    EditorUtility.SetDirty(_target);
-                }),
-                (MRLocalization.Get(L.FrameModules.CLEAN_INVALIDS), () => {
-                    _target.RemoveInvalidMaterialReferences();
-                    EditorUtility.SetDirty(_target);
                 })
             );
             
             // Botón de limpiar todos (con color rojo)
             EditorStyleManager.WithColor(Color.red, () => {
-                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.CLEAN_ALL), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.REMOVE_ALL_BTN), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
                 {
                     if (EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.CONFIRM),
                         MRLocalization.Get(L.FrameModules.CLEAN_ALL_MATERIALS_CONFIRM),
@@ -207,11 +199,20 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             
             EditorGUILayout.BeginHorizontal();
             
-            // Campo de renderer (solo lectura, mostramos el nombre)
+            // Campo de renderer (ping en hierarchy sin cambiar selección)
             string rendererName = matRef.TargetRenderer != null ? matRef.TargetRenderer.name : MRLocalization.Get(L.FrameModules.NO_RENDERER);
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.TextField(rendererName, GUILayout.Width(120));
-            EditorGUI.EndDisabledGroup();
+            var rendererButtonStyle = new GUIStyle(EditorStyles.textField)
+            {
+                normal = { textColor = matRef.TargetRenderer != null ? Color.white : Color.red }
+            };
+
+            if (GUILayout.Button(rendererName, rendererButtonStyle, GUILayout.Width(120)))
+            {
+                if (matRef.TargetRenderer != null)
+                {
+                    EditorGUIUtility.PingObject(matRef.TargetRenderer.gameObject);
+                }
+            }
             
             // Índice del material (solo lectura)
             EditorGUI.BeginDisabledGroup(true);
@@ -232,8 +233,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
             {
                 if (matRef.OriginalMaterial != null)
                 {
-                    // Seleccionar y resaltar el material en el Project window
-                    Selection.activeObject = matRef.OriginalMaterial;
                     EditorGUIUtility.PingObject(matRef.OriginalMaterial);
                 }
             }
@@ -248,16 +247,6 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 if (_target.IsPreviewActive)
                 {
                     _target.RefreshPreview();
-                }
-            }
-            
-            // Botón de seleccionar renderer en hierarchy
-            if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", MRLocalization.Get(L.FrameModules.SELECT_RENDERER)))
-            {
-                if (matRef.TargetRenderer != null)
-                {
-                    Selection.activeGameObject = matRef.TargetRenderer.gameObject;
-                    EditorGUIUtility.PingObject(matRef.TargetRenderer.gameObject);
                 }
             }
             

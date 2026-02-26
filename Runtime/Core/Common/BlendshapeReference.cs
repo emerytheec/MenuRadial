@@ -13,6 +13,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
         [SerializeField] private string _blendshapeName;
         [SerializeField] private float _value;
         [SerializeField] private float _actualValue;
+        [SerializeField] private bool _hasBaseValue;
         
         /// <summary>
         /// SkinnedMeshRenderer objetivo que contiene el blendshape
@@ -42,14 +43,20 @@ namespace Bender_Dios.MenuRadial.Core.Common
         }
         
         /// <summary>
-        /// Valor "actual" o por defecto del blendshape (0-100)
-        /// Se usa cuando el frame no está activo
+        /// Valor base original del blendshape (0-100)
+        /// Capturado al momento de añadir la referencia al frame
         /// </summary>
-        public float ActualValue 
-        { 
-            get => _actualValue; 
-            set => _actualValue = Mathf.Clamp(value, 0f, 100f); 
+        public float ActualValue
+        {
+            get => _actualValue;
+            set => _actualValue = Mathf.Clamp(value, 0f, 100f);
         }
+
+        /// <summary>
+        /// Indica si el valor base fue capturado explícitamente.
+        /// false para datos serializados antiguos (pre-fix), true para nuevos.
+        /// </summary>
+        public bool HasBaseValue => _hasBaseValue;
         
         /// <summary>
         /// Ruta jerárquica del renderer (usa base class)
@@ -94,6 +101,7 @@ namespace Bender_Dios.MenuRadial.Core.Common
             _blendshapeName = blendshapeName;
             _value = Mathf.Clamp(value, 0f, 100f);
             _actualValue = Mathf.Clamp(actualValue, 0f, 100f);
+            _hasBaseValue = true;
         }
         
         /// <summary>

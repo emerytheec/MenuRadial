@@ -36,7 +36,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
 
         #endregion
 
-        public bool AddBlendshape(SkinnedMeshRenderer renderer, string blendshapeName, float value = 0f)
+        public bool AddBlendshape(SkinnedMeshRenderer renderer, string blendshapeName, float value = 0f, float actualValue = -1f)
         {
             if (renderer == null)
             {
@@ -72,7 +72,9 @@ namespace Bender_Dios.MenuRadial.Components.Frame
                 return true;
             }
 
-            var newReference = new BlendshapeReference(renderer, blendshapeName, value);
+            // Si no se proporcionó valor base, capturar del mesh actual
+            float baseValue = actualValue >= 0f ? actualValue : renderer.GetBlendShapeWeight(blendshapeIndex);
+            var newReference = new BlendshapeReference(renderer, blendshapeName, value, baseValue);
             _frameData.BlendshapeReferences.Add(newReference);
 
             return true;

@@ -30,13 +30,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         private const int WIDTH_BTN_100 = 32;
         private const int WIDTH_ACTIVE_CLUSTER = WIDTH_BTN_0 + WIDTH_ACTIVE_FIELD + WIDTH_BTN_100;
         
-        // Anchos mínimos reales de los dos botones de acciones
-        private const int WIDTH_BTN_EYE = 24;  // botón seleccionar renderer
+        // Anchos mínimos reales de botones
+        private const int WIDTH_BTN_ADD = 24;  // botón abrir ventana selección blendshapes
         private const int WIDTH_BTN_X   = 24;  // botón eliminar
         private const int ACTIONS_INNER_PADDING = 4; // separación interior mínima
-        
-        // El ancho mínimo que garantiza que caben 👁 y X
-        private const int WIDTH_ACTIONS_MIN = WIDTH_BTN_EYE + WIDTH_BTN_X + ACTIONS_INNER_PADDING;
+
+        // El ancho mínimo de la columna de acciones (solo X)
+        private const int WIDTH_ACTIONS_MIN = WIDTH_BTN_X + ACTIONS_INNER_PADDING;
         
         // Mínimo para la columna flexible (Blendshape)
         private const int MIN_BLENDSHAPE = 80;
@@ -63,7 +63,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         /// </summary>
         private struct ColLayout
         {
-            public float rend, blend, baseW, active, actions;
+            public float addBtn, rend, blend, baseW, active, actions;
         }
         
         /// <summary>
@@ -73,21 +73,22 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
         /// <returns>Layout de columnas con anchos calculados</returns>
         private static ColLayout CalcCols(float totalWidth)
         {
-            // Suma de columnas no elásticas + separadores
-            float fixedNoActions = WIDTH_RENDERER + WIDTH_BASE + WIDTH_ACTIVE_CLUSTER + (4 * COL_SPACING);
+            // Suma de columnas no elásticas + separadores (6 columnas = 5 separadores)
+            float fixedNoActions = WIDTH_BTN_ADD + WIDTH_RENDERER + WIDTH_BASE + WIDTH_ACTIVE_CLUSTER + (5 * COL_SPACING);
 
             // La columna flexible principal sigue siendo "Blendshape"
             float blend = Mathf.Max(MIN_BLENDSHAPE, totalWidth - fixedNoActions - WIDTH_ACTIONS_MIN);
 
             // El resto se lo damos a "actions" para que empuje la X al borde
-            float actions = Mathf.Max(WIDTH_ACTIONS_MIN, totalWidth - (WIDTH_RENDERER + blend + WIDTH_BASE + WIDTH_ACTIVE_CLUSTER + (4 * COL_SPACING)));
+            float actions = Mathf.Max(WIDTH_ACTIONS_MIN, totalWidth - (WIDTH_BTN_ADD + WIDTH_RENDERER + blend + WIDTH_BASE + WIDTH_ACTIVE_CLUSTER + (5 * COL_SPACING)));
 
             return new ColLayout {
+                addBtn = WIDTH_BTN_ADD,
                 rend = WIDTH_RENDERER,
                 blend = blend,
                 baseW = WIDTH_BASE,
                 active = WIDTH_ACTIVE_CLUSTER, // 0 | campo | 100
-                actions = actions               // ahora elástico
+                actions = actions               // elástico, solo X
             };
         }
         
@@ -213,20 +214,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 (MRLocalization.Get(L.FrameModules.CAPTURE_VALUES), () => {
                     _target.CaptureAllBlendshapeValues();
                     EditorUtility.SetDirty(_target);
-                }),
-                (MRLocalization.Get(L.FrameModules.RECALCULATE_PATHS), () => {
-                    _target.UpdateAllBlendshapeRendererPaths();
-                    EditorUtility.SetDirty(_target);
-                }),
-                (MRLocalization.Get(L.FrameModules.CLEAN_INVALIDS), () => {
-                    _target.RemoveInvalidBlendshapeReferences();
-                    EditorUtility.SetDirty(_target);
                 })
             );
             
             // Botón de limpiar todos (con color rojo)
             EditorStyleManager.WithColor(Color.red, () => {
-                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.CLEAN_ALL), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
+                if (GUILayout.Button(MRLocalization.Get(L.FrameModules.REMOVE_ALL_BTN), GUILayout.Height(EditorStyleManager.SMALL_BUTTON_HEIGHT)))
                 {
                     if (EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.CONFIRM),
                         MRLocalization.Get(L.FrameModules.CLEAN_ALL_BS_CONFIRM),
@@ -259,6 +252,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 var cols = CalcCols(total);
 
                 GUILayout.Space(0);
+                EditorGUILayout.LabelField("", EditorStyles.boldLabel, GUILayout.Width(cols.addBtn));
                 EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_RENDERER), EditorStyles.boldLabel, GUILayout.Width(cols.rend));
                 EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_BLENDSHAPE), EditorStyles.boldLabel, GUILayout.Width(cols.blend));
                 EditorGUILayout.LabelField(MRLocalization.Get(L.FrameModules.COL_BASE), EditorStyles.boldLabel, GUILayout.Width(cols.baseW));
@@ -296,18 +290,27 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 var total = EditorGUIUtility.currentViewWidth - 20f; // Reducido para eliminar más padding
                 var cols = CalcCols(total);
 
-                // Renderer
+                // Botón abrir ventana de selección de blendshapes
+                if (GUILayout.Button("+", GUILayout.Width(cols.addBtn), GUILayout.Height(EditorStyleManager.ICON_BUTTON_HEIGHT)))
+                {
+                    if (blendRef.TargetRenderer != null)
+                    {
+                        ShowBlendshapeSelectionWindow(blendRef.TargetRenderer);
+                    }
+                }
+
+                // Renderer (ping en hierarchy sin cambiar selección)
                 string rendererName = blendRef.TargetRenderer != null ? blendRef.TargetRenderer.name : MRLocalization.Get(L.FrameModules.NO_RENDERER);
                 var rendererButtonStyle = new GUIStyle(EditorStyles.textField)
                 {
                     normal = { textColor = blendRef.TargetRenderer != null ? Color.white : Color.red }
                 };
-                
+
                 if (GUILayout.Button(rendererName, rendererButtonStyle, GUILayout.Width(cols.rend)))
                 {
                     if (blendRef.TargetRenderer != null)
                     {
-                        ShowBlendshapeSelectionWindow(blendRef.TargetRenderer);
+                        EditorGUIUtility.PingObject(blendRef.TargetRenderer.gameObject);
                     }
                 }
 
@@ -316,10 +319,10 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 EditorGUILayout.TextField(blendRef.BlendshapeName, GUILayout.Width(cols.blend));
                 EditorGUI.EndDisabledGroup();
 
-                // Base (solo lectura)
+                // Base (solo lectura) — valor original capturado al añadir la referencia
                 EditorGUI.BeginDisabledGroup(true);
-                float currentValue = blendRef.IsValid ? blendRef.GetCurrentValue() : 0f;
-                EditorGUILayout.FloatField(currentValue, GUILayout.Width(cols.baseW));
+                float baseValue = blendRef.HasBaseValue ? blendRef.ActualValue : (blendRef.IsValid ? blendRef.GetCurrentValue() : 0f);
+                EditorGUILayout.FloatField(baseValue, GUILayout.Width(cols.baseW));
                 EditorGUI.EndDisabledGroup();
 
                 // Activo (0 | campo | 100) con ancho exacto de columna y SIN padding
@@ -345,22 +348,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                 }
                 EditorGUILayout.EndHorizontal();
 
-                // Acciones (👁, X) — elástica para empujar X a la derecha
+                // Acciones (X) — elástica para empujar X a la derecha
                 EditorGUILayout.BeginHorizontal(NoPad, GUILayout.Width(cols.actions));
-                
+
                 // Empujar contenido hacia la derecha
                 GUILayout.FlexibleSpace();
-                
-                // Botón de seleccionar renderer en hierarchy
-                if (EditorStyleManager.DrawIconButton("d_ViewToolOrbit", MRLocalization.Get(L.FrameModules.SELECT_RENDERER)))
-                {
-                    if (blendRef.TargetRenderer != null)
-                    {
-                        Selection.activeGameObject = blendRef.TargetRenderer.gameObject;
-                        EditorGUIUtility.PingObject(blendRef.TargetRenderer.gameObject);
-                    }
-                }
-                
+
                 // Botón de eliminar
                 EditorStyleManager.WithColor(Color.red, () => {
                     if (GUILayout.Button("X", GUILayout.Width(WIDTH_BTN_X), GUILayout.Height(EditorStyleManager.ICON_BUTTON_HEIGHT)))
@@ -368,7 +361,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame.Modules
                         shouldRemove = true;
                     }
                 });
-                
+
                 EditorGUILayout.EndHorizontal();
             }
             // Mostrar ruta jerárquica si el renderer es inválido

@@ -231,7 +231,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             _materialController.UpdateAllMaterialRendererPaths();
         }
         
-        public bool AddBlendshapeReference(SkinnedMeshRenderer renderer, string blendshapeName, float value = 0f)
+        public bool AddBlendshapeReference(SkinnedMeshRenderer renderer, string blendshapeName, float value = 0f, float actualValue = -1f)
         {
             if (renderer == null || string.IsNullOrEmpty(blendshapeName)) return false;
 
@@ -241,7 +241,7 @@ namespace Bender_Dios.MenuRadial.Components.Frame
             if (_blendshapeController == null)
                 _blendshapeController = new FrameBlendshapeController(_frameData ?? (_frameData = new FrameData("Agrupar Objetos")));
 
-            bool success = _blendshapeController.AddBlendshape(renderer, blendshapeName, value);
+            bool success = _blendshapeController.AddBlendshape(renderer, blendshapeName, value, actualValue);
 
             // Solo disparar eventos si se añadió correctamente
             if (success)

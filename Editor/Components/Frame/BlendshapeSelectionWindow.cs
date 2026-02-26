@@ -343,7 +343,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Frame
             // Añadir o actualizar blendshapes seleccionados
             foreach (var option in selectedOptions)
             {
-                bool success = _frameObject.AddBlendshapeReference(_targetRenderer, option.Name, option.TargetValue);
+                bool success = _frameObject.AddBlendshapeReference(_targetRenderer, option.Name, option.TargetValue, option.CurrentValue);
                 if (success)
                 {
                     successCount++;

@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.62] - 2026-02-26
+
+### Corregido
+- **Fix columna Base de blendshapes**: La columna "Base" leia el valor del mesh en vivo, causando que el preview contaminara los valores mostrados. Ahora almacena el valor base original al momento de añadir la referencia usando `_actualValue` + flag `_hasBaseValue`. Datos antiguos mantienen el comportamiento previo como fallback
+- **Fix valor base al añadir blendshape**: `AddBlendshape` ahora captura automaticamente el valor base del mesh si no se proporciona explicitamente. La ventana de seleccion pasa `CurrentValue` como base al crear la referencia
+
+### Cambiado
+- **UI Frame reorganizada**: Eliminados botones redundantes en las 3 secciones del frame:
+  - Eliminado boton "Recalcular Rutas" (objetos, materiales, blendshapes) — AutoUpdatePaths y OnValidate ya lo hacen automaticamente
+  - Eliminado boton "Limpiar Invalidos" (materiales, blendshapes) — el boton X por fila ya cubre esta funcion
+  - Eliminado boton ojo (objetos, materiales, blendshapes) — su funcion se movio al click en el nombre del renderer/objeto
+  - Unificado texto "Eliminar Todos" en las 3 secciones
+- **Blendshapes: nuevo boton + y ping en renderer**: Boton "+" antes del renderer abre la ventana de seleccion. Click en el nombre del renderer hace ping en Hierarchy sin cambiar seleccion
+- **Materiales: renderer y base clickeables**: Click en renderer hace ping en Hierarchy. Click en material base hace ping en Project. Ambos sin cambiar seleccion
+- **Boton Previsualizar este Frame**: Ahora azul y mas grande para mayor visibilidad. Verde cuando preview activo
+- **Boton Duplicar Frame**: Ahora color naranja
+
 ## [0.9.61] - 2026-02-25
 
 ### Corregido
