@@ -336,7 +336,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Si los PhysBones están organizados.
         /// </summary>
-        public bool IsPhysBonesOrganized => OrganizaPB?.IsOrganized ?? false;
+        public bool IsPhysBonesOrganized => OrganizaPB != null
+            && (OrganizaPB.IsOrganized || OrganizaPB.AllPreOrganized);
 
         /// <summary>
         /// Estado de organización de PhysBones.

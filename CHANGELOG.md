@@ -5,6 +5,13 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.70] - 2026-02-27
+
+### Agregado
+- **Sincronizar organiza PhysBones**: El boton Sincronizar ahora tambien escanea y organiza PhysBones automaticamente, y vincula contenedores a frames
+- **PhysBones pre-organizados detectados**: Los PhysBones que ya vienen organizados por el creador de ropa ahora se reconocen correctamente como organizados (semaforo verde)
+- **Panel NDMF colapsable**: La seccion "Control NDMF" del inspector ahora esta colapsada por defecto para ahorrar espacio
+
 ## [0.9.69] - 2026-02-27
 
 ### Cambiado

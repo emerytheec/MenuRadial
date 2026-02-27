@@ -93,6 +93,27 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         public bool HasDetectedComponents => _detectedPhysBones.Count > 0 || _detectedColliders.Count > 0;
 
         /// <summary>
+        /// Indica si todos los PhysBones/Colliders detectados ya estaban pre-organizados
+        /// (creados por el creador de ropa), por lo que no necesitan reubicación.
+        /// </summary>
+        public bool AllPreOrganized
+        {
+            get
+            {
+                if (!HasDetectedComponents) return false;
+                foreach (var pb in _detectedPhysBones)
+                {
+                    if (pb.Included && !pb.IsAlreadyOrganized) return false;
+                }
+                foreach (var col in _detectedColliders)
+                {
+                    if (col.Included && !col.IsAlreadyOrganized) return false;
+                }
+                return true;
+            }
+        }
+
+        /// <summary>
         /// Indica si el VRChat SDK está disponible.
         /// </summary>
         public bool IsSDKAvailable => Scanner.IsSDKAvailable;

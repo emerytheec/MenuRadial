@@ -7,6 +7,7 @@ using Bender_Dios.MenuRadial.Components.AnalisisColision;
 using Bender_Dios.MenuRadial.Components.CoserRopa;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
+using Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers;
 using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using VRC.SDK3.Avatars.ScriptableObjects;
@@ -51,6 +52,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         // Flag one-shot por instancia del editor
         private bool _hasAutoCreatedChildren;
+        private bool _showNDMFPanel;
 
         private void OnEnable()
         {
@@ -379,59 +381,62 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
         private void DrawNDMFControlPanel()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
-            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.NDMF_CONTROL), EditorStyles.boldLabel);
+            _showNDMFPanel = EditorGUILayout.Foldout(_showNDMFPanel, MRLocalization.Get(L.MenuRadialEditor.NDMF_CONTROL), true, EditorStyles.foldoutHeader);
 
-            EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NDMF_CONTROL_HINT), MessageType.Info);
-
-            EditorGUILayout.Space(5);
-
-            // Checkbox para desactivar cosido de huesos
-            EditorGUILayout.PropertyField(_disableBoneStitchingProperty, new GUIContent(
-                MRLocalization.Get(L.MenuRadialEditor.DISABLE_BONE_STITCHING),
-                MRLocalization.Get(L.MenuRadialEditor.DISABLE_BONE_STITCHING_TOOLTIP)));
-
-            // Checkbox para desactivar merge de VRChat
-            EditorGUILayout.PropertyField(_disableVRChatMergeProperty, new GUIContent(
-                MRLocalization.Get(L.MenuRadialEditor.DISABLE_VRCHAT_MERGE),
-                MRLocalization.Get(L.MenuRadialEditor.DISABLE_VRCHAT_MERGE_TOOLTIP)));
-
-            EditorGUILayout.Space(10);
-
-            // Separador visual
-            EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.OTHER_PLUGINS), EditorStyles.boldLabel);
-
-            // Checkbox para desactivar Modular Avatar
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(_disableModularAvatarProperty, new GUIContent(
-                MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA),
-                MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA_TOOLTIP)));
-
-            if (EditorGUI.EndChangeCheck() && _disableModularAvatarProperty.boolValue)
+            if (_showNDMFPanel)
             {
-                // Mostrar advertencia al activar
-                EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.WARNING),
-                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA_WARNING),
-                    MRLocalization.Get(L.AnalisisColision.UNDERSTOOD));
-            }
+                EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.NDMF_CONTROL_HINT), MessageType.Info);
 
-            // Mostrar advertencia si alguno está activado
-            bool anyDisabled = _disableBoneStitchingProperty.boolValue ||
-                              _disableVRChatMergeProperty.boolValue ||
-                              _disableModularAvatarProperty.boolValue;
-
-            if (anyDisabled)
-            {
                 EditorGUILayout.Space(5);
-                string warning = MRLocalization.Get(L.MenuRadialEditor.DISABLED_PROCESSES) + "\n";
-                if (_disableBoneStitchingProperty.boolValue)
-                    warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_BONE_STITCHING) + "\n";
-                if (_disableVRChatMergeProperty.boolValue)
-                    warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_VRCHAT_MERGE) + "\n";
-                if (_disableModularAvatarProperty.boolValue)
-                    warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_MA) + "\n";
-                warning += "\n" + MRLocalization.Get(L.MenuRadialEditor.NOT_APPLIED);
 
-                EditorGUILayout.HelpBox(warning, MessageType.Warning);
+                // Checkbox para desactivar cosido de huesos
+                EditorGUILayout.PropertyField(_disableBoneStitchingProperty, new GUIContent(
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_BONE_STITCHING),
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_BONE_STITCHING_TOOLTIP)));
+
+                // Checkbox para desactivar merge de VRChat
+                EditorGUILayout.PropertyField(_disableVRChatMergeProperty, new GUIContent(
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_VRCHAT_MERGE),
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_VRCHAT_MERGE_TOOLTIP)));
+
+                EditorGUILayout.Space(10);
+
+                // Separador visual
+                EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.OTHER_PLUGINS), EditorStyles.boldLabel);
+
+                // Checkbox para desactivar Modular Avatar
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(_disableModularAvatarProperty, new GUIContent(
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA),
+                    MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA_TOOLTIP)));
+
+                if (EditorGUI.EndChangeCheck() && _disableModularAvatarProperty.boolValue)
+                {
+                    // Mostrar advertencia al activar
+                    EditorUtility.DisplayDialog(MRLocalization.Get(L.Common.WARNING),
+                        MRLocalization.Get(L.MenuRadialEditor.DISABLE_MA_WARNING),
+                        MRLocalization.Get(L.AnalisisColision.UNDERSTOOD));
+                }
+
+                // Mostrar advertencia si alguno está activado
+                bool anyDisabled = _disableBoneStitchingProperty.boolValue ||
+                                  _disableVRChatMergeProperty.boolValue ||
+                                  _disableModularAvatarProperty.boolValue;
+
+                if (anyDisabled)
+                {
+                    EditorGUILayout.Space(5);
+                    string warning = MRLocalization.Get(L.MenuRadialEditor.DISABLED_PROCESSES) + "\n";
+                    if (_disableBoneStitchingProperty.boolValue)
+                        warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_BONE_STITCHING) + "\n";
+                    if (_disableVRChatMergeProperty.boolValue)
+                        warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_VRCHAT_MERGE) + "\n";
+                    if (_disableModularAvatarProperty.boolValue)
+                        warning += "• " + MRLocalization.Get(L.MenuRadialEditor.DISABLED_MA) + "\n";
+                    warning += "\n" + MRLocalization.Get(L.MenuRadialEditor.NOT_APPLIED);
+
+                    EditorGUILayout.HelpBox(warning, MessageType.Warning);
+                }
             }
 
             EditorGUILayout.EndVertical();
@@ -486,6 +491,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 case OrganizationState.NotScanned:
                     return MRLocalization.Get(L.MenuRadialEditor.PB_NOT_SCANNED);
                 case OrganizationState.Scanned:
+                    // Si todos están pre-organizados, mostrar como organizados
+                    if (_target.IsPhysBonesOrganized)
+                        return MRLocalization.Get(L.MenuRadialEditor.PB_ORGANIZED, _target.DetectedPhysBonesCount);
                     return MRLocalization.Get(L.MenuRadialEditor.PB_DETECTED, _target.DetectedPhysBonesCount);
                 case OrganizationState.Organized:
                     return MRLocalization.Get(L.MenuRadialEditor.PB_ORGANIZED, _target.DetectedPhysBonesCount);
@@ -594,6 +602,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     }
                 }
 
+                // Organizar PhysBones si aún no están organizados
+                RefreshOrganizaPB();
+
                 // Escanear, calcular y aplicar bounds + anchor (en ambas ramas)
                 RefreshAjustarBounds();
 
@@ -644,6 +655,32 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUI.EndDisabledGroup();
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void RefreshOrganizaPB()
+        {
+            if (_target.OrganizaPB == null) return;
+
+            var pb = _target.OrganizaPB;
+            Undo.RecordObject(pb, "Refresh Organiza PB");
+
+            // Escanear si aún no se ha escaneado
+            if (pb.State == OrganizationState.NotScanned)
+                pb.ScanAvatar();
+
+            // Organizar si está escaneado y hay componentes para organizar
+            if (pb.CanOrganize)
+            {
+                var result = pb.Organize();
+                if (result.Success)
+                    Debug.Log($"[MRMenuRadial] PhysBones organizados: {result.GetSummary()}");
+            }
+
+            // Vincular contenedores a frames
+            if (pb.HasDetectedComponents)
+                PhysBoneFrameLinker.LinkContainersToFrames(pb, _target);
+
+            EditorUtility.SetDirty(pb);
         }
 
         private void RefreshAjustarBounds()
