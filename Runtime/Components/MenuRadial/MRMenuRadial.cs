@@ -351,7 +351,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// <summary>
         /// Si los bounds fueron aplicados exitosamente.
         /// </summary>
-        public bool IsBoundsApplied => AjustarBounds?.LastCalculationResult?.Success ?? false;
+        public bool IsBoundsApplied => AjustarBounds?.BoundsApplied ?? false;
 
         /// <summary>
         /// Cantidad de slots configurados en el menú.
@@ -478,8 +478,8 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 OrganizaPB.ScanAvatar();
             }
 
-            // Escanear meshes para bounds
-            if (AjustarBounds != null)
+            // Escanear meshes para bounds (solo si no hay datos previos)
+            if (AjustarBounds != null && !AjustarBounds.BoundsApplied && AjustarBounds.DetectedMeshCount == 0)
             {
                 AjustarBounds.ScanAvatar();
             }
@@ -597,8 +597,6 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 return false;
             }
 
-            bool success = true;
-
             // 1. Detectar ropas (MRCoserRopa - el merge es automático via NDMF)
             if (CoserRopa != null)
             {
@@ -634,26 +632,31 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 }
             }
 
-            return success;
+            return true;
         }
 
         /// <summary>
         /// Genera los archivos VRChat (FX Controller, Parameters, Menu).
         /// </summary>
-        public void GenerateVRChatFiles()
+        /// <returns>True si la generación fue exitosa</returns>
+        public bool GenerateVRChatFiles()
         {
             if (MenuControl == null)
             {
                 Debug.LogWarning("[MRMenuRadial] No se encontró MRMenuControl.");
-                return;
+                return false;
             }
 
             // Llamar CreateVRChatFiles via reflexión
             var method = MenuControl.GetType().GetMethod("CreateVRChatFiles");
             if (method != null)
             {
-                method.Invoke(MenuControl, null);
+                var result = method.Invoke(MenuControl, null);
+                if (result is bool boolResult)
+                    return boolResult;
             }
+
+            return false;
         }
 
         /// <summary>

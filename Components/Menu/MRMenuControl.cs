@@ -291,7 +291,8 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// <summary>
         /// Crea archivos VRChat
         /// </summary>
-        public void CreateVRChatFiles()
+        /// <returns>True si la generación fue exitosa</returns>
+        public bool CreateVRChatFiles()
         {
 #if UNITY_EDITOR
             EnsureManagersInitialized();
@@ -299,7 +300,9 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             vrchatConfig?.SyncFromMenuRadial(transform);
             // Recrear fileGenerator con la configuración actualizada
             fileGenerator = new MRVRChatFileGenerator(this, slotManager, vrchatConfig, OutputPath);
-            fileGenerator?.CreateVRChatFiles();
+            return fileGenerator?.CreateVRChatFiles() ?? false;
+#else
+            return false;
 #endif
         }
         

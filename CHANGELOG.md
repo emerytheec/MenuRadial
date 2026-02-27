@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.69] - 2026-02-27
+
+### Cambiado
+- **Simplificar inspector MRMenuRadial**: Reducidos los botones de Acciones de 5 a 2. Eliminados "Preparar Todo" (redundante con auto-detect), "Generar Estructura" y "Regenerar" (funcionalidad absorbida por Sincronizar)
+- **Boton Sincronizar mejorado**: Ahora genera la estructura desde cero si no existe, o sincroniza incrementalmente si ya existe. Ademas ejecuta automaticamente escaneo y aplicacion de bounds y anchor override en MRAjustarBounds
+- **Feedback en Generar Archivos VRChat**: El boton ahora muestra dialogo de exito o error al completar la generacion
+
+### Corregido
+- **Fix: bounds no persistian al cambiar de GameObject**: AutoDetectAll() ejecutaba ScanAvatar() incondicionalmente al abrir el inspector, reseteando `_boundsApplied`. Ahora solo escanea si los bounds no estan aplicados y no hay meshes detectados
+- **Fix: IsBoundsApplied leia campo incorrecto**: Leia `LastCalculationResult?.Success` (calculo exitoso) en vez de `BoundsApplied` (bounds realmente aplicados)
+- **Fix: PrepareAll() variable success sin usar**: La variable `success` nunca se modificaba, retornaba siempre true. Eliminada variable innecesaria
+- **CreateVRChatFiles() retorna bool**: Tanto MRMenuControl como MRMenuRadial ahora retornan resultado para permitir feedback al usuario
+
 ## [0.9.68] - 2026-02-27
 
 ### Corregido

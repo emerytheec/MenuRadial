@@ -520,151 +520,90 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.LabelField(MRLocalization.Get(L.MenuRadialEditor.ACTIONS), EditorStyles.boldLabel);
 
             bool hasAvatar = _avatarRootProperty.objectReferenceValue != null;
+            bool hasExistingStructure = _target.MenuSlotCount > 0;
+            bool hasPieces = _target.DetectedPieceCount > 0;
 
             EditorGUI.BeginDisabledGroup(!hasAvatar);
 
-            // Botón Preparar Todo
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.PREPARE_ALL), MRLocalization.Get(L.MenuRadialEditor.PREPARE_ALL_TOOLTIP)), GUILayout.Height(30)))
-            {
-                Undo.RecordObject(_target, "Prepare All");
-                _target.PrepareAll();
-                EditorUtility.SetDirty(_target);
-            }
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space(5);
-
-            // Botones de generación de estructura
-            EditorGUILayout.BeginHorizontal();
-
-            // Botón Generar Estructura (solo si no existe)
-            bool hasExistingStructure = _target.MenuSlotCount > 0;
-
-            EditorGUI.BeginDisabledGroup(hasExistingStructure || _target.DetectedPieceCount == 0);
-            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.GENERATE_STRUCTURE), MRLocalization.Get(L.MenuRadialEditor.GENERATE_STRUCTURE_TOOLTIP)), GUILayout.Height(25)))
-            {
-                Undo.RecordObject(_target, "Generate Menu Structure");
-                var result = _target.GenerateMenuStructure();
-                if (result.Success)
-                {
-                    string infoMessage = result.WigFramesCreated > 0
-                        ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.PieceFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
-                        : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.PieceFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
-                    EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED),
-                        infoMessage,
-                        MRLocalization.Get(L.Common.OK));
-                }
-                RefreshMenuControlCache();
-                EditorUtility.SetDirty(_target);
-            }
-            EditorGUI.EndDisabledGroup();
-
-            // Botón Regenerar (solo si existe estructura)
-            EditorGUI.BeginDisabledGroup(!hasExistingStructure || _target.DetectedPieceCount == 0);
-            if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.REGENERATE), MRLocalization.Get(L.MenuRadialEditor.REGENERATE_TOOLTIP)), GUILayout.Height(25)))
-            {
-                if (EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.REGENERATE_TITLE),
-                    MRLocalization.Get(L.MenuRadialEditor.REGENERATE_CONFIRM),
-                    MRLocalization.Get(L.Common.YES), MRLocalization.Get(L.Common.CANCEL)))
-                {
-                    Undo.RecordObject(_target, "Regenerate Menu Structure");
-                    var result = _target.RegenerateMenuStructure();
-                    if (result.Success)
-                    {
-                        string infoMessage = result.WigFramesCreated > 0
-                            ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, result.PieceFramesCreated, result.WigFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded)
-                            : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, result.PieceFramesCreated, result.AvatarMeshesIncluded, result.AvatarMeshesExcluded);
-                        EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_REGENERATED),
-                            infoMessage,
-                            MRLocalization.Get(L.Common.OK));
-                    }
-                    RefreshMenuControlCache();
-                    EditorUtility.SetDirty(_target);
-                }
-            }
-            EditorGUI.EndDisabledGroup();
-
-            EditorGUILayout.EndHorizontal();
-
-            // Botón Sincronizar (solo si existe estructura)
-            EditorGUILayout.Space(5);
-            EditorGUILayout.BeginHorizontal();
-            EditorGUI.BeginDisabledGroup(!hasExistingStructure || !hasAvatar);
+            // Botón Sincronizar: crea estructura si no existe, agrega lo que falte si existe
+            EditorGUI.BeginDisabledGroup(!hasPieces && !hasExistingStructure);
             var prevBgSync = GUI.backgroundColor;
             GUI.backgroundColor = new Color(0.4f, 0.6f, 1f);
             if (GUILayout.Button(new GUIContent(
                 MRLocalization.Get(L.MenuRadialEditor.SYNC_STRUCTURE),
                 MRLocalization.Get(L.MenuRadialEditor.SYNC_STRUCTURE_TOOLTIP)),
-                GUILayout.Height(25)))
+                GUILayout.Height(28)))
             {
                 Undo.RecordObject(_target, "Sync Menu Structure");
-                var syncResult = _target.SyncMenuStructure();
-                if (syncResult.Success)
+
+                if (!hasExistingStructure)
                 {
-                    // Re-escanear AnalisisColision para detectar cambios en componentes MA
-                    if (_target.AnalisisColision != null)
+                    // No hay estructura: crear desde cero
+                    var genResult = _target.GenerateMenuStructure();
+                    if (genResult.Success)
                     {
-                        Undo.RecordObject(_target.AnalisisColision, "Refresh Analisis Colision");
-                        _target.AnalisisColision.Refresh();
-                        EditorUtility.SetDirty(_target.AnalisisColision);
+                        string infoMessage = genResult.WigFramesCreated > 0
+                            ? MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO_WITH_WIGS, genResult.PieceFramesCreated, genResult.WigFramesCreated, genResult.AvatarMeshesIncluded, genResult.AvatarMeshesExcluded)
+                            : MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED_INFO, genResult.PieceFramesCreated, genResult.AvatarMeshesIncluded, genResult.AvatarMeshesExcluded);
+                        EditorUtility.DisplayDialog(MRLocalization.Get(L.MenuRadialEditor.STRUCTURE_GENERATED),
+                            infoMessage,
+                            MRLocalization.Get(L.Common.OK));
                     }
-
-                    // Refrescar AjustarBounds para incluir nuevos meshes en bounds y anchor
-                    if (_target.AjustarBounds != null)
-                    {
-                        var ab = _target.AjustarBounds;
-                        Undo.RecordObject(ab, "Refresh Ajustar Bounds");
-                        foreach (var meshInfo in ab.DetectedMeshes)
-                        {
-                            if (meshInfo.IsValid && meshInfo.Renderer != null)
-                                Undo.RecordObject(meshInfo.Renderer, "Refresh Ajustar Bounds");
-                        }
-                        foreach (var particleInfo in ab.DetectedParticles)
-                        {
-                            if (particleInfo.IsValid && particleInfo.Renderer != null)
-                                Undo.RecordObject(particleInfo.Renderer, "Refresh Ajustar Bounds");
-                        }
-                        ab.Refresh();
-                        EditorUtility.SetDirty(ab);
-                    }
-
-                    string message;
-                    if (syncResult.FramesAdded > 0 && syncResult.WigFramesAdded > 0)
-                    {
-                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED_WITH_WIGS,
-                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedPieceNames),
-                            syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
-                    }
-                    else if (syncResult.WigFramesAdded > 0)
-                    {
-                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_WIGS_ADDED,
-                            syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
-                    }
-                    else if (syncResult.FramesAdded > 0)
-                    {
-                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED,
-                            syncResult.FramesAdded, string.Join(", ", syncResult.AddedPieceNames));
-                    }
-                    else
-                    {
-                        message = MRLocalization.Get(L.MenuRadialEditor.SYNC_NO_CHANGES);
-                    }
-                    if (syncResult.OrphanedFrames > 0)
-                        message += "\n\n" + MRLocalization.Get(L.MenuRadialEditor.SYNC_ORPHANED_WARNING, syncResult.OrphanedFrames, string.Join(", ", syncResult.OrphanedFrameNames));
-                    EditorUtility.DisplayDialog(
-                        MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_TITLE),
-                        message,
-                        MRLocalization.Get(L.Common.OK));
                 }
+                else
+                {
+                    // Ya hay estructura: sincronizar (agregar lo que falte)
+                    var syncResult = _target.SyncMenuStructure();
+                    if (syncResult.Success)
+                    {
+                        // Re-escanear AnalisisColision para detectar cambios en componentes MA
+                        if (_target.AnalisisColision != null)
+                        {
+                            Undo.RecordObject(_target.AnalisisColision, "Refresh Analisis Colision");
+                            _target.AnalisisColision.Refresh();
+                            EditorUtility.SetDirty(_target.AnalisisColision);
+                        }
+
+                        string message;
+                        if (syncResult.FramesAdded > 0 && syncResult.WigFramesAdded > 0)
+                        {
+                            message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED_WITH_WIGS,
+                                syncResult.FramesAdded, string.Join(", ", syncResult.AddedPieceNames),
+                                syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
+                        }
+                        else if (syncResult.WigFramesAdded > 0)
+                        {
+                            message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_WIGS_ADDED,
+                                syncResult.WigFramesAdded, string.Join(", ", syncResult.AddedWigNames));
+                        }
+                        else if (syncResult.FramesAdded > 0)
+                        {
+                            message = MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_ADDED,
+                                syncResult.FramesAdded, string.Join(", ", syncResult.AddedPieceNames));
+                        }
+                        else
+                        {
+                            message = MRLocalization.Get(L.MenuRadialEditor.SYNC_NO_CHANGES);
+                        }
+                        if (syncResult.OrphanedFrames > 0)
+                            message += "\n\n" + MRLocalization.Get(L.MenuRadialEditor.SYNC_ORPHANED_WARNING, syncResult.OrphanedFrames, string.Join(", ", syncResult.OrphanedFrameNames));
+                        EditorUtility.DisplayDialog(
+                            MRLocalization.Get(L.MenuRadialEditor.SYNC_RESULT_TITLE),
+                            message,
+                            MRLocalization.Get(L.Common.OK));
+                    }
+                }
+
+                // Escanear, calcular y aplicar bounds + anchor (en ambas ramas)
+                RefreshAjustarBounds();
+
                 RefreshMenuControlCache();
                 EditorUtility.SetDirty(_target);
             }
             GUI.backgroundColor = prevBgSync;
             EditorGUI.EndDisabledGroup();
-            EditorGUILayout.EndHorizontal();
 
-            if (_target.DetectedPieceCount == 0 && hasAvatar)
+            if (!hasPieces && hasAvatar)
             {
                 EditorGUILayout.HelpBox(MRLocalization.Get(L.MenuRadialEditor.DETECT_CLOTHING_FIRST), MessageType.Info);
             }
@@ -672,18 +611,30 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUILayout.Space(5);
 
             // Botón Generar Archivos VRChat
-            EditorGUILayout.BeginHorizontal();
             bool canGenerate = hasAvatar && _target.MenuSlotCount > 0;
             EditorGUI.BeginDisabledGroup(!canGenerate);
             var prevBg = GUI.backgroundColor;
             GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
             if (GUILayout.Button(new GUIContent(MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT), MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT_TOOLTIP)), GUILayout.Height(30)))
             {
-                _target.GenerateVRChatFiles();
+                bool success = _target.GenerateVRChatFiles();
+                if (success)
+                {
+                    EditorUtility.DisplayDialog(
+                        MRLocalization.Get(L.Common.SUCCESS),
+                        MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT_SUCCESS),
+                        MRLocalization.Get(L.Common.OK));
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog(
+                        MRLocalization.Get(L.Common.ERROR),
+                        MRLocalization.Get(L.MenuRadialEditor.GENERATE_VRCHAT_ERROR),
+                        MRLocalization.Get(L.Common.OK));
+                }
             }
             GUI.backgroundColor = prevBg;
             EditorGUI.EndDisabledGroup();
-            EditorGUILayout.EndHorizontal();
 
             if (!canGenerate && hasAvatar)
             {
@@ -693,6 +644,61 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             EditorGUI.EndDisabledGroup();
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void RefreshAjustarBounds()
+        {
+            if (_target.AjustarBounds == null) return;
+
+            var ab = _target.AjustarBounds;
+            Undo.RecordObject(ab, "Refresh Ajustar Bounds");
+
+            // Registrar Undo en renderers existentes antes de que Refresh los modifique
+            foreach (var meshInfo in ab.DetectedMeshes)
+            {
+                if (meshInfo.IsValid && meshInfo.Renderer != null)
+                {
+                    Undo.RecordObject(meshInfo.Renderer, "Refresh Ajustar Bounds");
+                    Undo.RecordObject(meshInfo.Renderer.transform, "Refresh Ajustar Bounds");
+                }
+            }
+            foreach (var particleInfo in ab.DetectedParticles)
+            {
+                if (particleInfo.IsValid && particleInfo.Renderer != null)
+                    Undo.RecordObject(particleInfo.Renderer, "Refresh Ajustar Bounds");
+            }
+
+            // Refresh: restaurar → re-detectar rootBone → escanear → calcular → re-aplicar (si ya estaban aplicados)
+            ab.Refresh();
+
+            // Registrar Undo en renderers nuevos (descubiertos por el scan) antes de aplicar
+            foreach (var meshInfo in ab.DetectedMeshes)
+            {
+                if (meshInfo.IsValid && meshInfo.Renderer != null)
+                {
+                    Undo.RecordObject(meshInfo.Renderer, "Refresh Ajustar Bounds");
+                    Undo.RecordObject(meshInfo.Renderer.transform, "Refresh Ajustar Bounds");
+                }
+            }
+
+            // Si Refresh no aplicó (primera vez), aplicar ahora
+            if (!ab.BoundsApplied && ab.HasValidCalculation)
+            {
+                ab.ApplyBounds();
+                ab.ApplyAnchorOverride();
+
+                if (ab.IncludeParticles)
+                {
+                    foreach (var particleInfo in ab.DetectedParticles)
+                    {
+                        if (particleInfo.IsValid && particleInfo.Renderer != null)
+                            Undo.RecordObject(particleInfo.Renderer, "Refresh Ajustar Bounds");
+                    }
+                    ab.ApplyParticleBounds();
+                }
+            }
+
+            EditorUtility.SetDirty(ab);
         }
 
         private void DrawChildComponentsPanel()
