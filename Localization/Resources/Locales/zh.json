@@ -157,7 +157,15 @@
         "frameLabel": "帧 {0}",
         "duplicateFrame": "复制帧",
         "deleteFrameTitle": "删除帧",
-        "deleteFrameConfirm": "确定要删除此帧及其 GameObject 吗？\n\n此操作可通过 Ctrl+Z 撤销。"
+        "deleteFrameConfirm": "确定要删除此帧及其 GameObject 吗？\n\n此操作可通过 Ctrl+Z 撤销。",
+
+        "defaultFrameTitle": "VRChat 中的默认帧",
+        "defaultFrameLabel": "默认帧",
+        "defaultFrameOnOff": "启动时激活",
+        "defaultFrameOnDesc": "虚拟形象将在 VRChat 中以此开关「激活」状态启动。",
+        "defaultFrameOffDesc": "虚拟形象将在 VRChat 中以此开关「关闭」状态启动。",
+        "defaultFrameABInfo": "虚拟形象将从帧 {0} 开始。",
+        "defaultFrameLinearInfo": "默认参数值: {0:F3}"
     },
     "illumination": {
         "header": "MR 径向光照",

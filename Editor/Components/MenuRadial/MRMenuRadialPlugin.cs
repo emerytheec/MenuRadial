@@ -13,6 +13,8 @@ using Bender_Dios.MenuRadial.Components.MenuRadial;
 using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
 using Bender_Dios.MenuRadial.Components.Menu;
 using Bender_Dios.MenuRadial.Core.Common;
+using Bender_Dios.MenuRadial.Components.Radial;
+using Bender_Dios.MenuRadial.Components.Frame;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.MenuRadial.MRMenuRadialPlugin))]
 
@@ -240,6 +242,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             // 3. Mezclar Menu con la configuración de integración
             MergeMenu(context, avatar, generatedMenu, effectiveMenuName, menuIcon, integrationMode, targetSubMenuIndex, customMenuPath);
+
+            // 4. Activar objetos del frame por defecto en el clon del avatar
+            ActivateDefaultFrameObjects(context, menuRadial);
 
             // La limpieza de componentes MR se hace en MRMenuRadialCleanupPass (AfterMA)
             // para no destruir componentes que otros plugins MR necesitan (ej: MRAjustarBounds)
@@ -691,6 +696,96 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 });
 
                 menu = newMenu;
+            }
+        }
+
+        /// <summary>
+        /// Activa los objetos del frame por defecto en el clon del avatar durante el build NDMF.
+        /// Esto asegura que los GameObjects estén en el estado correcto según la configuración del usuario.
+        /// </summary>
+        private void ActivateDefaultFrameObjects(BuildContext context, MRMenuRadial menuRadial)
+        {
+            if (menuRadial == null) return;
+
+            // Buscar MRUnificarObjetos tanto dentro del avatar como en el menuRadial externo
+            var avatarRoot = context.AvatarRootObject;
+            var unificarObjetos = avatarRoot.GetComponentsInChildren<MRUnificarObjetos>(true);
+
+            // También buscar en el menuRadial si es externo
+            var externalUnificarObjetos = menuRadial.GetComponentsInChildren<MRUnificarObjetos>(true);
+            var allUnificarObjetos = unificarObjetos.Concat(externalUnificarObjetos).Distinct().ToArray();
+
+            foreach (var radial in allUnificarObjetos)
+            {
+                if (radial == null || radial.FrameCount == 0) continue;
+                if (radial.DefaultFrameIndex < 0 || radial.DefaultFrameIndex >= radial.FrameCount) continue;
+
+                var validFrames = radial.FrameObjects?.Where(f => f != null).ToArray();
+                if (validFrames == null || validFrames.Length == 0) continue;
+
+                var defaultFrame = validFrames.ElementAtOrDefault(radial.DefaultFrameIndex);
+                if (defaultFrame == null) continue;
+
+                Debug.Log($"[MRMenuRadial NDMF] Activando frame por defecto {radial.DefaultFrameIndex} para '{radial.AnimationName}'");
+
+                // Activar objetos del frame default
+                foreach (var objRef in defaultFrame.ObjectReferences)
+                {
+                    if (objRef?.GameObject == null) continue;
+
+                    // Buscar el objeto en el clon del avatar por ruta
+                    string path = objRef.HierarchyPath;
+                    if (string.IsNullOrEmpty(path)) continue;
+
+                    var targetTransform = avatarRoot.transform.Find(path);
+                    if (targetTransform != null)
+                    {
+                        targetTransform.gameObject.SetActive(objRef.IsActive);
+                    }
+                }
+
+                // Aplicar materiales del frame default
+                foreach (var matRef in defaultFrame.MaterialReferences)
+                {
+                    if (matRef?.TargetRenderer == null || matRef.AlternativeMaterial == null) continue;
+
+                    string path = matRef.HierarchyPath;
+                    if (string.IsNullOrEmpty(path)) continue;
+
+                    var targetTransform = avatarRoot.transform.Find(path);
+                    if (targetTransform == null) continue;
+
+                    var renderer = targetTransform.GetComponent<Renderer>();
+                    if (renderer == null) continue;
+
+                    var materials = renderer.sharedMaterials;
+                    if (matRef.MaterialIndex < materials.Length)
+                    {
+                        materials[matRef.MaterialIndex] = matRef.AlternativeMaterial;
+                        renderer.sharedMaterials = materials;
+                    }
+                }
+
+                // Aplicar blendshapes del frame default
+                foreach (var blendRef in defaultFrame.BlendshapeReferences)
+                {
+                    if (blendRef?.TargetRenderer == null) continue;
+
+                    string path = blendRef.HierarchyPath;
+                    if (string.IsNullOrEmpty(path)) continue;
+
+                    var targetTransform = avatarRoot.transform.Find(path);
+                    if (targetTransform == null) continue;
+
+                    var smr = targetTransform.GetComponent<SkinnedMeshRenderer>();
+                    if (smr == null || smr.sharedMesh == null) continue;
+
+                    int blendIndex = smr.sharedMesh.GetBlendShapeIndex(blendRef.BlendshapeName);
+                    if (blendIndex >= 0)
+                    {
+                        smr.SetBlendShapeWeight(blendIndex, blendRef.Value);
+                    }
+                }
             }
         }
 

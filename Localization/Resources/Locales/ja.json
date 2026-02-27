@@ -157,7 +157,15 @@
         "frameLabel": "フレーム {0}",
         "duplicateFrame": "フレームを複製",
         "deleteFrameTitle": "フレームを削除",
-        "deleteFrameConfirm": "このフレームとそのGameObjectを削除しますか？\n\nCtrl+Zで元に戻せます。"
+        "deleteFrameConfirm": "このフレームとそのGameObjectを削除しますか？\n\nCtrl+Zで元に戻せます。",
+
+        "defaultFrameTitle": "VRChatでのデフォルトフレーム",
+        "defaultFrameLabel": "デフォルトフレーム",
+        "defaultFrameOnOff": "有効で開始",
+        "defaultFrameOnDesc": "アバターはVRChatでこのトグルが有効の状態で開始します。",
+        "defaultFrameOffDesc": "アバターはVRChatでこのトグルが無効の状態で開始します。",
+        "defaultFrameABInfo": "アバターはフレーム {0} で開始します。",
+        "defaultFrameLinearInfo": "デフォルトパラメータ値: {0:F3}"
     },
     "illumination": {
         "header": "MR Iluminacion Radial",

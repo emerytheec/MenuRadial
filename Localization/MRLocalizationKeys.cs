@@ -752,6 +752,15 @@ namespace Bender_Dios.MenuRadial.Localization
             public const string SYSTEM_INFO_AB = "radial.systemInfoAB";
             public const string SYSTEM_INFO_LINEAR = "radial.systemInfoLinear";
 
+            // DefaultFrameIndex
+            public const string DEFAULT_FRAME_TITLE = "radial.defaultFrameTitle";
+            public const string DEFAULT_FRAME_LABEL = "radial.defaultFrameLabel";
+            public const string DEFAULT_FRAME_ONOFF = "radial.defaultFrameOnOff";
+            public const string DEFAULT_FRAME_ON_DESC = "radial.defaultFrameOnDesc";
+            public const string DEFAULT_FRAME_OFF_DESC = "radial.defaultFrameOffDesc";
+            public const string DEFAULT_FRAME_AB_INFO = "radial.defaultFrameABInfo";
+            public const string DEFAULT_FRAME_LINEAR_INFO = "radial.defaultFrameLinearInfo";
+
             // MRUnificarObjetosReorderableController
             public const string FRAMES_HEADER = "radial.framesHeader";
             public const string FRAME_LABEL = "radial.frameLabel";

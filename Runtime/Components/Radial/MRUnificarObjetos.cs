@@ -29,6 +29,12 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// Para animaciones OnOff (1 frame): determina si el estado por defecto en el FX es ON (true) o OFF (false)
         /// </summary>
         [SerializeField] private bool _defaultStateIsOn = false;
+
+        /// <summary>
+        /// Índice del frame que será el estado por defecto en VRChat.
+        /// Para OnOff: 0=OFF, 1=ON. Para AB: 0=A, 1=B. Para Linear: 0..N-1.
+        /// </summary>
+        [SerializeField] private int _defaultFrameIndex = 0;
         
         // Controlador de preview
         private RadialMenuPreviewController _previewController;
@@ -109,19 +115,63 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         /// Para OnOff: si true, el estado por defecto en el FX Controller será ON en lugar de OFF.
         /// Solo aplica cuando FrameCount == 1 (AnimationType.OnOff)
         /// </summary>
+        [System.Obsolete("Usar DefaultFrameIndex en su lugar")]
         public bool DefaultStateIsOn
         {
-            get => _defaultStateIsOn;
+            get => _defaultFrameIndex > 0;
             set
             {
-                if (_defaultStateIsOn != value)
+                int newIndex = value ? 1 : 0;
+                if (_defaultFrameIndex != newIndex)
                 {
-                    _defaultStateIsOn = value;
+                    _defaultFrameIndex = newIndex;
                     InvalidateValidation();
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Índice del frame por defecto en VRChat.
+        /// Para OnOff: 0=OFF, 1=ON. Para AB: 0=Frame A, 1=Frame B. Para Linear: 0..FrameCount-1.
+        /// </summary>
+        public int DefaultFrameIndex
+        {
+            get => _defaultFrameIndex;
+            set
+            {
+                int maxIndex = AnimationType == Core.Common.AnimationType.OnOff ? 1 : Mathf.Max(0, FrameCount - 1);
+                int clamped = Mathf.Clamp(value, 0, maxIndex);
+                if (_defaultFrameIndex != clamped)
+                {
+                    _defaultFrameIndex = clamped;
+                    InvalidateValidation();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calcula el valor del parámetro VRChat para el frame por defecto.
+        /// OnOff/AB: 0f o 1f. Linear: valor normalizado 0..1.
+        /// </summary>
+        public float GetDefaultParameterValue()
+        {
+            switch (AnimationType)
+            {
+                case Core.Common.AnimationType.OnOff:
+                case Core.Common.AnimationType.AB:
+                    return _defaultFrameIndex > 0 ? 1f : 0f;
+
+                case Core.Common.AnimationType.Linear:
+                    if (FrameCount <= 1) return 0f;
+                    int framesPerSegment = MRAnimationConstants.TOTAL_FRAMES / FrameCount;
+                    int startFrame = _defaultFrameIndex * framesPerSegment;
+                    return startFrame / (float)MRAnimationConstants.TOTAL_FRAMES;
+
+                default:
+                    return 0f;
+            }
+        }
+
         // Propiedades de compatibilidad
         public List<MRAgruparObjetos> FrameObjects => _frames;
         public string FullAnimationPath => System.IO.Path.Combine(_animationPath, _animationName + ".anim");
@@ -294,8 +344,11 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 // Ajustar índice activo si es necesario
                 if (_activeFrameIndex >= FrameCount)
                     _activeFrameIndex = Mathf.Max(0, FrameCount - 1);
-                    
-    
+
+                // Ajustar índice de frame por defecto
+                if (_defaultFrameIndex >= FrameCount)
+                    _defaultFrameIndex = Mathf.Max(0, FrameCount - 1);
+
                 InvalidateValidation();
             }
         }
@@ -387,8 +440,11 @@ namespace Bender_Dios.MenuRadial.Components.Radial
                 // Ajustar índice activo si es necesario
                 if (_activeFrameIndex >= FrameCount)
                     _activeFrameIndex = Mathf.Max(0, FrameCount - 1);
-                    
-    
+
+                // Ajustar índice de frame por defecto
+                if (_defaultFrameIndex >= FrameCount)
+                    _defaultFrameIndex = Mathf.Max(0, FrameCount - 1);
+
                 InvalidateValidation();
             }
         }
@@ -586,7 +642,14 @@ namespace Bender_Dios.MenuRadial.Components.Radial
         void OnValidate()
         {
             InvalidateValidation();
-            
+
+            // Migración: DefaultStateIsOn → DefaultFrameIndex
+            if (_defaultStateIsOn && _defaultFrameIndex == 0)
+            {
+                _defaultFrameIndex = 1;
+                _defaultStateIsOn = false;
+            }
+
             if (_autoUpdatePaths)
             {
                 CleanupInvalidFrames();

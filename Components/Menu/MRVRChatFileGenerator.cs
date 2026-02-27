@@ -289,13 +289,21 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         /// </summary>
         private string GetDefaultValueDescription(AnimationType animationType, IAnimationProvider provider)
         {
-            if (animationType == AnimationType.OnOff && provider is Radial.MRUnificarObjetos radialMenu)
+            if (provider is Radial.MRUnificarObjetos radialMenu)
             {
-                return radialMenu.DefaultStateIsOn ? "true (ON)" : "false (OFF)";
+                float value = radialMenu.GetDefaultParameterValue();
+                return animationType switch
+                {
+                    AnimationType.OnOff => value > 0f ? "true (ON)" : "false (OFF)",
+                    AnimationType.AB => value > 0f ? "true (B)" : "false (A)",
+                    AnimationType.Linear => $"{value:F3}",
+                    _ => "N/A"
+                };
             }
 
             return animationType switch
             {
+                AnimationType.OnOff => "false (OFF)",
                 AnimationType.AB => "false",
                 AnimationType.Linear => "0.0f",
                 _ => "N/A"

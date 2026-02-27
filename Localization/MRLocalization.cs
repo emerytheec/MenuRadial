@@ -1073,6 +1073,13 @@ namespace Bender_Dios.MenuRadial.Localization
             public string duplicateFrame;
             public string deleteFrameTitle;
             public string deleteFrameConfirm;
+            public string defaultFrameTitle;
+            public string defaultFrameLabel;
+            public string defaultFrameOnOff;
+            public string defaultFrameOnDesc;
+            public string defaultFrameOffDesc;
+            public string defaultFrameABInfo;
+            public string defaultFrameLinearInfo;
 
             // CoserRopaExtra
             public string humanoid;

@@ -157,7 +157,15 @@
         "frameLabel": "프레임 {0}",
         "duplicateFrame": "프레임 복제",
         "deleteFrameTitle": "프레임 삭제",
-        "deleteFrameConfirm": "이 프레임과 해당 GameObject를 삭제하시겠습니까?\n\nCtrl+Z로 실행 취소할 수 있습니다."
+        "deleteFrameConfirm": "이 프레임과 해당 GameObject를 삭제하시겠습니까?\n\nCtrl+Z로 실행 취소할 수 있습니다.",
+
+        "defaultFrameTitle": "VRChat 기본 프레임",
+        "defaultFrameLabel": "기본 프레임",
+        "defaultFrameOnOff": "활성화로 시작",
+        "defaultFrameOnDesc": "아바타는 VRChat에서 이 토글이 활성화된 상태로 시작합니다.",
+        "defaultFrameOffDesc": "아바타는 VRChat에서 이 토글이 비활성화된 상태로 시작합니다.",
+        "defaultFrameABInfo": "아바타는 프레임 {0}에서 시작합니다.",
+        "defaultFrameLinearInfo": "기본 파라미터 값: {0:F3}"
     },
     "illumination": {
         "header": "MR Iluminacion Radial",

@@ -163,7 +163,15 @@
         "frameLabel": "Frame {0}",
         "duplicateFrame": "Duplicar frame",
         "deleteFrameTitle": "Eliminar Frame",
-        "deleteFrameConfirm": "¿Eliminar este frame y su GameObject?\n\nEsta accion se puede deshacer con Ctrl+Z."
+        "deleteFrameConfirm": "¿Eliminar este frame y su GameObject?\n\nEsta accion se puede deshacer con Ctrl+Z.",
+
+        "defaultFrameTitle": "Frame por Defecto en VRChat",
+        "defaultFrameLabel": "Frame por Defecto",
+        "defaultFrameOnOff": "Iniciar activado",
+        "defaultFrameOnDesc": "El avatar iniciara con este toggle ACTIVADO en VRChat.",
+        "defaultFrameOffDesc": "El avatar iniciara con este toggle DESACTIVADO en VRChat.",
+        "defaultFrameABInfo": "El avatar iniciara en el frame {0}.",
+        "defaultFrameLinearInfo": "Valor del parametro por defecto: {0:F3}"
     },
     "illumination": {
         "header": "MR Iluminacion Radial",

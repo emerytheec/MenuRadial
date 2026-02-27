@@ -106,26 +106,19 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
                 networkSynced = true
             };
 
+            float defaultValue = GetDefaultValueForSlot(slotInfo);
+
             switch (slotInfo.AnimationType)
             {
                 case AnimationType.OnOff:
-                    param.valueType = VRCExpressionParameters.ValueType.Bool;
-                    bool defaultIsOn = false;
-                    if (slotInfo.AnimationProvider is MRUnificarObjetos radialMenu)
-                    {
-                        defaultIsOn = radialMenu.DefaultStateIsOn;
-                    }
-                    param.defaultValue = defaultIsOn ? 1f : 0f;
-                    break;
-
                 case AnimationType.AB:
                     param.valueType = VRCExpressionParameters.ValueType.Bool;
-                    param.defaultValue = 0f;
+                    param.defaultValue = defaultValue;
                     break;
 
                 case AnimationType.Linear:
                     param.valueType = VRCExpressionParameters.ValueType.Float;
-                    param.defaultValue = slotInfo.IsIllumination ? MRIlluminationConstants.VRCHAT_DEFAULT_VALUE : 0f;
+                    param.defaultValue = defaultValue;
                     break;
 
                 default:
@@ -133,6 +126,20 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
             }
 
             return param;
+        }
+
+        /// <summary>
+        /// Obtiene el valor por defecto del parámetro para un slot
+        /// </summary>
+        private float GetDefaultValueForSlot(MRSlotInfo slotInfo)
+        {
+            if (slotInfo.IsIllumination)
+                return MRIlluminationConstants.VRCHAT_DEFAULT_VALUE;
+
+            if (slotInfo.AnimationProvider is MRUnificarObjetos radial)
+                return radial.GetDefaultParameterValue();
+
+            return 0f;
         }
 
         /// <summary>

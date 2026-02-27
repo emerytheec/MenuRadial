@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.66] - 2026-02-27
+
+### Agregado
+- **Frame por Defecto en VRChat (DefaultFrameIndex)**: Nuevo selector que permite elegir con que frame inicia el avatar en VRChat. Funciona para OnOff (toggle activado/desactivado), AB (frame A o B) y Linear (cualquier frame). Reemplaza el antiguo DefaultStateIsOn que solo funcionaba para OnOff
+- **Activacion NDMF de frame por defecto**: Durante el build NDMF, los objetos, materiales y blendshapes del frame por defecto se activan en el clon del avatar como red de seguridad
+- **Localizacion**: 7 nuevas claves (defaultFrame*) en 6 idiomas para el selector de frame por defecto
+- **Migracion automatica**: Escenas con DefaultStateIsOn=true migran automaticamente a DefaultFrameIndex=1 via OnValidate
+
+### Cambiado
+- **Generadores VRChat**: FX Controller, Parameters y Menu ahora usan GetDefaultParameterValue() para calcular valores por defecto correctos en todos los tipos de animacion (OnOff, AB, Linear)
+- **DefaultStateIsOn marcado [Obsolete]**: Ahora delega internamente a DefaultFrameIndex. Codigo existente sigue funcionando
+
 ## [0.9.65] - 2026-02-27
 
 ### Agregado

@@ -104,40 +104,27 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
             if (controller.parameters.Any(p => p.name == paramName))
                 return;
 
+            float defaultValue = GetDefaultValueForSlot(slotInfo);
+
             AnimatorControllerParameter param;
             switch (slotInfo.AnimationType)
             {
                 case AnimationType.OnOff:
-                    bool defaultIsOn = false;
-                    if (slotInfo.AnimationProvider is MRUnificarObjetos radialMenu)
-                    {
-                        defaultIsOn = radialMenu.DefaultStateIsOn;
-                    }
-                    param = new AnimatorControllerParameter
-                    {
-                        name = paramName,
-                        type = AnimatorControllerParameterType.Bool,
-                        defaultBool = defaultIsOn
-                    };
-                    break;
-
                 case AnimationType.AB:
                     param = new AnimatorControllerParameter
                     {
                         name = paramName,
                         type = AnimatorControllerParameterType.Bool,
-                        defaultBool = false
+                        defaultBool = defaultValue > 0f
                     };
                     break;
 
                 case AnimationType.Linear:
-                    // Usar valor por defecto apropiado (0 para normal, 0.5 para iluminación)
-                    float defaultFloat = slotInfo.IsIllumination ? MRIlluminationConstants.VRCHAT_DEFAULT_VALUE : 0f;
                     param = new AnimatorControllerParameter
                     {
                         name = paramName,
                         type = AnimatorControllerParameterType.Float,
-                        defaultFloat = defaultFloat
+                        defaultFloat = defaultValue
                     };
                     break;
 
@@ -146,6 +133,20 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
             }
 
             controller.AddParameter(param);
+        }
+
+        /// <summary>
+        /// Obtiene el valor por defecto del parámetro para un slot
+        /// </summary>
+        private float GetDefaultValueForSlot(MRSlotInfo slotInfo)
+        {
+            if (slotInfo.IsIllumination)
+                return MRIlluminationConstants.VRCHAT_DEFAULT_VALUE;
+
+            if (slotInfo.AnimationProvider is MRUnificarObjetos radial)
+                return radial.GetDefaultParameterValue();
+
+            return 0f;
         }
 
         /// <summary>
@@ -209,9 +210,9 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
 
             // Determinar estado inicial según configuración
             bool defaultIsOn = false;
-            if (slotInfo.AnimationType == AnimationType.OnOff && slotInfo.AnimationProvider is MRUnificarObjetos radialMenu)
+            if (slotInfo.AnimationProvider is MRUnificarObjetos radialMenu)
             {
-                defaultIsOn = radialMenu.DefaultStateIsOn;
+                defaultIsOn = radialMenu.DefaultFrameIndex > 0;
             }
 
             stateMachine.defaultState = defaultIsOn ? stateOn : stateOff;

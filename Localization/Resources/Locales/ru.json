@@ -157,7 +157,15 @@
         "frameLabel": "Фрейм {0}",
         "duplicateFrame": "Дублировать фрейм",
         "deleteFrameTitle": "Удалить фрейм",
-        "deleteFrameConfirm": "Удалить этот фрейм и его GameObject?\n\nЭто действие можно отменить с помощью Ctrl+Z."
+        "deleteFrameConfirm": "Удалить этот фрейм и его GameObject?\n\nЭто действие можно отменить с помощью Ctrl+Z.",
+
+        "defaultFrameTitle": "Фрейм по умолчанию в VRChat",
+        "defaultFrameLabel": "Фрейм по умолчанию",
+        "defaultFrameOnOff": "Начать включённым",
+        "defaultFrameOnDesc": "Аватар запустится с этим переключателем ВКЛЮЧЁННЫМ в VRChat.",
+        "defaultFrameOffDesc": "Аватар запустится с этим переключателем ВЫКЛЮЧЕННЫМ в VRChat.",
+        "defaultFrameABInfo": "Аватар запустится на фрейме {0}.",
+        "defaultFrameLinearInfo": "Значение параметра по умолчанию: {0:F3}"
     },
     "illumination": {
         "header": "MR Iluminacion Radial",

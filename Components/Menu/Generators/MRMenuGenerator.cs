@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Components.Menu;
+using Bender_Dios.MenuRadial.Components.Radial;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -121,8 +122,8 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
                             name = slotInfo.Slot.slotName
                         }
                     };
-                    // Establecer valor por defecto para el RadialPuppet (0 para normal, 0.5 para iluminación)
-                    control.value = slotInfo.IsIllumination ? MRIlluminationConstants.VRCHAT_DEFAULT_VALUE : 0f;
+                    // Establecer valor por defecto para el RadialPuppet
+                    control.value = GetDefaultValueForSlot(slotInfo);
                     Debug.Log($"[MRMenuGenerator] Creando RadialPuppet para '{slotInfo.Slot.slotName}' (Linear) con valor={control.value}");
                     break;
 
@@ -155,6 +156,20 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
             }
 
             return control;
+        }
+
+        /// <summary>
+        /// Obtiene el valor por defecto del parámetro para un slot
+        /// </summary>
+        private float GetDefaultValueForSlot(MRSlotInfo slotInfo)
+        {
+            if (slotInfo.IsIllumination)
+                return MRIlluminationConstants.VRCHAT_DEFAULT_VALUE;
+
+            if (slotInfo.AnimationProvider is MRUnificarObjetos radial)
+                return radial.GetDefaultParameterValue();
+
+            return 0f;
         }
 
         /// <summary>

@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.AnimationSystem;
+using Bender_Dios.MenuRadial.Core.Common;
 using Bender_Dios.MenuRadial.Localization;
 using L = Bender_Dios.MenuRadial.Localization.MRLocalizationKeys;
 
@@ -20,7 +22,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         private readonly SerializedProperty _activeFrameIndexProp;
         private readonly SerializedProperty _autoUpdatePathsProp;
         private readonly SerializedProperty _animationNameProp;
-        private readonly SerializedProperty _defaultStateIsOnProp;
+        private readonly SerializedProperty _defaultFrameIndexProp;
         private readonly MRUnificarObjetosPreviewManager _previewManager;
         private readonly MRUnificarObjetosReorderableController _reorderableController;
         
@@ -46,7 +48,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             SerializedProperty activeFrameIndexProp,
             SerializedProperty autoUpdatePathsProp,
             SerializedProperty animationNameProp,
-            SerializedProperty defaultStateIsOnProp,
+            SerializedProperty defaultFrameIndexProp,
             MRUnificarObjetosPreviewManager previewManager,
             MRUnificarObjetosReorderableController reorderableController)
         {
@@ -55,7 +57,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             _activeFrameIndexProp = activeFrameIndexProp ?? throw new ArgumentNullException(nameof(activeFrameIndexProp));
             _autoUpdatePathsProp = autoUpdatePathsProp ?? throw new ArgumentNullException(nameof(autoUpdatePathsProp));
             _animationNameProp = animationNameProp ?? throw new ArgumentNullException(nameof(animationNameProp));
-            _defaultStateIsOnProp = defaultStateIsOnProp; // Puede ser null si no se encuentra
+            _defaultFrameIndexProp = defaultFrameIndexProp; // Puede ser null si no se encuentra
             _previewManager = previewManager ?? throw new ArgumentNullException(nameof(previewManager));
             _reorderableController = reorderableController ?? throw new ArgumentNullException(nameof(reorderableController));
         }
@@ -148,6 +150,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
 
                 // Auto-actualizar Rutas
                 EditorGUILayout.PropertyField(_autoUpdatePathsProp, MRLocalization.GetContent(L.Common.AUTO_UPDATE));
+
+                GUILayout.Space(5f);
+
+                // Frame por Defecto en VRChat
+                DrawDefaultFrameControl();
 
                 EditorGUI.indentLevel--;
             }
@@ -251,8 +258,71 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             }
         }
         
-        
-        
+        private void DrawDefaultFrameControl()
+        {
+            if (_defaultFrameIndexProp == null || _target.FrameCount == 0) return;
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_TITLE), EditorStyles.boldLabel);
+
+            if (_target.FrameCount == 1)
+            {
+                // OnOff: toggle simple
+                bool isOn = _defaultFrameIndexProp.intValue > 0;
+                bool newIsOn = EditorGUILayout.Toggle(
+                    MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_ONOFF), isOn);
+                if (newIsOn != isOn)
+                {
+                    _defaultFrameIndexProp.intValue = newIsOn ? 1 : 0;
+                }
+
+                string desc = newIsOn
+                    ? MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_ON_DESC)
+                    : MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_OFF_DESC);
+                EditorGUILayout.HelpBox(desc, MessageType.Info);
+            }
+            else
+            {
+                // AB/Linear: popup con nombres de frames (numeración base 1 como la lista)
+                var frameNames = new string[_target.FrameCount];
+                var validFrames = _target.FrameObjects?.Where(f => f != null).ToArray();
+                for (int i = 0; i < frameNames.Length; i++)
+                {
+                    string name = (validFrames != null && i < validFrames.Length && validFrames[i] != null)
+                        ? validFrames[i].gameObject.name
+                        : MRLocalization.Get(L.RadialExtra.FRAME_LABEL, i + 1);
+                    frameNames[i] = $"{MRLocalization.Get(L.RadialExtra.FRAME_LABEL, i + 1)}: {name}";
+                }
+
+                int current = Mathf.Clamp(_defaultFrameIndexProp.intValue, 0, frameNames.Length - 1);
+                int newIndex = EditorGUILayout.Popup(
+                    MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_LABEL), current, frameNames);
+                if (newIndex != _defaultFrameIndexProp.intValue)
+                {
+                    _defaultFrameIndexProp.intValue = newIndex;
+                }
+
+                // Info según tipo
+                if (_target.AnimationType == AnimationType.AB)
+                {
+                    string frameName = (validFrames != null && newIndex < validFrames.Length && validFrames[newIndex] != null)
+                        ? validFrames[newIndex].gameObject.name
+                        : MRLocalization.Get(L.RadialExtra.FRAME_LABEL, newIndex + 1);
+                    EditorGUILayout.HelpBox(
+                        MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_AB_INFO, frameName), MessageType.Info);
+                }
+                else
+                {
+                    float paramValue = _target.GetDefaultParameterValue();
+                    EditorGUILayout.HelpBox(
+                        MRLocalization.Get(L.RadialExtra.DEFAULT_FRAME_LINEAR_INFO, paramValue), MessageType.Info);
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+
         private void DrawFramesListSection()
         {
             // Título con contador
@@ -374,26 +444,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             EditorGUILayout.PropertyField(_animationNameProp, MRLocalization.GetContent(L.Radial.ANIMATION_NAME));
 
             // Nota: AnimationPath ahora se configura desde MR Menu Radial
-
-            // Mostrar opción de Default State solo para OnOff (1 frame)
-            if (_target.FrameCount == 1 && _defaultStateIsOnProp != null)
-            {
-                GUILayout.Space(5f);
-
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField(MRLocalization.Get(L.RadialExtra.DEFAULT_STATE_TITLE), EditorStyles.boldLabel);
-
-                EditorGUILayout.PropertyField(_defaultStateIsOnProp,
-                    MRLocalization.GetContent(L.Radial.DEFAULT_STATE_IS_ON, L.Radial.DEFAULT_STATE_IS_ON_TOOLTIP));
-
-                // Mostrar información del estado actual
-                string stateInfo = _defaultStateIsOnProp.boolValue
-                    ? MRLocalization.Get(L.RadialExtra.DEFAULT_STATE_ON_DESC)
-                    : MRLocalization.Get(L.RadialExtra.DEFAULT_STATE_OFF_DESC);
-                EditorGUILayout.HelpBox(stateInfo, MessageType.Info);
-
-                EditorGUILayout.EndVertical();
-            }
+            // Nota: Default Frame se configura en la sección de Configuración General
         }
         
         private void DrawAnimationInfo()

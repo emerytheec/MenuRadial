@@ -25,7 +25,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
         private SerializedProperty _autoUpdatePathsProp;
         private SerializedProperty _framesProp;
         private SerializedProperty _animationNameProp;
-        private SerializedProperty _defaultStateIsOnProp;
+        private SerializedProperty _defaultFrameIndexProp;
 
         // Módulos especializados (Patrón de Delegación)
         private MRUnificarObjetosPreviewManager _previewManager;
@@ -157,7 +157,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
             _autoUpdatePathsProp = serializedObject.FindProperty("_autoUpdatePaths");
             _framesProp = serializedObject.FindProperty("_frames");
             _animationNameProp = serializedObject.FindProperty("_animationName");
-            _defaultStateIsOnProp = serializedObject.FindProperty("_defaultStateIsOn");
+            _defaultFrameIndexProp = serializedObject.FindProperty("_defaultFrameIndex");
 
         }
         
@@ -197,7 +197,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.Radial
                     _activeFrameIndexProp,
                     _autoUpdatePathsProp,
                     _animationNameProp,
-                    _defaultStateIsOnProp,
+                    _defaultFrameIndexProp,
                     _previewManager,
                     _reorderableController
                 );
