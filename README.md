@@ -109,9 +109,12 @@ Avatar/
 - **AB** (2 frames): Genera `nombre_A.anim` y `nombre_B.anim`
 - **Linear** (3+ frames): Genera `nombre_lin.anim` (255 frames)
 
-## Documentacion
+## Enlaces
 
-Consulta la carpeta `Documentation/` para el manual de usuario completo.
+- [Documentacion](https://emerytheec.github.io/MenuRadial-docs/)
+- [VPM (Creator Companion)](https://emerytheec.github.io/vpm-listing/)
+- [Booth](https://bender-dios.booth.pm/items/8039173)
+- [Ko-fi](https://ko-fi.com/bender_dios)
 
 ## Licencia
 
@@ -120,6 +123,8 @@ Este proyecto esta bajo la licencia MIT. Ver [LICENSE](LICENSE) para mas detalle
 ## Autor
 
 **Bender_Dios**
+
+Si esta herramienta te resulta util, puedes apoyar el desarrollo en [Ko-fi](https://ko-fi.com/bender_dios).
 
 ## Contribuciones
 
