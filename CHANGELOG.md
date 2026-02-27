@@ -5,6 +5,11 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.67] - 2026-02-27
+
+### Corregido
+- **Fix: avatar subia sin ropa con DefaultFrameIndex**: La activacion NDMF de objetos del frame por defecto fallaba silenciosamente porque usaba HierarchyPath (ruta absoluta desde la escena) con transform.Find() (que espera ruta relativa al avatar). Ahora usa referencias directas serializadas que Unity remapea automaticamente al clonar el avatar
+
 ## [0.9.66] - 2026-02-27
 
 ### Agregado

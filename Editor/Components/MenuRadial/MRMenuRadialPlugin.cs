@@ -729,19 +729,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 Debug.Log($"[MRMenuRadial NDMF] Activando frame por defecto {radial.DefaultFrameIndex} para '{radial.AnimationName}'");
 
                 // Activar objetos del frame default
+                // Usar referencias directas (remapeadas por Unity al clonar el avatar)
                 foreach (var objRef in defaultFrame.ObjectReferences)
                 {
                     if (objRef?.GameObject == null) continue;
-
-                    // Buscar el objeto en el clon del avatar por ruta
-                    string path = objRef.HierarchyPath;
-                    if (string.IsNullOrEmpty(path)) continue;
-
-                    var targetTransform = avatarRoot.transform.Find(path);
-                    if (targetTransform != null)
-                    {
-                        targetTransform.gameObject.SetActive(objRef.IsActive);
-                    }
+                    objRef.GameObject.SetActive(objRef.IsActive);
                 }
 
                 // Aplicar materiales del frame default
@@ -749,20 +741,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 {
                     if (matRef?.TargetRenderer == null || matRef.AlternativeMaterial == null) continue;
 
-                    string path = matRef.HierarchyPath;
-                    if (string.IsNullOrEmpty(path)) continue;
-
-                    var targetTransform = avatarRoot.transform.Find(path);
-                    if (targetTransform == null) continue;
-
-                    var renderer = targetTransform.GetComponent<Renderer>();
-                    if (renderer == null) continue;
-
-                    var materials = renderer.sharedMaterials;
+                    var materials = matRef.TargetRenderer.sharedMaterials;
                     if (matRef.MaterialIndex < materials.Length)
                     {
                         materials[matRef.MaterialIndex] = matRef.AlternativeMaterial;
-                        renderer.sharedMaterials = materials;
+                        matRef.TargetRenderer.sharedMaterials = materials;
                     }
                 }
 
@@ -771,14 +754,8 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 {
                     if (blendRef?.TargetRenderer == null) continue;
 
-                    string path = blendRef.HierarchyPath;
-                    if (string.IsNullOrEmpty(path)) continue;
-
-                    var targetTransform = avatarRoot.transform.Find(path);
-                    if (targetTransform == null) continue;
-
-                    var smr = targetTransform.GetComponent<SkinnedMeshRenderer>();
-                    if (smr == null || smr.sharedMesh == null) continue;
+                    var smr = blendRef.TargetRenderer;
+                    if (smr.sharedMesh == null) continue;
 
                     int blendIndex = smr.sharedMesh.GetBlendShapeIndex(blendRef.BlendshapeName);
                     if (blendIndex >= 0)
