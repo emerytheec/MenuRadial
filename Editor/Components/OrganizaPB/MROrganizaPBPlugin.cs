@@ -5,6 +5,8 @@ using UnityEngine;
 using nadena.dev.ndmf;
 using Bender_Dios.MenuRadial.Components.OrganizaPB;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
+using Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers;
+using Bender_Dios.MenuRadial.Components.MenuRadial;
 
 [assembly: ExportsPlugin(typeof(Bender_Dios.MenuRadial.Editor.Components.OrganizaPB.MROrganizaPBPlugin))]
 
@@ -69,6 +71,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
             if (organizaPB.State == OrganizationState.Organized)
             {
                 Debug.Log($"[MROrganizaPB NDMF] PhysBones ya organizados en el editor.");
+                LinkContainersAsSafetyNet(organizaPB);
                 return;
             }
 
@@ -88,12 +91,26 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 if (result.Success)
                 {
                     Debug.Log($"[MROrganizaPB NDMF] Auto-organización completada: {result.GetSummary()}");
+                    LinkContainersAsSafetyNet(organizaPB);
                 }
                 else
                 {
                     Debug.LogWarning($"[MROrganizaPB NDMF] Auto-organización falló: {result.GetSummary()}");
                 }
             }
+        }
+
+        /// <summary>
+        /// Vincula contenedores PhysBone a frames como red de seguridad durante build NDMF.
+        /// </summary>
+        private void LinkContainersAsSafetyNet(MROrganizaPB organizaPB)
+        {
+            var menuRadial = organizaPB.GetComponentInParent<MRMenuRadial>();
+            if (menuRadial == null) return;
+
+            int linked = PhysBoneFrameLinker.LinkContainersToFrames(organizaPB, menuRadial);
+            if (linked > 0)
+                Debug.Log($"[MROrganizaPB NDMF] Red de seguridad: {linked} contenedor(es) vinculado(s) a frames.");
         }
     }
 }

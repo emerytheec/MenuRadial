@@ -416,13 +416,30 @@ namespace Bender_Dios.MenuRadial.Components.OrganizaPB
         /// <summary>
         /// Obtiene todos los contenedores con su contexto, tanto creados por Organizar
         /// como pre-existentes detectados durante el escaneo.
+        /// En estado Organized, combina los contenedores creados por el Relocator
+        /// con los pre-existentes (que el Relocator no procesó porque ya estaban organizados).
         /// </summary>
         public IEnumerable<(OrganizationContext context, GameObject container)> GetAllContainersWithContext()
         {
             if (_state == OrganizationState.Organized)
             {
+                var seen = new HashSet<GameObject>();
+
+                // Contenedores creados por el Relocator
                 foreach (var pair in Relocator.GetContainersWithContext())
+                {
+                    if (pair.container != null)
+                        seen.Add(pair.container);
                     yield return pair;
+                }
+
+                // Contenedores pre-existentes (ya organizados por el creador)
+                // que el Relocator no procesó porque tenían Included=false
+                foreach (var pair in PhysBoneFrameLinker.DetectExistingContainers(_detectedPhysBones, _detectedColliders))
+                {
+                    if (pair.container != null && seen.Add(pair.container))
+                        yield return pair;
+                }
             }
             else if (_state == OrganizationState.Scanned)
             {

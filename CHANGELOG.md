@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.65] - 2026-02-27
+
+### Agregado
+- **Vinculacion automatica de contenedores PhysBone a frames**: Los contenedores PhysBone (tanto creados por el sistema como pre-organizados por el creador de ropa) ahora se vinculan automaticamente a los frames correspondientes. Esto garantiza que al togglear ropa en VRChat, los PhysBones y Colliders se apaguen/enciendan junto con la prenda
+- **Metodo centralizado LinkContainersToFrames**: Nueva logica en PhysBoneFrameLinker que encapsula la vinculacion con deduplicacion, usada desde el flujo automatico, el inspector y NDMF
+- **Red de seguridad NDMF**: MROrganizaPBPlugin ahora vincula contenedores a frames durante el build como respaldo
+
+### Corregido
+- **Bug: contenedores pre-organizados desaparecian tras Organizar**: GetAllContainersWithContext() en estado Organized solo retornaba contenedores creados por el Relocator, perdiendo los pre-existentes (ej: VRCPBC del creador de ropa). Ahora combina ambas fuentes con deduplicacion
+
+### Cambiado
+- **MROrganizaPBEditor refactorizado**: La logica de vinculacion ahora delega al metodo centralizado en PhysBoneFrameLinker, manteniendo Undo y SetDirty en la capa editor
+
 ## [0.9.64] - 2026-02-26
 
 ### Cambiado

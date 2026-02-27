@@ -315,45 +315,18 @@ namespace Bender_Dios.MenuRadial.Editor.Components.OrganizaPB
                 return;
             }
 
-            int linked = 0;
-            var framesNotFound = new List<string>();
-
-            foreach (var (context, container) in target.GetAllContainersWithContext())
-            {
-                var frame = PhysBoneFrameLinker.FindFrameForContext(context, menuRadial);
-                if (frame == null)
-                {
-                    framesNotFound.Add(context.ContextName);
-                    continue;
-                }
-
-                // Verificar si ya está vinculado (deduplicación)
-                bool alreadyLinked = false;
-                foreach (var objRef in frame.ObjectReferences)
-                {
-                    if (objRef.Target == container)
-                    {
-                        alreadyLinked = true;
-                        break;
-                    }
-                }
-
-                if (alreadyLinked) continue;
-
+            // Registrar Undo en los frames que podrían ser modificados
+            var frames = menuRadial.GetComponentsInChildren<Bender_Dios.MenuRadial.Components.Frame.MRAgruparObjetos>(true);
+            foreach (var frame in frames)
                 Undo.RecordObject(frame, "Vincular contenedor PB");
-                frame.AddGameObject(container, isActive: true);
-                EditorUtility.SetDirty(frame);
-                linked++;
-            }
 
+            int linked = PhysBoneFrameLinker.LinkContainersToFrames(target, menuRadial);
+
+            // Marcar dirty los frames modificados
             if (linked > 0)
             {
-                Debug.Log($"[MROrganizaPB] {MRLocalization.Get(L.OrganizaPB.LINK_CONTAINERS_LINKED, linked)}");
-            }
-
-            if (framesNotFound.Count > 0)
-            {
-                Debug.LogWarning($"[MROrganizaPB] {MRLocalization.Get(L.OrganizaPB.LINK_FRAMES_NOT_FOUND, string.Join(", ", framesNotFound))}");
+                foreach (var frame in frames)
+                    EditorUtility.SetDirty(frame);
             }
         }
 

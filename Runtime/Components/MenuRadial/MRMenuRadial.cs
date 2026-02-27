@@ -7,6 +7,7 @@ using Bender_Dios.MenuRadial.Components.AjustarBounds;
 using Bender_Dios.MenuRadial.Components.PesoTexturas;
 using Bender_Dios.MenuRadial.Components.AnalisisColision;
 using Bender_Dios.MenuRadial.Components.OrganizaPB.Models;
+using Bender_Dios.MenuRadial.Components.OrganizaPB.Controllers;
 using Bender_Dios.MenuRadial.Components.Radial;
 using Bender_Dios.MenuRadial.Components.MenuRadial.Models;
 
@@ -487,6 +488,12 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
             if (_autoGenerateMenuStructure)
             {
                 GenerateMenuStructure();
+            }
+
+            // Vincular contenedores PhysBone pre-existentes a frames
+            if (OrganizaPB != null && OrganizaPB.HasDetectedComponents)
+            {
+                PhysBoneFrameLinker.LinkContainersToFrames(OrganizaPB, this);
             }
         }
 
