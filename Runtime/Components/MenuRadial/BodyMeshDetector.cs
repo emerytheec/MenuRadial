@@ -55,13 +55,25 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
         /// </summary>
         private static readonly string[] ClothingPatterns = new[]
         {
-            "outfit", "cloth", "dress", "shirt", "pants", "skirt", "shoes", "boots",
-            "jacket", "coat", "sweater", "cardigan", "hoodie", "vest", "glove",
-            "sock", "stocking", "underwear", "bra", "shorts", "ribbon", "accessory",
+            // Ropa general
+            "outfit", "cloth", "dress", "gown", "shirt", "blouse", "pants", "skirt",
+            "shorts", "legging", "jacket", "coat", "sweater", "cardigan", "hoodie",
+            "vest", "uniform", "costume", "kimono", "robe", "cape", "cloak",
+            "corset", "apron", "bikini", "swimsuit", "lingerie", "underwear", "bra",
+            // Calzado
+            "shoes", "boots", "sandal", "heel", "slipper",
+            // Accesorios
+            "glove", "sleeve", "sock", "stocking", "ribbon", "accessory",
             "hat", "cap", "glasses", "bag", "belt", "tie", "scarf", "mask",
+            "choker", "necklace", "earring", "bracelet", "pendant", "tiara", "crown",
+            "wing", "backpack",
+            // Armas y armadura
             "armor", "armour", "weapon", "sword", "shield",
+            // Español
             "ropa", "vestido", "camisa", "pantalon", "falda", "zapato", "bota",
             "chaqueta", "abrigo", "guante", "calcetin", "accesorio", "sombrero",
+            "capa", "tunica", "collar", "pulsera", "corona", "disfraz", "uniforme",
+            // Prefijos comunes
             "under_", "item_"
         };
 

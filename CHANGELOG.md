@@ -5,6 +5,11 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.68] - 2026-02-27
+
+### Corregido
+- **Fix: meshes de ropa no reconocidos por BodyMeshDetector**: Meshes con nombres como "Gown" eran excluidos del Frame Avatar porque no tenian patron de proteccion de ropa y el analisis de huesos los clasificaba como body. Ampliados ClothingPatterns con ~30 nuevos patrones: gown, cape, cloak, robe, corset, kimono, bikini, choker, necklace, wing, crown, sleeve, legging, blouse, uniform, costume, swimsuit, lingerie, sandal, heel, slipper, backpack, earring, bracelet, pendant, tiara, apron y equivalentes en español (capa, tunica, collar, pulsera, corona, disfraz, uniforme)
+
 ## [0.9.67] - 2026-02-27
 
 ### Corregido
