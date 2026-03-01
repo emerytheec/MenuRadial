@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Menu Radial (MR)** — Sistema no-destructivo para generar menús de expresiones radiales en avatares VRChat.
 Pipeline: Detección → Organización → Generación de archivos VRChat → Build NDMF.
 
-- **Versión**: 0.9.72
+- **Versión**: 0.9.74
 - **Unity**: 2022.3.22f1
 - **VRChat SDK**: Avatars 3.5.0+
 - **NDMF**: 1.4.0+
