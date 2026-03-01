@@ -783,6 +783,10 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                 if (string.IsNullOrEmpty(_outputPrefix))
                     _outputPrefix = found.name;
             }
+
+            // Asignar icono MR por defecto si no tiene uno
+            if (_menuIcon == null)
+                _menuIcon = Resources.Load<Texture2D>("MR");
         }
 
         protected override void ValidateInEditor()

@@ -87,12 +87,12 @@ namespace Bender_Dios.MenuRadial.Components.Menu.Generators
         /// </summary>
         private VRCExpressionsMenu.Control CreateControl(MRSlotInfo slotInfo)
         {
-            // Obtener icono
+            // Obtener icono: 1) usuario, 2) categoría por nombre, 3) genérico por tipo de animación
             Texture2D icon = slotInfo.Slot.iconImage;
             if (icon == null)
-            {
+                icon = MRIconLoader.GetIconForSlotName(slotInfo.Slot.slotName);
+            if (icon == null)
                 icon = MRIconLoader.GetIconForAnimationType(slotInfo.AnimationType);
-            }
 
             var control = new VRCExpressionsMenu.Control
             {

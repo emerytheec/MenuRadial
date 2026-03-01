@@ -89,12 +89,11 @@ namespace Bender_Dios.MenuRadial.Core.Preview
             if (_iconCache.TryGetValue(iconName, out Texture2D cachedIcon))
                 return cachedIcon;
             
-            // Intentar cargar desde diferentes rutas posibles
+            // Intentar cargar desde diferentes rutas posibles dentro de Resources
             string[] possiblePaths = {
-                $"iconos/{iconName}",
+                iconName,
                 $"Icons/{iconName}",
-                $"BSX_Icons/{iconName}",
-                iconName
+                $"BSX_Icons/{iconName}"
             };
             
             foreach (string path in possiblePaths)

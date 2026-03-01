@@ -1080,6 +1080,10 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             var slotNameField = slotType.GetField("slotName");
             var targetObjectField = slotType.GetField("targetObject");
+            var iconImageField = slotType.GetField("iconImage");
+
+            // Cargar icono de categoría basado en el nombre del slot
+            Texture2D categoryIcon = LoadCategoryIcon(slotName);
 
             // Buscar primer slot vacío (targetObject == null)
             for (int i = 0; i < slots.Count; i++)
@@ -1091,6 +1095,7 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
                     // Usar el slot vacío existente
                     if (slotNameField != null) slotNameField.SetValue(slot, slotName);
                     if (targetObjectField != null) targetObjectField.SetValue(slot, targetObject);
+                    if (iconImageField != null && categoryIcon != null) iconImageField.SetValue(slot, categoryIcon);
 #if UNITY_EDITOR
                     UnityEditor.EditorUtility.SetDirty(menuControl);
 #endif
@@ -1109,12 +1114,38 @@ namespace Bender_Dios.MenuRadial.Components.MenuRadial
 
             if (slotNameField != null) slotNameField.SetValue(newSlot, slotName);
             if (targetObjectField != null) targetObjectField.SetValue(newSlot, targetObject);
+            if (iconImageField != null && categoryIcon != null) iconImageField.SetValue(newSlot, categoryIcon);
 
             slots.Add(newSlot);
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(menuControl);
 #endif
+        }
+
+        /// <summary>
+        /// Carga el icono de categoría correspondiente al nombre del slot.
+        /// </summary>
+        private Texture2D LoadCategoryIcon(string slotName)
+        {
+            if (string.IsNullOrEmpty(slotName))
+                return null;
+
+            string lower = slotName.ToLowerInvariant();
+
+            if (lower == "outfits" || lower == "ropa")
+                return Resources.Load<Texture2D>("ropa");
+
+            if (lower == "pelucas" || lower == "wigs")
+                return Resources.Load<Texture2D>("peluca");
+
+            if (lower.Contains("color") || lower.Contains("material"))
+                return Resources.Load<Texture2D>("color");
+
+            if (lower.Contains("iluminacion") || lower.Contains("illumination") || lower.Contains("luz"))
+                return Resources.Load<Texture2D>("luz");
+
+            return null;
         }
 
         /// <summary>

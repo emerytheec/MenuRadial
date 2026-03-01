@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.71] - 2026-03-01
+
+### Agregado
+- **Icono MR.png por defecto en MR Menu Radial**: Al agregar el componente, el campo de icono del menu VRChat se pre-carga automaticamente con MR.png. El usuario puede cambiarlo o borrarlo libremente
+- **Auto-asignacion de iconos en animation slots**: Al crear slots automaticamente, cada uno recibe su icono semantico segun su tipo: ropa.png (Outfits), peluca.png (Pelucas), color.png (Color Outfits/Pelucas), luz.png (Iluminacion)
+- **Fallback de iconos en 3 niveles**: La generacion de menu VRChat ahora busca: 1) icono del usuario, 2) icono de categoria por nombre, 3) icono generico por tipo de animacion
+- **GetIconForSlotName() en MRIconLoader**: Nuevo metodo que mapea nombres de slot a iconos semanticos
+
+### Cambiado
+- **Iconos movidos a Resources**: Los iconos de categoria (MR, ropa, peluca, color, luz) se movieron de `iconos/` a `Components/Menu/Resources/` para compatibilidad con Resources.Load() y distribucion VPM
+- **DynamicIconManager rutas actualizadas**: Eliminada ruta obsoleta `iconos/` de las rutas de busqueda
+
 ## [0.9.70] - 2026-02-27
 
 ### Agregado

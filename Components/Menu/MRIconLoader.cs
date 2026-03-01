@@ -7,8 +7,8 @@ using Bender_Dios.MenuRadial.Core.Common;
 namespace Bender_Dios.MenuRadial.Components.Menu
 {
     /// <summary>
-    /// Sistema de carga de iconos para el menú radial
-    /// Carga automáticamente los iconos desde la carpeta iconos/
+    /// Sistema de carga de iconos para el menú radial.
+    /// Carga iconos desde la carpeta Resources.
     /// </summary>
     public static class MRIconLoader
     {
@@ -113,6 +113,32 @@ namespace Bender_Dios.MenuRadial.Components.Menu
             return (menuIcon, logoImage);
         }
         
+        /// <summary>
+        /// Obtiene el icono de categoría para un slot basado en su nombre.
+        /// Mapea nombres de slot a iconos semánticos: ropa, peluca, color, luz.
+        /// </summary>
+        public static Texture2D GetIconForSlotName(string slotName)
+        {
+            if (string.IsNullOrEmpty(slotName))
+                return null;
+
+            string lower = slotName.ToLowerInvariant();
+
+            if (lower == "outfits" || lower == "ropa")
+                return LoadIcon("ropa");
+
+            if (lower == "pelucas" || lower == "wigs")
+                return LoadIcon("peluca");
+
+            if (lower.Contains("color") || lower.Contains("material"))
+                return LoadIcon("color");
+
+            if (lower.Contains("iluminacion") || lower.Contains("illumination") || lower.Contains("luz"))
+                return LoadIcon("luz");
+
+            return null;
+        }
+
         /// <summary>
         /// Limpia el cache de iconos (útil para testing)
         /// </summary>
