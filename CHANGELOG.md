@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.72] - 2026-03-01
+
+### Corregido
+- **Fix: iconos de categoria no aparecian en Gesture Manager**: Los archivos .asset generados contenian solo el icono generico BSX_GM_Radial. Ahora GetIconsForSlot() tiene fallback a iconos de categoria y GetIconForSlotName() incluye log de diagnostico cuando no encuentra un icono
+- **Fix: .meta de iconos regenerados por Unity**: Eliminados .meta conflictivos de la copia inicial para que Unity genere GUIDs frescos
+
 ## [0.9.71] - 2026-03-01
 
 ### Agregado

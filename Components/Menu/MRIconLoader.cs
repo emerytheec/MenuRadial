@@ -125,20 +125,25 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                 return null;
 
             string lower = slotName.ToLowerInvariant();
+            string iconName = null;
 
             if (lower == "outfits" || lower == "ropa")
-                return LoadIcon("ropa");
+                iconName = "ropa";
+            else if (lower == "pelucas" || lower == "wigs")
+                iconName = "peluca";
+            else if (lower.Contains("color") || lower.Contains("material"))
+                iconName = "color";
+            else if (lower.Contains("iluminacion") || lower.Contains("illumination") || lower.Contains("luz"))
+                iconName = "luz";
 
-            if (lower == "pelucas" || lower == "wigs")
-                return LoadIcon("peluca");
+            if (iconName == null)
+                return null;
 
-            if (lower.Contains("color") || lower.Contains("material"))
-                return LoadIcon("color");
+            Texture2D icon = LoadIcon(iconName);
+            if (icon == null)
+                Debug.LogWarning($"[MRIconLoader] No se encontró '{iconName}.png' en Resources para slot '{slotName}'");
 
-            if (lower.Contains("iluminacion") || lower.Contains("illumination") || lower.Contains("luz"))
-                return LoadIcon("luz");
-
-            return null;
+            return icon;
         }
 
         /// <summary>
