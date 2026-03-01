@@ -106,10 +106,12 @@ namespace Bender_Dios.MenuRadial.Components.Menu
         {
             // Icono del menú (primer plano) - basado en tipo de animación
             Texture2D menuIcon = GetIconForSlot(slot);
-            
-            // Imagen logo (fondo) - asignada por el usuario
+
+            // Imagen logo (fondo) - asignada por el usuario, con fallback a categoría
             Texture2D logoImage = slot?.iconImage;
-            
+            if (logoImage == null && slot != null)
+                logoImage = GetIconForSlotName(slot.slotName);
+
             return (menuIcon, logoImage);
         }
         
