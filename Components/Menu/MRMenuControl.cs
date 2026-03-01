@@ -117,13 +117,6 @@ namespace Bender_Dios.MenuRadial.Components.Menu
                 }
             }
             
-            // Marcar como dirty para guardar cambios
-            if (Application.isPlaying == false)
-            {
-#if UNITY_EDITOR
-                UnityEditor.EditorUtility.SetDirty(this);
-#endif
-            }
         }
         
         /// <summary>

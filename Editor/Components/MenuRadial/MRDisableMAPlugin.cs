@@ -34,7 +34,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         protected override void OnUnhandledException(Exception e)
         {
-            Debug.LogError($"[MR DisableMA] Error: {e.Message}");
+            Debug.LogError($"[MRDisableMA NDMF] Error: {e.Message}");
             Debug.LogException(e);
         }
     }
@@ -69,7 +69,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 return; // No hacer nada si no está configurado
             }
 
-            Debug.Log("[MR DisableMA] Destruyendo componentes de Modular Avatar del clon...");
+            Debug.Log("[MRDisableMA NDMF] Destruyendo componentes de Modular Avatar del clon...");
 
             int disabledCount = 0;
 
@@ -86,7 +86,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 {
                     // Destruir el componente del clon - desactivar no es suficiente
                     // porque MA usa GetComponentsInChildren(true) que encuentra componentes desactivados
-                    Debug.Log($"[MR DisableMA] Destruyendo: {behaviour.GetType().Name} en '{behaviour.gameObject.name}'");
+                    Debug.Log($"[MRDisableMA NDMF] Destruyendo: {behaviour.GetType().Name} en '{behaviour.gameObject.name}'");
                     UnityEngine.Object.DestroyImmediate(behaviour);
                     disabledCount++;
                 }
@@ -94,11 +94,11 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
             if (disabledCount > 0)
             {
-                Debug.Log($"[MR DisableMA] Total: {disabledCount} componentes de Modular Avatar destruidos del clon");
+                Debug.Log($"[MRDisableMA NDMF] Total: {disabledCount} componentes de Modular Avatar destruidos del clon");
             }
             else
             {
-                Debug.Log("[MR DisableMA] No se encontraron componentes de Modular Avatar para destruir");
+                Debug.Log("[MRDisableMA NDMF] No se encontraron componentes de Modular Avatar para destruir");
             }
         }
 
@@ -142,7 +142,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
                 if (matches.Length > 1)
                 {
-                    Debug.LogWarning($"[MR DisableMA] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
+                    Debug.LogWarning($"[MRDisableMA NDMF] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
                         "Usando solo el primero para evitar conflictos.");
                     matches = new[] { matches[0] };
                 }

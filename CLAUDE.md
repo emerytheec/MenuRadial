@@ -297,14 +297,11 @@ public VRCAvatarDescriptor Avatar { get => _avatar; set => _avatar = value; }
 
 1. **HierarchyPath es absoluto, no relativo al avatar** — Los builders recalculan correctamente, pero el campo en sí contiene ruta desde scene root. En NDMF usar referencias directas serializadas
 
-### Áreas que requieren atención
-
-1. **Excepciones NDMF no detienen build** — Avatar puede subirse roto a VRChat
-2. **ReferenceListManager.Add() es O(n)** — deduplicación con `_references.Any()` por cada Add
-
 ### Notas de diseño verificadas
 
 - **ObjectReference.Equals() SÍ compara IsActive** (línea 103). `ReferenceListManager.IsDuplicateReference()` compara solo por `GameObject` — es diseño intencional (evitar mismo GO duplicado en un frame)
+- **FindAvatarInParents() usa reflexión por nombre** — Intencional: assembly Runtime no referencia VRC SDK3A
+- **ReferenceListManager.Add() es O(n)** — Aceptable: n típico = 5-30 refs por frame
 
 ### Fixes aplicados (v0.9.72+)
 
@@ -312,10 +309,16 @@ public VRCAvatarDescriptor Avatar { get => _avatar; set => _avatar = value; }
 2. **WriteDefaults forzado a OFF en merge NDMF** — CloneStateMachine() siempre usa false
 3. **FindMenuRadials filtra clones** — Excluye avatares con "(Clone)" + usa solo primer match
 4. **ComputeRegions dead code eliminado** — Solo queda CalculateTimeRegions() que es correcta
-5. **PreviewManager protegido contra objetos destruidos** — Verifica si IPreviewable es UnityObject destruido antes de llamar métodos
-6. **CloneMenuRecursive con protección** — Límite de profundidad (16) + detección de ciclos con HashSet
+5. **PreviewManager protegido contra objetos destruidos** — Verifica si IPreviewable es UnityObject destruido
+6. **CloneMenuRecursive con protección** — Límite profundidad (16) + detección ciclos
 7. **BlendshapeReference.GetBlendshapeIndex() con cache** — Cache por mesh+nombre, invalidación automática
-8. **SplitMenuIfNeeded con límite de profundidad** — Máximo 10 niveles de menús "More", trunca sobrantes
+8. **SplitMenuIfNeeded con límite de profundidad** — Máximo 10 niveles de menús "More"
+9. **Excepciones NDMF re-lanzadas** — ProcessMenuRadial() re-throw para que NDMF detenga el build
+10. **SetDirty() eliminado de MRMenuControl.OnValidate()** — Los cambios se guardan automáticamente
+11. **MRMeshImportFixPlugin docstring corregida** — Dice "detectar" en vez de "corregir"
+12. **Log prefixes NDMF normalizados** — Patrón `[MR{Componente} NDMF]` consistente
+13. **Dead variables eliminadas** — PreviewManager.CleanupDestroyedComponents()
+14. **Verbose debug logging reducido** — MRAnalisisColisionPlugin de ~15 líneas a 1 resumen
 
 ---
 

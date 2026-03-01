@@ -12,12 +12,13 @@ using Bender_Dios.MenuRadial.Components.MenuRadial;
 namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 {
     /// <summary>
-    /// Plugin NDMF para corregir automaticamente problemas de importacion de meshes.
-    /// Corrige:
+    /// Plugin NDMF para detectar problemas de importacion de meshes.
+    /// Reporta (no corrige automaticamente):
     /// - Read/Write disabled (isReadable)
     /// - Blendshape Normals en "Calculate" (debe ser "Import/Legacy")
     ///
-    /// Se ejecuta al inicio del build para evitar errores de VRChat SDK.
+    /// Se ejecuta al inicio del build. Los problemas se reportan como warnings en consola
+    /// para que el usuario los corrija manualmente en el ModelImporter.
     /// </summary>
     public class MRMeshImportFixPlugin : Plugin<MRMeshImportFixPlugin>
     {
@@ -36,17 +37,17 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         protected override void OnUnhandledException(Exception e)
         {
-            Debug.LogError($"[MRMeshImportFix] Error durante el procesamiento NDMF: {e.Message}");
+            Debug.LogError($"[MRMeshImportFix NDMF] Error durante el procesamiento: {e.Message}");
             Debug.LogException(e);
         }
     }
 
     /// <summary>
-    /// Pass que corrige problemas de importacion de meshes.
+    /// Pass que detecta y reporta problemas de importacion de meshes.
     /// </summary>
     internal class MRMeshImportFixPass : Pass<MRMeshImportFixPass>
     {
-        public override string DisplayName => "Fix Mesh Import Settings";
+        public override string DisplayName => "Detect Mesh Import Issues";
 
         protected override void Execute(BuildContext context)
         {
@@ -92,7 +93,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 return; // No hay problemas que corregir
             }
 
-            Debug.LogWarning($"[MRMeshImportFix] Encontrados {meshesToFix.Count} mesh(es) con problemas de importación que requieren corrección manual:");
+            Debug.LogWarning($"[MRMeshImportFix NDMF] Encontrados {meshesToFix.Count} mesh(es) con problemas de importación que requieren corrección manual:");
 
             foreach (var kvp in meshesToFix)
             {
@@ -105,7 +106,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 if (issues.NeedsLegacyBlendShapeNormals)
                     fixes += (fixes.Length > 0 ? ", " : "") + "BlendShape Normals en Calculate (debe ser Import)";
 
-                Debug.LogWarning($"[MRMeshImportFix] '{mesh.name}' ({issues.AssetPath}): {fixes}");
+                Debug.LogWarning($"[MRMeshImportFix NDMF] '{mesh.name}' ({issues.AssetPath}): {fixes}");
             }
         }
 

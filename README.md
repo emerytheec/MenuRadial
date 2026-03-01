@@ -5,7 +5,7 @@ Sistema de menu radial para avatares VRChat desarrollado en Unity. Genera animac
 ![Unity](https://img.shields.io/badge/Unity-2022.3-blue)
 ![VRChat SDK](https://img.shields.io/badge/VRChat%20SDK-3.5+-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-![Version](https://img.shields.io/badge/Version-0.7.0-orange)
+![Version](https://img.shields.io/badge/Version-0.9.73-orange)
 
 ## Caracteristicas
 
@@ -49,25 +49,28 @@ Luego instala **NDMF** desde VCC (no necesitas Modular Avatar).
 
 ## Uso Rapido
 
-1. Agrega el componente `MRMenuControl` a tu avatar
-2. Arrastra el avatar al campo correspondiente
-3. Crea slots con `MRUnificarObjetos` para tus toggles
-4. Usa `MRAgruparObjetos` para capturar estados
+1. Agrega el componente `MRMenuRadial` a tu avatar
+2. El avatar se detecta automaticamente
+3. Click en "Sincronizar" para detectar ropa, pelucas y generar estructura
+4. Ajusta los slots (toggles/radiales) segun necesites
 5. Click en "Generar Archivos VRChat"
 
 ## Componentes
 
 | Componente | Proposito |
 |------------|-----------|
-| `MRAgruparObjetos` | Captura un estado del avatar |
+| `MRMenuRadial` | Orquestador principal, auto-detecta avatar |
+| `MRMenuControl` | Genera archivos VRChat (FX, Parameters, Menu) |
+| `MRAgruparObjetos` | Captura un estado del avatar (frame) |
 | `MRUnificarObjetos` | Contenedor de frames, genera animaciones |
 | `MRIluminacionRadial` | Control de iluminacion lilToon |
 | `MRUnificarMateriales` | Control de materiales multiples |
 | `MRAgruparMateriales` | Agrupa materiales alternativos |
-| `MRMenuControl` | Genera archivos VRChat |
-| `MRCoserRopa` | Cose armatures de ropa |
-| `MRAjustarBounds` | Ajusta bounds de meshes |
+| `MRCoserRopa` | Cose armatures de ropa (NDMF) |
+| `MRAjustarBounds` | Ajusta bounds de meshes y particulas |
 | `MROrganizaPB` | Organiza PhysBones en contenedores |
+| `MRAnalisisColision` | Detecta conflictos con Modular Avatar |
+| `MRPesoTexturas` | Analisis de peso VRAM de texturas |
 
 ## MROrganizaPB
 

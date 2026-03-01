@@ -56,9 +56,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
 
         protected override void Execute(BuildContext context)
         {
-            Debug.Log($"[MRAnalisisColision NDMF] ========================================");
-            Debug.Log($"[MRAnalisisColision NDMF] PLUGIN EJECUTÁNDOSE - Avatar: {context.AvatarRootObject.name}");
-            Debug.Log($"[MRAnalisisColision NDMF] ========================================");
+            Debug.Log($"[MRAnalisisColision NDMF] Procesando avatar: {context.AvatarRootObject.name}");
 
             // Buscar todos los componentes MRAnalisisColision en el avatar
             var analisisComponents = context.AvatarRootObject.GetComponentsInChildren<MRAnalisisColision>(true);
@@ -131,7 +129,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
         }
 
         /// <summary>
-        /// Log de debug para ver el estado del ScanResult.
+        /// Log resumido del estado del ScanResult.
         /// </summary>
         private void LogScanResultStatus(MRAnalisisColision analisis)
         {
@@ -142,43 +140,13 @@ namespace Bender_Dios.MenuRadial.Editor.Components.AnalisisColision
                 return;
             }
 
-            Debug.Log($"[MRAnalisisColision NDMF] ====== ESTADO DEL SCANRESULT ======");
-            Debug.Log($"[MRAnalisisColision NDMF] Total entradas: Problematic={result.ProblematicCount}, " +
-                $"UserDecision={result.UserDecisionCount}, Compatible={result.CompatibleCount}");
-
-            // Log detallado de TODAS las entradas problemáticas
-            Debug.Log($"[MRAnalisisColision NDMF] --- Entradas Problematic ({result.ProblematicCount}) ---");
-            foreach (var entry in result.ProblematicEntries)
-            {
-                Debug.Log($"[MRAnalisisColision NDMF]   - {entry.ComponentTypeName}: " +
-                    $"UserWantsDisabled={entry.UserWantsDisabled}, " +
-                    $"IsOnPieceRoot={entry.IsOnPieceRoot}, " +
-                    $"IsValid={entry.IsValid}, " +
-                    $"HasSearchableData={entry.HasSearchableData}, " +
-                    $"GO='{entry.GameObjectName}', Path='{entry.HierarchyPath}'");
-            }
-
-            // Log detallado de TODAS las entradas UserDecision
-            Debug.Log($"[MRAnalisisColision NDMF] --- Entradas UserDecision ({result.UserDecisionCount}) ---");
-            foreach (var entry in result.UserDecisionEntries)
-            {
-                Debug.Log($"[MRAnalisisColision NDMF]   - {entry.ComponentTypeName}: " +
-                    $"UserWantsDisabled={entry.UserWantsDisabled}, " +
-                    $"IsValid={entry.IsValid}, " +
-                    $"HasSearchableData={entry.HasSearchableData}, " +
-                    $"GO='{entry.GameObjectName}', Path='{entry.HierarchyPath}'");
-            }
-
-            // Contar cuántas pasarán los filtros
             int problematicOnRoot = result.GetProblematicOnPieceRoot().Count();
             int userDecisionToDisable = result.GetUserDecisionToDisable().Count();
             int problematicToDisable = result.GetProblematicToDisable().Count();
 
-            Debug.Log($"[MRAnalisisColision NDMF] --- FILTROS ---");
-            Debug.Log($"[MRAnalisisColision NDMF] GetProblematicOnPieceRoot(): {problematicOnRoot} entradas");
-            Debug.Log($"[MRAnalisisColision NDMF] GetUserDecisionToDisable(): {userDecisionToDisable} entradas");
-            Debug.Log($"[MRAnalisisColision NDMF] GetProblematicToDisable(): {problematicToDisable} entradas");
-            Debug.Log($"[MRAnalisisColision NDMF] ====================================");
+            Debug.Log($"[MRAnalisisColision NDMF] ScanResult: " +
+                $"Problematic={result.ProblematicCount}, UserDecision={result.UserDecisionCount}, Compatible={result.CompatibleCount} | " +
+                $"A destruir: {problematicOnRoot} en raíz + {userDecisionToDisable} UserDecision + {problematicToDisable} Problematic");
         }
 
         /// <summary>

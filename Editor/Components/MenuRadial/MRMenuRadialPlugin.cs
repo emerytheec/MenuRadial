@@ -127,6 +127,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 {
                     Debug.LogError($"[MRMenuRadial NDMF] Error procesando '{menuRadialName}': {e.Message}");
                     Debug.LogException(e);
+                    // Re-lanzar para que NDMF la capture via OnUnhandledException()
+                    // y muestre el error al usuario, evitando que el avatar suba roto
+                    throw;
                 }
             }
 

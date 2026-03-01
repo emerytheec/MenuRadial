@@ -164,10 +164,7 @@ namespace Bender_Dios.MenuRadial.Core.Preview
         /// </summary>
         private static void CleanupDestroyedComponents()
         {
-            int originalCount = _registeredComponents.Count;
             _registeredComponents.RemoveAll(wr => !wr.IsAlive);
-            
-            int removedCount = originalCount - _registeredComponents.Count;
         }
         
         /// <summary>
