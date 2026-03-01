@@ -20,25 +20,87 @@ if [ -z "$VERSION" ]; then
 fi
 echo "Version: $VERSION"
 
-# --- Extraer ultimo changelog ---
-# Captura todo entre el primer ## [x.y.z] y el siguiente ## [x.y.z]
-LATEST_CHANGELOG=$(awk '
+# --- Extraer ultimo changelog y limpiar markdown ---
+RAW_CHANGELOG=$(awk '
     /^## \[/ {
         if (found) exit
         found = 1
         next
     }
     found { print }
-' "$CHANGELOG" | sed -e '/^$/N;/^\n$/d' -e 's/[[:space:]]*$//')
-# Quitar lineas vacias al inicio y final
-LATEST_CHANGELOG=$(echo "$LATEST_CHANGELOG" | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+' "$CHANGELOG")
 
-if [ -z "$LATEST_CHANGELOG" ]; then
+# Limpiar markdown: quitar ### prefijos, **bold**, `backticks`
+# y convertir "- " en "• "
+CLEAN_CHANGELOG=$(echo "$RAW_CHANGELOG" \
+    | sed 's/^### //' \
+    | sed 's/\*\*//g' \
+    | sed 's/`//g' \
+    | sed 's/^- /• /' \
+    | sed 's/[[:space:]]*$//' \
+    | sed '/./,$!d' \
+    | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+
+if [ -z "$CLEAN_CHANGELOG" ]; then
     echo "WARN: No se encontro changelog. Se usara placeholder."
-    LATEST_CHANGELOG="Sin cambios documentados."
+    CLEAN_CHANGELOG="Sin cambios documentados."
 fi
 
-echo "Changelog extraido ($(echo "$LATEST_CHANGELOG" | wc -l) lineas)"
+echo "Changelog extraido ($(echo "$CLEAN_CHANGELOG" | wc -l) lineas)"
+
+# --- Funcion para traducir encabezados del changelog ---
+# Recibe: idioma (jp|en|zh|ko|ru)
+# Lee CLEAN_CHANGELOG y reemplaza encabezados
+translate_changelog_headers() {
+    local lang="$1"
+    local text="$CLEAN_CHANGELOG"
+
+    case "$lang" in
+        jp)
+            text=$(echo "$text" \
+                | sed 's/^Agregado$/追加/' \
+                | sed 's/^Corregido$/修正/' \
+                | sed 's/^Cambiado$/変更/' \
+                | sed 's/^Eliminado$/削除/')
+            ;;
+        en)
+            text=$(echo "$text" \
+                | sed 's/^Agregado$/Added/' \
+                | sed 's/^Corregido$/Fixed/' \
+                | sed 's/^Cambiado$/Changed/' \
+                | sed 's/^Eliminado$/Removed/')
+            ;;
+        zh)
+            text=$(echo "$text" \
+                | sed 's/^Agregado$/新增/' \
+                | sed 's/^Corregido$/修复/' \
+                | sed 's/^Cambiado$/变更/' \
+                | sed 's/^Eliminado$/移除/')
+            ;;
+        ko)
+            text=$(echo "$text" \
+                | sed 's/^Agregado$/추가/' \
+                | sed 's/^Corregido$/수정/' \
+                | sed 's/^Cambiado$/변경/' \
+                | sed 's/^Eliminado$/제거/')
+            ;;
+        ru)
+            text=$(echo "$text" \
+                | sed 's/^Agregado$/Добавлено/' \
+                | sed 's/^Corregido$/Исправлено/' \
+                | sed 's/^Cambiado$/Изменено/' \
+                | sed 's/^Eliminado$/Удалено/')
+            ;;
+    esac
+
+    echo "$text"
+}
+
+CHANGELOG_JP=$(translate_changelog_headers "jp")
+CHANGELOG_EN=$(translate_changelog_headers "en")
+CHANGELOG_ZH=$(translate_changelog_headers "zh")
+CHANGELOG_KO=$(translate_changelog_headers "ko")
+CHANGELOG_RU=$(translate_changelog_headers "ru")
 
 # --- Links ---
 LINK_VPM="https://emerytheec.github.io/vpm-listing/"
@@ -80,8 +142,8 @@ VRChatアバター用の自動ラジアルメニュー生成システムです�
 • VRChat Avatars SDK 3.5.0+
 • NDMF 1.4.0+
 
-📝 最新の変更 (v${VERSION})
-${LATEST_CHANGELOG}
+📝 最新の変更 v${VERSION} (ES)
+${CHANGELOG_JP}
 
 🔗 リンク
 • VPM: ${LINK_VPM}
@@ -119,8 +181,8 @@ Creates outfit and hairstyle toggle menus with one click.
 • VRChat Avatars SDK 3.5.0+
 • NDMF 1.4.0+
 
-📝 Latest changes (v${VERSION})
-${LATEST_CHANGELOG}
+📝 Latest changes v${VERSION} (ES)
+${CHANGELOG_EN}
 
 🔗 Links
 • VPM: ${LINK_VPM}
@@ -158,8 +220,8 @@ Crea menus de alternado de ropa y peinados con un solo clic.
 • VRChat Avatars SDK 3.5.0+
 • NDMF 1.4.0+
 
-📝 Ultimos cambios (v${VERSION})
-${LATEST_CHANGELOG}
+📝 Ultimos cambios v${VERSION}
+${CLEAN_CHANGELOG}
 
 🔗 Enlaces
 • VPM: ${LINK_VPM}
@@ -197,8 +259,8 @@ VRChat虚拟形象的自动径向菜单生成系统。
 • VRChat Avatars SDK 3.5.0+
 • NDMF 1.4.0+
 
-📝 最新更改 (v${VERSION})
-${LATEST_CHANGELOG}
+📝 最新更改 v${VERSION} (ES)
+${CHANGELOG_ZH}
 
 🔗 链接
 • VPM: ${LINK_VPM}
@@ -236,8 +298,8 @@ VRChat 아바타용 자동 래디얼 메뉴 생성 시스템입니다.
 • VRChat Avatars SDK 3.5.0+
 • NDMF 1.4.0+
 
-📝 최신 변경사항 (v${VERSION})
-${LATEST_CHANGELOG}
+📝 최신 변경사항 v${VERSION} (ES)
+${CHANGELOG_KO}
 
 🔗 링크
 • VPM: ${LINK_VPM}
@@ -275,8 +337,8 @@ cat >> "$OUTPUT" << LANG_RU
 • VRChat Avatars SDK 3.5.0+
 • NDMF 1.4.0+
 
-📝 Последние изменения (v${VERSION})
-${LATEST_CHANGELOG}
+📝 Последние изменения v${VERSION} (ES)
+${CHANGELOG_RU}
 
 🔗 Ссылки
 • VPM: ${LINK_VPM}
