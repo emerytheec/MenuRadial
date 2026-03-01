@@ -34,9 +34,17 @@ namespace Bender_Dios.MenuRadial.Core.Preview
         /// <summary>
         /// Si hay algún preview activo
         /// </summary>
-        public static bool HasActivePreview => _currentActivePreview != null;
+        public static bool HasActivePreview => _currentActivePreview != null && !IsDestroyedUnityObject(_currentActivePreview);
         
 
+
+        /// <summary>
+        /// Verifica si un IPreviewable apunta a un UnityEngine.Object destruido.
+        /// </summary>
+        private static bool IsDestroyedUnityObject(IPreviewable preview)
+        {
+            return preview is UnityEngine.Object unityObj && unityObj == null;
+        }
 
         /// <summary>
         /// Activa un preview específico, desactivando cualquier preview anterior
@@ -45,7 +53,7 @@ namespace Bender_Dios.MenuRadial.Core.Preview
         /// <param name="menuContext">Contexto del menú que solicita la activación (opcional)</param>
         public static void ActivatePreview(IPreviewable preview, object menuContext = null)
         {
-            if (preview == null)
+            if (preview == null || IsDestroyedUnityObject(preview))
                 return;
 
             // Si el mismo preview ya está activo, no hacer nada
@@ -71,6 +79,13 @@ namespace Bender_Dios.MenuRadial.Core.Preview
             if (_currentActivePreview == null)
                 return;
 
+            // Verificar si el objeto Unity fue destruido (IPreviewable no es null pero el MonoBehaviour sí)
+            if (_currentActivePreview is UnityEngine.Object unityObj && unityObj == null)
+            {
+                _currentActivePreview = null;
+                return;
+            }
+
             _currentActivePreview.DeactivatePreview();
             _currentActivePreview = null;
         }
@@ -82,7 +97,7 @@ namespace Bender_Dios.MenuRadial.Core.Preview
         /// <param name="menuContext">Contexto del menú (opcional)</param>
         public static void TogglePreview(IPreviewable preview, object menuContext = null)
         {
-            if (preview == null)
+            if (preview == null || IsDestroyedUnityObject(preview))
                 return;
                 
             if (_currentActivePreview == preview)

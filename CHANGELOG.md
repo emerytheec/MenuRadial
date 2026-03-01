@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.73] - 2026-03-01
+
+### Corregido
+- **Fix: Limite 256 bits validado en merge NDMF**: MergeParameters() ahora calcula el costo en bits antes de anadir cada parametro, previniendo que el avatar exceda el limite de VRChat
+- **Fix: WriteDefaults forzado a OFF en merge NDMF**: CloneStateMachine() ahora siempre usa WriteDefaults=false independientemente de la configuracion, evitando mixed Write Defaults
+- **Fix: FindMenuRadials filtra clones NDMF**: Los 3 plugins NDMF (MRMenuRadialPlugin, MRDisableMAPlugin, MRCoserRopaPlugin) ahora excluyen avatares con "(Clone)" y usan solo el primer match
+- **Fix: PreviewManager protegido contra objetos destruidos**: Verifica si el IPreviewable es un UnityObject destruido antes de llamar metodos, previniendo MissingReferenceException
+- **Fix: CloneMenuRecursive con proteccion anti-ciclos**: Limite de profundidad (16) y deteccion de referencias circulares con HashSet
+- **Fix: BlendshapeReference.GetBlendshapeIndex() con cache**: Cache por mesh+nombre con invalidacion automatica, evitando busqueda lineal repetida
+- **Fix: SplitMenuIfNeeded con limite de profundidad**: Maximo 10 niveles de submenus "More", trunca sobrantes con warning
+
+### Eliminado
+- **Dead code: ComputeRegions()** en RadialAnimationBuilder.cs — funcion nunca llamada, solo queda CalculateTimeRegions() que es correcta
+
+### Cambiado
+- **CLAUDE.md reescrito**: Version mas limpia y concisa, organizada por arquitectura/reglas/known-issues. Corregida documentacion erronea sobre ObjectReference.Equals()
+
 ## [0.9.72] - 2026-03-01
 
 ### Corregido

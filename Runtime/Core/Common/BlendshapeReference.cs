@@ -14,6 +14,11 @@ namespace Bender_Dios.MenuRadial.Core.Common
         [SerializeField] private float _value;
         [SerializeField] private float _actualValue;
         [SerializeField] private bool _hasBaseValue;
+
+        // Cache para evitar búsqueda lineal repetida
+        [NonSerialized] private int _cachedBlendshapeIndex = -2; // -2 = no inicializado
+        [NonSerialized] private Mesh _cachedMesh;
+        [NonSerialized] private string _cachedName;
         
         /// <summary>
         /// SkinnedMeshRenderer objetivo que contiene el blendshape
@@ -105,21 +110,33 @@ namespace Bender_Dios.MenuRadial.Core.Common
         }
         
         /// <summary>
-        /// Obtiene el índice del blendshape en el mesh
+        /// Obtiene el índice del blendshape en el mesh (con cache)
         /// </summary>
         /// <returns>Índice del blendshape o -1 si no se encuentra</returns>
         public int GetBlendshapeIndex()
         {
             if (!IsRendererValid())
                 return -1;
-            
+
             var mesh = Target.sharedMesh;
+
+            // Invalidar cache si cambió el mesh o el nombre del blendshape
+            if (_cachedBlendshapeIndex != -2 && mesh == _cachedMesh && _cachedName == _blendshapeName)
+                return _cachedBlendshapeIndex;
+
+            _cachedMesh = mesh;
+            _cachedName = _blendshapeName;
+            _cachedBlendshapeIndex = -1;
+
             for (int i = 0; i < mesh.blendShapeCount; i++)
             {
                 if (mesh.GetBlendShapeName(i) == _blendshapeName)
+                {
+                    _cachedBlendshapeIndex = i;
                     return i;
+                }
             }
-            
+
             return -1;
         }
         

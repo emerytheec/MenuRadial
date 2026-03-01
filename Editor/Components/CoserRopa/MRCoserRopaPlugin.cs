@@ -74,13 +74,15 @@ namespace Bender_Dios.MenuRadial.Editor.Components.CoserRopa
                         && mr.AvatarRoot != null
                         && mr.AvatarRoot != context.AvatarRootObject
                         && mr.AvatarRoot.GetComponent<VRCAvatarDescriptor>() != null
-                        && mr.AvatarRoot.name == avatarName)
+                        && mr.AvatarRoot.name == avatarName
+                        && !mr.AvatarRoot.name.EndsWith("(Clone)"))
                     .ToArray();
 
                 if (matches.Length > 1)
                 {
                     Debug.LogWarning($"[MRCoserRopa NDMF] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
-                        "Esto puede causar conflictos si apuntan a avatares diferentes con el mismo nombre.");
+                        "Usando solo el primero para evitar conflictos.");
+                    matches = new[] { matches[0] };
                 }
 
                 menuRadials = matches;

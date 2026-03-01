@@ -155,13 +155,16 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                         && mr.AvatarRoot != null
                         && mr.AvatarRoot != context.AvatarRootObject
                         && mr.AvatarRoot.GetComponent<VRCAvatarDescriptor>() != null
-                        && mr.AvatarRoot.name == avatarName)
+                        // Comparar por nombre Y excluir avatares que son clones (otros builds NDMF en curso)
+                        && mr.AvatarRoot.name == avatarName
+                        && !mr.AvatarRoot.name.EndsWith("(Clone)"))
                     .ToArray();
 
                 if (matches.Length > 1)
                 {
                     Debug.LogWarning($"[MRMenuRadial NDMF] Se encontraron {matches.Length} MRMenuRadial externos para '{avatarName}'. " +
-                        "Esto puede causar conflictos si apuntan a avatares diferentes con el mismo nombre.");
+                        "Usando solo el primero para evitar conflictos.");
+                    matches = new[] { matches[0] };
                 }
 
                 menuRadials = matches;
@@ -182,6 +185,12 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             string prefix = menuRadial.OutputPrefix;
             bool writeDefaults = menuRadial.WriteDefaultValues;
             string menuRadialName = menuRadial.gameObject.name;
+
+            if (writeDefaults)
+            {
+                Debug.LogWarning($"[MRMenuRadial NDMF] '{menuRadialName}' tiene Write Defaults activado. " +
+                    "Se forzará a OFF durante el merge (VRChat best practice).");
+            }
 
             // Guardar configuración de integración del menú
             string effectiveMenuName = menuRadial.EffectiveMenuName;
@@ -369,7 +378,9 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                     }
 
                     var virtualState = virtualSM.AddState(state.name ?? "State", virtualMotion);
-                    virtualState.WriteDefaultValues = writeDefaults;
+                    // VRChat best practice: Write Defaults siempre OFF
+                    // Forzar false independientemente del parámetro para evitar mixed Write Defaults
+                    virtualState.WriteDefaultValues = false;
 
                     // Copiar propiedades del estado
                     try
@@ -461,6 +472,19 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             {
                 if (!paramList.Any(p => p.name == param.name))
                 {
+                    // Calcular costo en bits del nuevo parámetro
+                    int paramBits = (param.valueType == VRCExpressionParameters.ValueType.Bool) ? 1 : 8;
+                    int currentTotalBits = CalculateParameterBitCost(paramList);
+
+                    if (currentTotalBits + paramBits > MRVRChatConstants.MAX_PARAMETER_BITS)
+                    {
+                        Debug.LogError($"[MRMenuRadial NDMF] No se puede añadir parámetro '{param.name}' ({paramBits} bits): " +
+                            $"excedería el límite de {MRVRChatConstants.MAX_PARAMETER_BITS} bits " +
+                            $"(actual: {currentTotalBits}, necesario: {currentTotalBits + paramBits}). " +
+                            "Reduce el número de toggles/radiales o elimina parámetros no usados.");
+                        continue;
+                    }
+
                     paramList.Add(new VRCExpressionParameters.Parameter
                     {
                         name = param.name,
@@ -478,6 +502,21 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
             }
 
             avatar.expressionParameters.parameters = paramList.ToArray();
+        }
+
+        /// <summary>
+        /// Calcula el costo total en bits de una lista de parámetros VRChat.
+        /// Bool = 1 bit, Int/Float = 8 bits.
+        /// </summary>
+        private static int CalculateParameterBitCost(List<VRCExpressionParameters.Parameter> parameters)
+        {
+            int totalBits = 0;
+            foreach (var param in parameters)
+            {
+                if (param == null || string.IsNullOrEmpty(param.name)) continue;
+                totalBits += (param.valueType == VRCExpressionParameters.ValueType.Bool) ? 1 : 8;
+            }
+            return totalBits;
         }
 
         /// <summary>
@@ -651,9 +690,35 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
 
         /// <summary>
         /// Clona un menú y todos sus submenús recursivamente.
+        /// Protección contra ciclos y profundidad excesiva.
         /// </summary>
         private VRCExpressionsMenu CloneMenuRecursive(BuildContext context, VRCExpressionsMenu source)
         {
+            return CloneMenuRecursive(context, source, new HashSet<VRCExpressionsMenu>(), 0);
+        }
+
+        private const int MAX_MENU_DEPTH = 16;
+
+        private VRCExpressionsMenu CloneMenuRecursive(BuildContext context, VRCExpressionsMenu source, HashSet<VRCExpressionsMenu> visited, int depth)
+        {
+            if (depth > MAX_MENU_DEPTH)
+            {
+                Debug.LogWarning($"[MRMenuRadial NDMF] CloneMenuRecursive: profundidad máxima ({MAX_MENU_DEPTH}) alcanzada. Menú truncado.");
+                var empty = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+                empty.name = source.name + "_truncated";
+                context.AssetSaver.SaveAsset(empty);
+                return empty;
+            }
+
+            if (!visited.Add(source))
+            {
+                Debug.LogWarning($"[MRMenuRadial NDMF] CloneMenuRecursive: referencia circular detectada en menú '{source.name}'. Menú truncado.");
+                var empty = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+                empty.name = source.name + "_cycle_break";
+                context.AssetSaver.SaveAsset(empty);
+                return empty;
+            }
+
             var clone = UnityEngine.Object.Instantiate(source);
             clone.name = source.name;
             context.AssetSaver.SaveAsset(clone);
@@ -664,22 +729,34 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 var control = clone.controls[i];
                 if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && control.subMenu != null)
                 {
-                    control.subMenu = CloneMenuRecursive(context, control.subMenu);
+                    control.subMenu = CloneMenuRecursive(context, control.subMenu, visited, depth + 1);
                 }
             }
 
+            visited.Remove(source);
             return clone;
         }
 
         /// <summary>
         /// Divide el menú si excede el límite de 8 controles.
+        /// Límite de profundidad para prevenir cadenas excesivas de submenús "More".
         /// </summary>
         private void SplitMenuIfNeeded(BuildContext context, VRCExpressionsMenu menu)
         {
             const int MAX_CONTROLS = 8;
+            const int MAX_SPLIT_DEPTH = 10;
+            int depth = 0;
 
             while (menu.controls.Count > MAX_CONTROLS)
             {
+                if (depth >= MAX_SPLIT_DEPTH)
+                {
+                    Debug.LogWarning($"[MRMenuRadial NDMF] SplitMenuIfNeeded: profundidad máxima ({MAX_SPLIT_DEPTH}) alcanzada. " +
+                        $"Se truncan {menu.controls.Count - MAX_CONTROLS} controles sobrantes.");
+                    menu.controls.RemoveRange(MAX_CONTROLS, menu.controls.Count - MAX_CONTROLS);
+                    break;
+                }
+
                 var newMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
                 newMenu.name = menu.name + "_More";
                 context.AssetSaver.SaveAsset(newMenu);
@@ -696,6 +773,7 @@ namespace Bender_Dios.MenuRadial.Editor.Components.MenuRadial
                 });
 
                 menu = newMenu;
+                depth++;
             }
         }
 

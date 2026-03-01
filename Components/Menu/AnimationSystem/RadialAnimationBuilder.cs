@@ -24,18 +24,6 @@ namespace Bender_Dios.MenuRadial.AnimationSystem
         private static float ToSec(int frame) => (float)(frame / MRAnimationConstants.FRAME_RATE_DOUBLE);
         private static float ToSecClamp255(int frame) => (float)(Math.Min(frame, MRAnimationConstants.TOTAL_FRAMES) / MRAnimationConstants.FRAME_RATE_DOUBLE);
 
-        // Cálculo de regiones (entero + sobrante en última)
-        private static List<(int start, int end)> ComputeRegions(int N)
-        {
-            var regions = new List<(int start, int end)>(N);
-            if (N <= 0) return regions;
-            int steps = MRAnimationConstants.TOTAL_FRAMES / N;
-            for (int i = 0; i < N - 1; i++)
-                regions.Add((i * steps, (i + 1) * steps - 1));
-            regions.Add(((N - 1) * steps, MRAnimationConstants.TOTAL_FRAMES));
-            return regions;
-        }
-
         // Path y renderer
         private static string CalcPath(Transform target, Transform avatarRoot)
             => AnimationUtility.CalculateTransformPath(target, avatarRoot);
