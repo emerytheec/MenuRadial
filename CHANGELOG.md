@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto seran documentados en este archivo.
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.9.74] - 2026-03-01
+
+### Corregido
+- **Fix: Excepciones NDMF ahora detienen el build**: ProcessMenuRadial() re-lanza excepciones para que NDMF detenga el build, evitando que el avatar suba roto
+- **Fix: SetDirty() eliminado de MRMenuControl.OnValidate()**: Causaba que la escena se marcara como "unsaved" sin cambios reales
+- **Fix: Docstring MRMeshImportFixPlugin corregida**: Dice "detectar" en vez de "corregir" (solo reporta warnings)
+
+### Cambiado
+- **Log prefixes NDMF normalizados**: Patron consistente `[MR{Componente} NDMF]` en todos los plugins
+- **Verbose debug logging reducido**: MRAnalisisColisionPlugin de ~15 lineas a 1 resumen
+- **Dead variables eliminadas**: PreviewManager.CleanupDestroyedComponents()
+- **README.md actualizado**: Version 0.9.74, MRMenuRadial en uso rapido, tabla completa de componentes
+
 ## [0.9.73] - 2026-03-01
 
 ### Corregido
